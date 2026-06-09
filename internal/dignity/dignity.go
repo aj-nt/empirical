@@ -378,3 +378,28 @@ func FormatConvergence(dc *DignityConvergence) string {
 
 	return b.String()
 }
+
+// ── Shared helpers ─────────────────────────────────────────────────────────
+
+// normalizeLon normalizes a longitude to [0, 360).
+func normalizeLon(lon float64) float64 {
+	for lon < 0 {
+		lon += 360
+	}
+	for lon >= 360 {
+		lon -= 360
+	}
+	return lon
+}
+
+// angleDist returns the angular distance between two longitudes (0-180).
+func angleDist(a, b float64) float64 {
+	d := a - b
+	if d < 0 {
+		d = -d
+	}
+	if d > 180 {
+		d = 360 - d
+	}
+	return d
+}
