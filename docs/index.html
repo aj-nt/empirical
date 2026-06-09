@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Empirical Astrology — Signal Recovery</title>
+<style>
+  :root {
+    --bg: #0d1117; --surface: #161b22; --border: #30363d;
+    --text: #c9d1d9; --muted: #8b949e;
+    --signal: #3fb950; --noise: #f85149; --accent: #58a6ff;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg); color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    line-height: 1.6; min-height: 100vh;
+  }
+  .container { max-width: 780px; margin: 0 auto; padding: 2rem 1rem; }
+  header { text-align: center; margin-bottom: 2rem; }
+  header h1 { font-size: 1.6rem; font-weight: 600; }
+  header p { color: var(--muted); font-size: 0.9rem; }
+  .panels { display: flex; gap: 1rem; margin-bottom: 1.5rem; }
+  .panel-btn { flex: 1; background: var(--surface); border: 1px solid var(--border); color: var(--muted); padding: 0.75rem; border-radius: 6px; font-size: 0.85rem; cursor: pointer; text-align: center; }
+  .panel-btn.active { color: var(--text); border-color: var(--accent); }
+  .panel-btn small { display: block; font-size: 0.7rem; color: var(--muted); margin-top: 0.15rem; }
+  form { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 1.5rem; display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 2rem; }
+  form h2 { grid-column: 1/-1; font-size: 1rem; font-weight: 600; }
+  .field { display: flex; flex-direction: column; gap: 0.25rem; }
+  .field label { font-size: 0.75rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
+  .field input { background: var(--bg); border: 1px solid var(--border); border-radius: 4px; color: var(--text); padding: 0.45rem 0.6rem; font-size: 0.9rem; font-family: inherit; }
+  .field input:focus { outline: none; border-color: var(--accent); }
+  .full { grid-column: 1/-1; }
+  button { grid-column: 1/-1; background: var(--accent); color: #fff; border: none; border-radius: 6px; padding: 0.6rem; font-size: 0.95rem; font-weight: 600; cursor: pointer; margin-top: 0.5rem; }
+  button:hover { opacity: 0.9; } button:disabled { opacity: 0.5; cursor: not-allowed; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 1.5rem; margin-bottom: 1.5rem; }
+  .card h3 { font-size: 1rem; margin-bottom: 0.25rem; }
+  .card .sub { color: var(--muted); font-size: 0.8rem; margin-bottom: 1rem; }
+  .bar { display: flex; height: 8px; border-radius: 4px; overflow: hidden; margin-bottom: 1rem; }
+  .bar .sig { background: var(--signal); } .bar .nz { background: var(--noise); }
+  table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+  th, td { padding: 0.4rem 0.5rem; text-align: left; border-bottom: 1px solid var(--border); }
+  th { color: var(--muted); font-weight: 600; font-size: 0.7rem; text-transform: uppercase; }
+  .sig td:last-child { color: var(--signal); font-weight: 600; }
+  .nz td:last-child { color: var(--noise); font-weight: 600; }
+  .error { color: var(--noise); background: rgba(248,81,73,0.1); padding: 1rem; border-radius: 6px; }
+  .spinner { text-align: center; padding: 2rem; color: var(--muted); }
+  .note { color: var(--muted); font-size: 0.8rem; margin-top: 0.5rem; font-style: italic; }
+  .banner { background: rgba(88,166,255,0.1); border: 1px solid var(--accent); border-radius: 6px; padding: 0.75rem 1rem; margin-bottom: 1.5rem; font-size: 0.85rem; text-align: center; }
+  .aspect-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 0.5rem; }
+  .aspect-chip { background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 0.6rem; text-align: center; font-size: 0.75rem; }
+  .aspect-chip .deg { font-size: 1.2rem; font-weight: 700; }
+  .aspect-chip .name { color: var(--muted); font-size: 0.65rem; text-transform: uppercase; }
+  .aspect-chip.universal { border-color: var(--signal); }
+  .aspect-chip.partial { border-color: var(--noise); opacity: 0.7; }
+  .hidden { display: none; }
+  footer { text-align: center; margin-top: 2rem; color: var(--muted); font-size: 0.8rem; padding-bottom: 2rem; }
+  footer a { color: var(--accent); }
+</style>
+</head>
+<body>
+<div class="container">
+<header>
+  <h1>Empirical Astrology</h1>
+  <p>Cross-system signal recovery — deterministic, falsifiable. Single Go binary.</p>
+</header>
+<div id="api-banner" class="banner" style="display:none">
+  Live API detected. <a href="https://github.com/aj-nt/empirical" style="color:var(--accent)">Run your own server</a> with <code>empirical serve</code>.
+</div>
+<div id="offline-banner" class="banner">
+  Static demo showing AJ's chart. To compute your own: <a href="https://github.com/aj-nt/empirical" style="color:var(--accent)">github.com/aj-nt/empirical</a> → <code>empirical serve</code>.
+</div>
+<div class="panels">
+  <div class="panel-btn active" data-panel="dignity">Phase 1: Dignity<small>Western vs Vedic</small></div>
+  <div class="panel-btn" data-panel="aspects">Phase 2: Aspect Geometry<small>Three traditions</small></div>
+</div>
+<form id="chart-form">
+  <h2>Enter Birth Data</h2>
+  <div class="field full"><label>Name</label><input name="name" value="AJ"></div>
+  <div class="field"><label>Year</label><input name="year" type="number" value="1969" min="1000" max="3000"></div>
+  <div class="field"><label>Month</label><input name="month" type="number" value="2" min="1" max="12"></div>
+  <div class="field"><label>Day</label><input name="day" type="number" value="15" min="1" max="31"></div>
+  <div class="field"><label>Hour (24h)</label><input name="hour" type="number" value="23" min="0" max="23"></div>
+  <div class="field"><label>Minute</label><input name="minute" type="number" value="10" min="0" max="59"></div>
+  <div class="field"><label>TZ Offset (UTC)</label><input name="tz_offset" type="number" value="-8" step="0.5" min="-12" max="14"></div>
+  <div class="field"><label>Latitude</label><input name="lat" type="number" value="47.038" step="0.001" min="-90" max="90"></div>
+  <div class="field"><label>Longitude</label><input name="lng" type="number" value="-122.901" step="0.001" min="-180" max="180"></div>
+  <button type="submit">Recover Signal</button>
+</form>
+<div id="dignity-panel" class="card">
+  <h3>Dignity Convergence</h3>
+  <div class="sub">Western vs Vedic planetary dignity — which placements survive the coordinate shift?</div>
+  <div id="dignity-content"><div class="spinner">Loading...</div></div>
+</div>
+<div id="aspect-panel" class="card hidden">
+  <h3>Aspect Geometry Convergence</h3>
+  <div class="sub">Which angle families are universal across all three traditions?</div>
+  <div id="aspect-content"><div class="spinner">Loading...</div></div>
+</div>
+<footer><a href="https://github.com/aj-nt/empirical" target="_blank">github.com/aj-nt/empirical</a></footer>
+</div>
+<script>
+var D={"name":"AJ","ayanamsa_degrees":23.425866590270687,"signal_count":4,"noise_count":3,"convergence_rate":0.571,"signal_planets":["Moon","Mercury","Mars","Jupiter"],"noise_planets":["Sun","Venus","Saturn"],"planets":[{"Planet":"Sun","TropSign":"Aquarius","SidSign":"Aquarius","Western":"detriment","Vedic":"peregrine","Convergence":"western_only"},{"Planet":"Moon","TropSign":"Aquarius","SidSign":"Capricorn","Western":"peregrine","Vedic":"peregrine","Convergence":"agree"},{"Planet":"Mercury","TropSign":"Aquarius","SidSign":"Capricorn","Western":"peregrine","Vedic":"peregrine","Convergence":"agree"},{"Planet":"Venus","TropSign":"Aries","SidSign":"Pisces","Western":"detriment","Vedic":"uchcha","Convergence":"diverge"},{"Planet":"Mars","TropSign":"Scorpio","SidSign":"Scorpio","Western":"domicile","Vedic":"swakshetra","Convergence":"agree"},{"Planet":"Jupiter","TropSign":"Libra","SidSign":"Virgo","Western":"peregrine","Vedic":"peregrine","Convergence":"agree"},{"Planet":"Saturn","TropSign":"Aries","SidSign":"Pisces","Western":"fall","Vedic":"peregrine","Convergence":"diverge"}]};
+var A={"angles":[{"Name":"conjunction","AngleDegrees":0,"Universality":"universal"},{"Name":"semi-sextile","AngleDegrees":30,"Universality":"partial"},{"Name":"sextile","AngleDegrees":60,"Universality":"partial"},{"Name":"square","AngleDegrees":90,"Universality":"partial"},{"Name":"trine","AngleDegrees":120,"Universality":"universal"},{"Name":"quincunx","AngleDegrees":150,"Universality":"partial"},{"Name":"opposition","AngleDegrees":180,"Universality":"universal"}],"universal_count":3,"partial_count":4,"summary":"Conjunction (0), trine (120), and opposition (180) are the deepest invariants. Square (90) is nearly universal. Sextile (60) is Western/Vedic only."};
+var B="";
+async function X(){try{var r=await fetch("/api/aspect-catalog",{signal:AbortSignal.timeout(2000)});if(r.ok){B="";document.getElementById("api-banner").style.display="";document.getElementById("offline-banner").style.display="none"}}catch(e){}}
+document.querySelectorAll(".panel-btn").forEach(function(b){b.addEventListener("click",function(){document.querySelectorAll(".panel-btn").forEach(function(t){t.classList.remove("active")});b.classList.add("active");var p=b.dataset.panel;document.getElementById("dignity-panel").classList.toggle("hidden",p!=="dignity");document.getElementById("aspect-panel").classList.toggle("hidden",p!=="aspects")})});
+(async function(){
+  await X();
+  try{var r=await fetch(B+"/api/aspect-catalog");if(r.ok)Y(await r.json());else throw 0}catch(e){Y(A)}
+  try{r=await fetch(B+"/api/recover",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({name:"AJ",year:1969,month:2,day:15,hour:23,minute:10,tz_offset:-8,lat:47.038,lng:-122.901}),signal:AbortSignal.timeout(10000)});if(r.ok)Z(await r.json());else throw 0}catch(e){Z(D)}
+})();
+function Y(d){
+  var c=d.angles.map(function(a){
+    var cl=a.Universality==="universal"?"universal":"partial";
+    var lb=a.Universality==="universal"?"SIGNAL":"partial";
+    return '<div class="aspect-chip '+cl+'"><div class="deg">'+a.AngleDegrees+'°</div><div class="name">'+a.Name+'</div><div style="font-size:0.6rem;margin-top:0.15rem;color:var(--muted)">'+lb+'</div></div>';
+  }).join("");
+  document.getElementById("aspect-content").innerHTML='<p style="font-size:0.85rem;margin-bottom:1rem"><strong>'+d.universal_count+' universal</strong> angles across all three traditions.</p><div class="aspect-grid">'+c+'</div><p class="note" style="margin-top:1rem">'+d.summary+'</p>';
+}
+document.getElementById("chart-form").addEventListener("submit",async function(e){
+  e.preventDefault();var btn=document.querySelector("button");btn.disabled=true;btn.textContent="Computing...";
+  var fd=new FormData(e.target);
+  var body={name:fd.get("name"),year:parseInt(fd.get("year")),month:parseInt(fd.get("month")),day:parseInt(fd.get("day")),hour:parseInt(fd.get("hour")),minute:parseInt(fd.get("minute")),tz_offset:parseFloat(fd.get("tz_offset")),lat:parseFloat(fd.get("lat")),lng:parseFloat(fd.get("lng"))};
+  try{
+    var r=await fetch(B+"/api/recover",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body),signal:AbortSignal.timeout(30000)});
+    if(!r.ok)throw new Error((await r.json()).error||"Server error");
+    Z(await r.json());
+  }catch(err){
+    document.getElementById("dignity-content").innerHTML='<div class="error">Cannot reach API. This demo shows AJ's chart. To compute others: <a href="https://github.com/aj-nt/empirical" style="color:var(--accent)">github.com/aj-nt/empirical</a> <code>empirical serve</code></div>';
+  }finally{btn.disabled=false;btn.textContent="Recover Signal"}
+});
+function Z(d){
+  var s=d.signal_count||d.planets.filter(function(p){return p.Convergence==="agree"}).length;
+  var t=d.planets.length;var pct=Math.round(s/t*100);
+  var sorted=[].concat(d.planets).sort(function(a,b){
+    if(a.Convergence==="agree"&&b.Convergence!=="agree")return -1;
+    if(a.Convergence!=="agree"&&b.Convergence==="agree")return 1;return 0;
+  });
+  var rows=sorted.map(function(p){
+    var cl=p.Convergence==="agree"?"sig":"nz";
+    var v=p.Convergence==="agree"?"SIGNAL":"NOISE";
+    if(p.Convergence==="diverge")v+=" (diverge)";
+    if(p.Convergence==="western_only")v+=" (Western only)";
+    if(p.Convergence==="vedic_only")v+=" (Vedic only)";
+    return '<tr class="'+cl+'"><td>'+p.Planet+'</td><td>'+p.TropSign+'</td><td>'+p.SidSign+'</td><td>'+p.Western+'</td><td>'+p.Vedic+'</td><td>'+v+'</td></tr>';
+  }).join("");
+  var as=pct>=70?"HIGH — dignity strongly preserved across coordinate systems.":pct>=50?"MODERATE — dignity partially invariant.":"LOW — dignity is fragile.";
+  document.getElementById("dignity-content").innerHTML='<p style="font-size:0.9rem;margin-bottom:0.5rem"><strong>'+s+'/'+t+' planets converge</strong> ('+pct+'% signal)<span style="color:var(--muted)"> · Ayanamsa: '+d.ayanamsa_degrees.toFixed(2)+' deg Lahiri</span></p><div class="bar"><div class="sig" style="flex:'+s+'"></div><div class="nz" style="flex:'+(t-s)+'"></div></div><p style="font-size:0.82rem;color:var(--muted);margin-bottom:1rem">'+as+'</p><table><thead><tr><th>Planet</th><th>Tropical</th><th>Sidereal</th><th>Western</th><th>Vedic</th><th>Verdict</th></tr></thead><tbody>'+rows+'</tbody></table>';
+}
+</script>
+</body>
+</html>
