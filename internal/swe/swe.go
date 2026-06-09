@@ -1,9 +1,7 @@
 package swe
 
 /*
-#cgo darwin,amd64 LDFLAGS: /Users/aj/.local/lib/libswe.a -lm
-#cgo darwin,arm64 LDFLAGS: /Users/aj/.local/lib/libswe.a -lm
-#cgo linux LDFLAGS: -lswe -lm
+#cgo LDFLAGS: /Users/aj/.local/lib/libswe.a -lm
 #cgo CFLAGS: -I/Users/aj/.local/include
 #include <swephexp.h>
 */

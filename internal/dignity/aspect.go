@@ -1,6 +1,7 @@
 package dignity
 
 import (
+	"encoding/json"
 	"fmt"
 	"sort"
 	"strings"
@@ -158,4 +159,35 @@ func FormatAspectCatalog() string {
 		"lost in the Chinese fragment.\n")
 
 	return b.String()
+}
+
+// FormatAspectJSON returns the aspect catalog as indented JSON.
+func FormatAspectJSON(catalog []AspectEntry) ([]byte, error) {
+	type out struct {
+		Angles       []AspectEntry `json:"angles"`
+		Universal    int           `json:"universal_count"`
+		Partial      int           `json:"partial_count"`
+		Summary      string        `json:"summary"`
+	}
+	var universal, partial int
+	for _, a := range catalog {
+		if a.Universality == "universal" {
+			universal++
+		} else {
+			partial++
+		}
+	}
+	o := out{
+		Angles:    catalog,
+		Universal: universal,
+		Partial:   partial,
+		Summary: "Conjunction (0), trine (120), and opposition (180) are the " +
+			"deepest invariants. Square (90) is nearly universal. " +
+			"Sextile (60) is Western/Vedic only — candidate for later accretion.",
+	}
+	b, err := json.MarshalIndent(o, "", "  ")
+	if err != nil {
+		return nil, err
+	}
+	return b, nil
 }
