@@ -33,24 +33,28 @@ import (
 
 // TimingPeriod is a single timing period from one system.
 type TimingPeriod struct {
-	System   string   // "vedic_dasha", "bazi_luck", "profection"
-	Name     string   // e.g. "Mercury mahadasha", "GengShen"
-	Start    string   // ISO date
-	End      string   // ISO date
-	Years    float64  // Duration in years
-	Planets  []string // Planets activated in this period
-	Elements []string // Elements activated
+	System   string   `json:"system"`
+	Name     string   `json:"name"`
+	Start    string   `json:"start"`
+	End      string   `json:"end"`
+	Years    float64  `json:"years"`
+	Planets  []string `json:"planets"`
+	Elements []string `json:"elements"`
 }
 
 // TimingConvergence holds timing convergence across systems for a given date.
 type TimingConvergence struct {
-	Name       string
-	TargetDate string
-	Periods    []TimingPeriod
+	Name              string          `json:"name"`
+	TargetDate        string          `json:"target_date"`
+	Periods           []TimingPeriod  `json:"periods"`
+	PlanetConvergences []string       `json:"planet_convergences"`
+	ConvergenceCount  int             `json:"convergence_count"`
+	HasConvergence    bool            `json:"has_convergence"`
+	AllSystemsAgree   bool            `json:"all_systems_agree"`
 }
 
 // PlanetConvergences returns planets that appear in 2+ systems.
-func (tc *TimingConvergence) PlanetConvergences() []string {
+func (tc *TimingConvergence) computePlanetConvergences() []string {
 	planetSystems := make(map[string]map[string]bool)
 	for _, p := range tc.Periods {
 		seen := make(map[string]bool)
@@ -77,17 +81,17 @@ func (tc *TimingConvergence) PlanetConvergences() []string {
 }
 
 // ConvergenceCount returns the number of converging planets.
-func (tc *TimingConvergence) ConvergenceCount() int {
-	return len(tc.PlanetConvergences())
+func (tc *TimingConvergence) computeConvergenceCount() int {
+	return len(tc.computePlanetConvergences())
 }
 
-// HasConvergence returns true if any planet appears in 2+ systems.
-func (tc *TimingConvergence) HasConvergence() bool {
-	return tc.ConvergenceCount() > 0
+// HasConvergence checks if any planet appears in 2+ systems.
+func (tc *TimingConvergence) computeHasConvergence() bool {
+	return tc.computeConvergenceCount() > 0
 }
 
-// AllSystemsAgree returns true if at least one planet appears in ALL systems.
-func (tc *TimingConvergence) AllSystemsAgree() bool {
+// AllSystemsAgree checks if at least one planet appears in ALL systems.
+func (tc *TimingConvergence) computeAllSystemsAgree() bool {
 	if len(tc.Periods) < 2 {
 		return false
 	}
@@ -643,7 +647,22 @@ func ComputeTimingConvergence(
 		Elements: []string{profection.Element},
 	})
 
+	// Populate computed fields
+	tc.finalize()
+
 	return tc
+}
+
+// finalize populates computed convergence fields.
+func (tc *TimingConvergence) finalize() {
+	convs := tc.computePlanetConvergences()
+	if convs == nil {
+		convs = []string{}
+	}
+	tc.PlanetConvergences = convs
+	tc.ConvergenceCount = len(convs)
+	tc.HasConvergence = tc.ConvergenceCount > 0
+	tc.AllSystemsAgree = tc.computeAllSystemsAgree()
 }
 
 // ── Formatting ──────────────────────────────────────────────────────────
@@ -665,15 +684,15 @@ func FormatTimingConvergence(tc *TimingConvergence) string {
 		b.WriteString("\n")
 	}
 
-	if tc.HasConvergence() {
-		b.WriteString(fmt.Sprintf("CONVERGENCE: %s appear in 2+ systems\n", strings.Join(tc.PlanetConvergences(), ", ")))
+	if tc.HasConvergence {
+		b.WriteString(fmt.Sprintf("CONVERGENCE: %s appear in 2+ systems\n", strings.Join(tc.PlanetConvergences, ", ")))
 	} else {
 		b.WriteString("NO CONVERGENCE: no planet appears in 2+ systems\n")
 	}
 
-	if tc.AllSystemsAgree() {
+	if tc.AllSystemsAgree {
 		b.WriteString("STRONG: at least one planet appears in ALL systems\n")
-	} else if tc.HasConvergence() {
+	} else if tc.HasConvergence {
 		b.WriteString("PARTIAL: planet overlap but no single planet in all systems\n")
 	}
 

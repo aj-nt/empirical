@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
 	"io/fs"
@@ -32,16 +33,24 @@ func main() {
 		swe.SetEphePath(cacheDir)
 		swe.SetSidMode(swe.SIDM_LAHIRI, 0, 0)
 
-		// Build compute function
+		// Build compute function: all phases
 		compute := func(name string, year, month, day, hour, minute int, tzOff, lat, lng float64) ([]byte, error) {
-			result := computeDignity(name, year, month, day, hour, minute, tzOff, lat, lng)
-			js, err := result.ToJSON()
-			return []byte(js), err
+			result := computeAll(name, year, month, day, hour, minute, 0, tzOff, lat, lng, cacheDir)
+			return result.FullReportJSON()
 		}
 
 		aspects := func() ([]byte, error) {
 			catalog := dignity.AspectCatalog()
 			return dignity.FormatAspectJSON(catalog)
+		}
+
+		timing := func(name string, year, month, day, hour, minute int, tzOff, lat, lng float64, targetDate string) ([]byte, error) {
+			chartData := computePositions(year, month, day, hour, minute, tzOff, lat, lng, cacheDir)
+			report := dignity.ComputeTimingReport(
+				name, year, month, day, hour, minute, tzOff, lat, lng,
+				targetDate, chartData.planets, chartData.ayan, chartData.asc,
+			)
+			return report.TimingReportJSON()
 		}
 
 		// Use embedded web files, stripping the "web/" prefix
@@ -51,7 +60,7 @@ func main() {
 			os.Exit(1)
 		}
 
-		if err := server.Run(port, staticFS, compute, aspects); err != nil {
+		if err := server.Run(port, staticFS, compute, aspects, timing); err != nil {
 			fmt.Fprintf(os.Stderr, "Server error: %v\n", err)
 			os.Exit(1)
 		}
@@ -80,44 +89,49 @@ func main() {
 	lat, _ := strconv.ParseFloat(args[7], 64)
 	lng, _ := strconv.ParseFloat(args[8], 64)
 
-	result := computeDignity(name, year, month, day, hour, minute, tzOff, lat, lng)
-
+	result := computeAll(name, year, month, day, hour, minute, 0, tzOff, lat, lng, "")
+	
 	if *jsonOut {
-		js, err := result.ToJSON()
+		js, err := result.FullReportJSON()
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "JSON error: %v\n", err)
 			os.Exit(1)
 		}
-		fmt.Println(js)
+		fmt.Println(string(js))
 	} else {
-		fmt.Print(dignity.FormatConvergence(result))
+		printReport(result)
 	}
 }
 
-// computeDignity handles all the SWE setup and dignity computation.
-func computeDignity(name string, year, month, day, hour, minute int, tzOff, lat, lng float64) *dignity.DignityConvergence {
-	// Extract embedded ephemeris to temp dir
-	cacheDir, err := empirical.EnsureEpheCache()
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Failed to initialize ephemeris: %v\n", err)
-		os.Exit(1)
+// chartData holds pre-computed chart positions.
+type chartData struct {
+	planets map[string]float64
+	ayan    float64
+	asc     float64
+	nn      float64
+	jd      float64
+}
+
+// computePositions calculates planet longitudes, ayanamsa, ASC, and NN.
+func computePositions(year, month, day, hour, minute int, tzOff, lat, lng float64, cacheDir string) *chartData {
+	if cacheDir == "" {
+		var err error
+		cacheDir, err = empirical.EnsureEpheCache()
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Failed to initialize ephemeris: %v\n", err)
+			os.Exit(1)
+		}
 	}
 
-	// Set ephemeris path
 	swe.SetEphePath(cacheDir)
-
-	// Set Lahiri ayanamsa
 	swe.SetSidMode(swe.SIDM_LAHIRI, 0, 0)
 
-	// Compute Julian Day in UT
 	utHour := float64(hour) + float64(minute)/60.0 - tzOff
 	jd := swe.Julday(year, month, day, utHour, true)
-
-	// Get ayanamsa
 	ayan := swe.GetAyanamsaUT(jd)
 
-	// Compute planet positions (tropical)
-	planetSpecs := []struct {
+	pls := map[string]float64{}
+	specs := []struct {
 		name string
 		id   int
 	}{
@@ -129,13 +143,48 @@ func computeDignity(name string, year, month, day, hour, minute int, tzOff, lat,
 		{"Jupiter", swe.JUPITER},
 		{"Saturn", swe.SATURN},
 	}
-
-	tropicalLongitudes := make(map[string]float64)
-	for _, p := range planetSpecs {
+	for _, p := range specs {
 		lon, _, _, _ := swe.CalcUT(jd, p.id)
-		tropicalLongitudes[p.name] = lon
+		pls[p.name] = lon
 	}
 
-	// Compute dignity convergence
-	return dignity.ComputeDignityConvergence(tropicalLongitudes, ayan, name)
+	// Get ASC and NN
+	nnLon, _, _, _ := swe.CalcUT(jd, swe.MEAN_NODE)
+	_, ascmc := swe.Houses(jd, lat, lng, 'P')
+	asc := ascmc[0]
+
+	return &chartData{
+		planets: pls,
+		ayan:    ayan,
+		asc:     asc,
+		nn:      nnLon,
+		jd:      jd,
+	}
+}
+
+// computeAll returns a full multi-phase report.
+func computeAll(name string, year, month, day, hour, minute, second int, tzOff, lat, lng float64, cacheDir string) *dignity.FullReport {
+	cd := computePositions(year, month, day, hour, minute, tzOff, lat, lng, cacheDir)
+	return dignity.ComputeFullReport(cd.planets, cd.ayan, cd.nn, cd.asc, name, year, month, day, hour, minute, second, tzOff, lat, lng)
+}
+
+// printReport prints a human-readable multi-phase report.
+func printReport(fr *dignity.FullReport) {
+	fmt.Printf("╔══════════════════════════════════════════════════════════╗\n")
+	fmt.Printf("║  Empirical Astrology — Signal Recovery Report           ║\n")
+	fmt.Printf("╚══════════════════════════════════════════════════════════╝\n")
+	fmt.Printf("\n  Name: %s\n", fr.Name)
+	fmt.Printf("  Ayanamsa: %.2f deg Lahiri\n\n", fr.AyanamsaDegrees)
+
+	fmt.Print(dignity.FormatConvergence(fr.Phase1Dignity))
+	fmt.Print(dignity.FormatConvergence(fr.Phase1Dignity))
+	fmt.Print(dignity.FormatNodeConvergence(fr.Phase5Nodes))
+	zcJSON, _ := fr.Phase6Zodiac.ZodiacComparisonJSON()
+	var zcMap map[string]interface{}
+	json.Unmarshal(zcJSON, &zcMap)
+	fmt.Printf("\nPhase 6: Zodiac Comparison\n")
+	fmt.Printf("  Winner: %s\n", fr.Phase6Zodiac.Winner())
+	fmt.Printf("  Tropical dignity: %.1f%%, Sidereal: %.1f%%\n",
+		fr.Phase6Zodiac.Tropical.DignityDensity()*100,
+		fr.Phase6Zodiac.Sidereal.DignityDensity()*100)
 }

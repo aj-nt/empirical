@@ -305,8 +305,8 @@ func TestTimingConvergence_AJ(t *testing.T) {
 	}
 
 	// Python says NO CONVERGENCE for AJ
-	if tc.HasConvergence() {
-		t.Logf("Warning: AJ has convergence %v (Python says none)", tc.PlanetConvergences())
+	if tc.HasConvergence {
+		t.Logf("Warning: AJ has convergence %v (Python says none)", tc.PlanetConvergences)
 	}
 }
 
@@ -343,10 +343,10 @@ func TestTimingConvergence_Cait(t *testing.T) {
 	tc := ComputeTimingConvergence("2026-06-08", "Cait", dasha, baZi, 1986, 4, 29, prof)
 
 	// Python says convergence count = 1, planet = Mercury
-	if !tc.HasConvergence() {
+	if !tc.HasConvergence {
 		t.Errorf("Cait: expected convergence (Python says Mercury)")
 	}
-	convs := tc.PlanetConvergences()
+	convs := tc.PlanetConvergences
 	if len(convs) < 1 || convs[0] != "Mercury" {
 		t.Errorf("Cait convergences: want [Mercury], got %v", convs)
 	}
@@ -411,14 +411,15 @@ func TestTimingConvergence_Convergence(t *testing.T) {
 			{System: "profection", Planets: []string{"Sun"}},
 		},
 	}
+	tc.finalize()
 
-	if !tc.HasConvergence() {
+	if !tc.HasConvergence {
 		t.Error("Expected convergence with Mercury in 2 systems")
 	}
-	if tc.ConvergenceCount() < 1 {
+	if tc.ConvergenceCount < 1 {
 		t.Error("Expected at least 1 convergence")
 	}
-	if !tc.AllSystemsAgree() {
+	if !tc.AllSystemsAgree {
 		t.Log("No planet in all 3 systems (expected — Mercury only in 2)")
 	}
 }
@@ -433,11 +434,12 @@ func TestTimingConvergence_AllSystemsAgree(t *testing.T) {
 			{System: "profection", Planets: []string{"Mars"}},
 		},
 	}
+	tc.finalize()
 
-	if !tc.AllSystemsAgree() {
+	if !tc.AllSystemsAgree {
 		t.Error("Mars should appear in all systems")
 	}
-	if !tc.HasConvergence() {
+	if !tc.HasConvergence {
 		t.Error("HasConvergence should be true")
 	}
 }
@@ -448,13 +450,13 @@ func TestTimingConvergence_Empty(t *testing.T) {
 		TargetDate: "2020-01-01",
 	}
 
-	if tc.HasConvergence() {
+	if tc.HasConvergence {
 		t.Error("Empty should have no convergence")
 	}
-	if tc.ConvergenceCount() != 0 {
+	if tc.ConvergenceCount != 0 {
 		t.Error("Empty convergence count should be 0")
 	}
-	convs := tc.PlanetConvergences()
+	convs := tc.PlanetConvergences
 	if len(convs) != 0 {
 		t.Errorf("Empty convergences: want [], got %v", convs)
 	}
@@ -500,7 +502,7 @@ func TestTimingConvergence_CrossValidation(t *testing.T) {
 		t.Errorf("Profection dates: want 2026-02-15 to 2027-02-15, got %s to %s", tc.Periods[2].Start, tc.Periods[2].End)
 	}
 
-	if tc.HasConvergence() {
-		t.Errorf("AJ should have NO convergence, got %v", tc.PlanetConvergences())
+	if tc.HasConvergence {
+		t.Errorf("AJ should have NO convergence, got %v", tc.PlanetConvergences)
 	}
 }
