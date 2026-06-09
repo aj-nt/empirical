@@ -1,0 +1,11 @@
+# Binary
+/empirical
+
+# Ephemeris cache (generated at runtime)
+.cache/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
