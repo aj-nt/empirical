@@ -1,9 +1,9 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Empirical Astrology</title>
+<title>Empirical Astrology — Signal Recovery</title>
 <style>
   :root {
     --bg: #0d1117; --surface: #161b22; --border: #30363d;
@@ -11,21 +11,252 @@
     --signal: #3fb950; --noise: #f85149; --accent: #58a6ff;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; line-height: 1.6; min-height: 100vh; }
-  .container { max-width: 720px; margin: 0 auto; padding: 2rem 1rem; }
+  body {
+    background: var(--bg); color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    line-height: 1.6; min-height: 100vh;
+  }
+  .container { max-width: 780px; margin: 0 auto; padding: 2rem 1rem; }
+
   header { text-align: center; margin-bottom: 2rem; }
   header h1 { font-size: 1.6rem; font-weight: 600; }
   header p { color: var(--muted); font-size: 0.9rem; }
-  .empty { text-align: center; color: var(--muted); padding: 3rem; }
+
+  .panels { display: flex; gap: 1rem; margin-bottom: 1.5rem; }
+  .panel-btn {
+    flex: 1; background: var(--surface); border: 1px solid var(--border);
+    color: var(--muted); padding: 0.75rem; border-radius: 6px;
+    font-size: 0.85rem; cursor: pointer; text-align: center;
+  }
+  .panel-btn.active { color: var(--text); border-color: var(--accent); }
+  .panel-btn small { display: block; font-size: 0.7rem; color: var(--muted); margin-top: 0.15rem; }
+
+  form {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 8px; padding: 1.5rem;
+    display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 2rem;
+  }
+  form h2 { grid-column: 1/-1; font-size: 1rem; font-weight: 600; }
+  .field { display: flex; flex-direction: column; gap: 0.25rem; }
+  .field label { font-size: 0.75rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
+  .field input {
+    background: var(--bg); border: 1px solid var(--border); border-radius: 4px;
+    color: var(--text); padding: 0.45rem 0.6rem; font-size: 0.9rem; font-family: inherit;
+  }
+  .field input:focus { outline: none; border-color: var(--accent); }
+  .full { grid-column: 1/-1; }
+  button {
+    grid-column: 1/-1; background: var(--accent); color: #fff;
+    border: none; border-radius: 6px; padding: 0.6rem;
+    font-size: 0.95rem; font-weight: 600; cursor: pointer; margin-top: 0.5rem;
+  }
+  button:hover { opacity: 0.9; }
+  button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 8px; padding: 1.5rem; margin-bottom: 1.5rem;
+  }
+  .card h3 { font-size: 1rem; margin-bottom: 0.25rem; }
+  .card .sub { color: var(--muted); font-size: 0.8rem; margin-bottom: 1rem; }
+
+  .bar { display: flex; height: 8px; border-radius: 4px; overflow: hidden; margin-bottom: 1rem; }
+  .bar .sig { background: var(--signal); }
+  .bar .nz { background: var(--noise); }
+
+  table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+  th, td { padding: 0.4rem 0.5rem; text-align: left; border-bottom: 1px solid var(--border); }
+  th { color: var(--muted); font-weight: 600; font-size: 0.7rem; text-transform: uppercase; }
+  .sig td:last-child { color: var(--signal); font-weight: 600; }
+  .nz td:last-child { color: var(--noise); font-weight: 600; }
+
+  .error { color: var(--noise); background: rgba(248,81,73,0.1); padding: 1rem; border-radius: 6px; }
+  .spinner { text-align: center; padding: 2rem; color: var(--muted); }
+  .note { color: var(--muted); font-size: 0.8rem; margin-top: 0.5rem; font-style: italic; }
+
+  .aspect-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 0.5rem; }
+  .aspect-chip {
+    background: var(--bg); border: 1px solid var(--border); border-radius: 6px;
+    padding: 0.6rem; text-align: center; font-size: 0.75rem;
+  }
+  .aspect-chip .deg { font-size: 1.2rem; font-weight: 700; }
+  .aspect-chip .name { color: var(--muted); font-size: 0.65rem; text-transform: uppercase; }
+  .aspect-chip.universal { border-color: var(--signal); }
+  .aspect-chip.partial { border-color: var(--noise); opacity: 0.7; }
+
+  .hidden { display: none; }
+
+  footer {
+    text-align: center; margin-top: 2rem;
+    color: var(--muted); font-size: 0.8rem; padding-bottom: 2rem;
+  }
+  footer a { color: var(--accent); }
 </style>
 </head>
 <body>
 <div class="container">
-  <header>
-    <h1>Empirical Astrology</h1>
-    <p>Cross-system signal recovery — deterministic, falsifiable</p>
-  </header>
-  <div class="empty">Coming soon. <a href="https://github.com/aj-nt/empirical" style="color:var(--accent)">github.com/aj-nt/empirical</a></div>
+
+<header>
+  <h1>Empirical Astrology</h1>
+  <p>Cross-system signal recovery — deterministic, falsifiable</p>
+</header>
+
+<div class="panels">
+  <div class="panel-btn active" data-panel="dignity">Phase 1: Dignity<small>Western vs Vedic</small></div>
+  <div class="panel-btn" data-panel="aspects">Phase 2: Aspect Geometry<small>Three traditions</small></div>
 </div>
+
+<form id="chart-form">
+  <h2>Enter Birth Data</h2>
+  <div class="field full"><label>Name</label><input name="name" value="AJ"></div>
+  <div class="field"><label>Year</label><input name="year" type="number" value="1969" min="1000" max="3000"></div>
+  <div class="field"><label>Month</label><input name="month" type="number" value="2" min="1" max="12"></div>
+  <div class="field"><label>Day</label><input name="day" type="number" value="15" min="1" max="31"></div>
+  <div class="field"><label>Hour (24h)</label><input name="hour" type="number" value="23" min="0" max="23"></div>
+  <div class="field"><label>Minute</label><input name="minute" type="number" value="10" min="0" max="59"></div>
+  <div class="field"><label>TZ Offset (UTC)</label><input name="tz_offset" type="number" value="-8" step="0.5" min="-12" max="14"></div>
+  <div class="field"><label>Latitude</label><input name="lat" type="number" value="47.038" step="0.001" min="-90" max="90"></div>
+  <div class="field"><label>Longitude</label><input name="lng" type="number" value="-122.901" step="0.001" min="-180" max="180"></div>
+  <button type="submit">Recover Signal</button>
+</form>
+
+<div id="dignity-panel" class="card">
+  <h3>Dignity Convergence</h3>
+  <div class="sub">Western vs Vedic planetary dignity — which placements survive the coordinate shift?</div>
+  <div id="dignity-content" class="note">Enter birth data and click "Recover Signal" above.</div>
+</div>
+
+<div id="aspect-panel" class="card hidden">
+  <h3>Aspect Geometry Convergence</h3>
+  <div class="sub">Which angle families are universal across Western, Vedic, and Chinese traditions?</div>
+  <div id="aspect-content">
+    <div class="spinner">Loading...</div>
+  </div>
+</div>
+
+<footer>
+  <a href="https://github.com/aj-nt/empirical" target="_blank">github.com/aj-nt/empirical</a>
+</footer>
+
+</div>
+
+<script>
+// Panel switching
+document.querySelectorAll('.panel-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.panel-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    const panel = btn.dataset.panel;
+    document.getElementById('dignity-panel').classList.toggle('hidden', panel !== 'dignity');
+    document.getElementById('aspect-panel').classList.toggle('hidden', panel !== 'aspects');
+  });
+});
+
+// Load aspect catalog on startup
+fetch('/api/aspect-catalog')
+  .then(r => r.json())
+  .then(renderAspects)
+  .catch(() => {
+    document.getElementById('aspect-content').innerHTML = '<div class="note">API unavailable — aspect catalog requires the server.</div>';
+  });
+
+function renderAspects(data) {
+  let chips = data.angles.map(a => {
+    const cls = a.Universality === 'universal' ? 'universal' : 'partial';
+    const label = a.Universality === 'universal' ? 'SIGNAL' : 'partial';
+    return `<div class="aspect-chip ${cls}">
+      <div class="deg">${a.AngleDegrees}°</div>
+      <div class="name">${a.Name}</div>
+      <div style="font-size:0.6rem;margin-top:0.15rem;color:var(--muted)">${label}</div>
+    </div>`;
+  }).join('');
+
+  document.getElementById('aspect-content').innerHTML = `
+    <p style="font-size:0.85rem;margin-bottom:1rem">
+      <strong>${data.universal_count} universal</strong> angles across all three traditions.
+      Only conjunction (0°), trine (120°), and opposition (180°) survive intact.
+    </p>
+    <div class="aspect-grid">${chips}</div>
+    <p class="note" style="margin-top:1rem">${data.summary}</p>
+  `;
+}
+
+// Form submit
+const form = document.getElementById('chart-form');
+form.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const btn = form.querySelector('button');
+  btn.disabled = true; btn.textContent = 'Computing...';
+
+  const fd = new FormData(form);
+  const body = {
+    name: fd.get('name'),
+    year: parseInt(fd.get('year')), month: parseInt(fd.get('month')),
+    day: parseInt(fd.get('day')), hour: parseInt(fd.get('hour')),
+    minute: parseInt(fd.get('minute')), tz_offset: parseFloat(fd.get('tz_offset')),
+    lat: parseFloat(fd.get('lat')), lng: parseFloat(fd.get('lng')),
+  };
+
+  try {
+    const res = await fetch('/api/recover', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      document.getElementById('dignity-content').innerHTML = `<div class="error">${data.error || 'Server error'}</div>`;
+    } else {
+      renderDignity(data);
+    }
+  } catch (err) {
+    document.getElementById('dignity-content').innerHTML = `<div class="error">Connection error: ${err.message}</div>`;
+  } finally {
+    btn.disabled = false; btn.textContent = 'Recover Signal';
+  }
+});
+
+function renderDignity(data) {
+  const signal = data.signal_count || data.planets.filter(p => p.Convergence === 'agree').length;
+  const total = data.planets.length;
+  const pct = Math.round((signal/total)*100);
+
+  const sorted = [...data.planets].sort((a,b) => {
+    if (a.Convergence === 'agree' && b.Convergence !== 'agree') return -1;
+    if (a.Convergence !== 'agree' && b.Convergence === 'agree') return 1;
+    return 0;
+  });
+
+  let rows = sorted.map(p => {
+    const cls = p.Convergence === 'agree' ? 'sig' : 'nz';
+    let verdict = p.Convergence === 'agree' ? 'SIGNAL' : 'NOISE';
+    if (p.Convergence === 'diverge') verdict += ' (diverge)';
+    if (p.Convergence === 'western_only') verdict += ' (Western only)';
+    if (p.Convergence === 'vedic_only') verdict += ' (Vedic only)';
+    return `<tr class="${cls}">
+      <td>${p.Planet}</td><td>${p.TropSign}</td><td>${p.SidSign}</td>
+      <td>${p.Western}</td><td>${p.Vedic}</td><td>${verdict}</td>
+    </tr>`;
+  }).join('');
+
+  let assessment = '';
+  if (pct >= 70) assessment = 'HIGH — dignity is strongly preserved across coordinate systems.';
+  else if (pct >= 50) assessment = 'MODERATE — dignity partially invariant. Some placements are firm, others break.';
+  else assessment = 'LOW — dignity is fragile. What appears dominant in one system dissolves in the other.';
+
+  document.getElementById('dignity-content').innerHTML = `
+    <p style="font-size:0.9rem;margin-bottom:0.5rem">
+      <strong>${signal}/${total} planets converge</strong> (${pct}% signal)
+      <span style="color:var(--muted)"> · Ayanamsa: ${data.ayanamsa_degrees.toFixed(2)} deg Lahiri</span>
+    </p>
+    <div class="bar"><div class="sig" style="flex:${signal}"></div><div class="nz" style="flex:${total-signal}"></div></div>
+    <p style="font-size:0.82rem;color:var(--muted);margin-bottom:1rem">${assessment}</p>
+    <table>
+      <thead><tr><th>Planet</th><th>Tropical</th><th>Sidereal</th><th>Western</th><th>Vedic</th><th>Verdict</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+  `;
+}
+</script>
 </body>
 </html>
