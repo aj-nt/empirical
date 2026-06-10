@@ -53,6 +53,10 @@ func main() {
 			return report.TimingReportJSON()
 		}
 
+		transits := func(name string, year, month, day, hour, minute int, tzOff, lat, lng float64, startDate, endDate string, orbDeg float64) ([]byte, error) {
+			return computeTransits(name, year, month, day, hour, minute, tzOff, lat, lng, startDate, endDate, orbDeg, cacheDir)
+		}
+
 		// Use embedded web files, stripping the "web/" prefix
 		staticFS, err := fs.Sub(empirical.WebFiles, "web")
 		if err != nil {
@@ -60,9 +64,48 @@ func main() {
 			os.Exit(1)
 		}
 
-		if err := server.Run(port, staticFS, compute, aspects, timing); err != nil {
+		if err := server.Run(port, staticFS, compute, aspects, timing, transits); err != nil {
 			fmt.Fprintf(os.Stderr, "Server error: %v\n", err)
 			os.Exit(1)
+		}
+		return
+	}
+
+	// ── transit subcommand ──────────────────────────────────────────
+	if len(os.Args) >= 2 && os.Args[1] == "transit" {
+		fs := flag.NewFlagSet("transit", flag.ExitOnError)
+		jsonOut := fs.Bool("json", false, "output as JSON")
+		orbDeg := fs.Float64("orb", 3.0, "max orb in degrees")
+		fs.Parse(os.Args[2:])
+		args := fs.Args()
+
+		if len(args) < 11 {
+			fmt.Fprintf(os.Stderr, "Usage: empirical transit [--json] [--orb 3] NAME Y M D H MIN TZ LAT LNG START_DATE END_DATE\n")
+			fmt.Fprintf(os.Stderr, "Example: empirical transit \"AJ\" 1969 2 15 23 10 -8 47.038 -122.901 2026-06-09 2026-06-23\n")
+			os.Exit(1)
+		}
+
+		name := args[0]
+		year, _ := strconv.Atoi(args[1])
+		month, _ := strconv.Atoi(args[2])
+		day, _ := strconv.Atoi(args[3])
+		hour, _ := strconv.Atoi(args[4])
+		minute, _ := strconv.Atoi(args[5])
+		tzOff, _ := strconv.ParseFloat(args[6], 64)
+		lat, _ := strconv.ParseFloat(args[7], 64)
+		lng, _ := strconv.ParseFloat(args[8], 64)
+		startDate := args[9]
+		endDate := args[10]
+
+		result, err := computeTransits(name, year, month, day, hour, minute, tzOff, lat, lng, startDate, endDate, *orbDeg, "")
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Transit error: %v\n", err)
+			os.Exit(1)
+		}
+		if *jsonOut {
+			fmt.Println(string(result))
+		} else {
+			fmt.Print(string(result))
 		}
 		return
 	}
@@ -166,6 +209,68 @@ func computePositions(year, month, day, hour, minute int, tzOff, lat, lng float6
 func computeAll(name string, year, month, day, hour, minute, second int, tzOff, lat, lng float64, cacheDir string) *dignity.FullReport {
 	cd := computePositions(year, month, day, hour, minute, tzOff, lat, lng, cacheDir)
 	return dignity.ComputeFullReport(cd.planets, cd.ayan, cd.nn, cd.asc, name, year, month, day, hour, minute, second, tzOff, lat, lng)
+}
+
+// computeTransits runs the transit engine and returns compact JSON results.
+func computeTransits(name string, year, month, day, hour, minute int, tzOff, lat, lng float64, startDate, endDate string, orbDeg float64, cacheDir string) ([]byte, error) {
+	cd := computePositions(year, month, day, hour, minute, tzOff, lat, lng, cacheDir)
+
+	// Build planet positions including outer planets
+	natalLongs := make(map[string]float64)
+	for k, v := range cd.planets {
+		natalLongs[k] = v
+	}
+	outerIDs := map[string]int{
+		"Uranus": swe.URANUS, "Neptune": swe.NEPTUNE, "Pluto": swe.PLUTO,
+	}
+	for name, id := range outerIDs {
+		lon, _, _, _ := swe.CalcUT(cd.jd, id)
+		natalLongs[name] = lon
+	}
+
+	natalPlanets := []string{"Sun", "Moon", "Mercury", "Venus", "Mars", "Jupiter", "Saturn", "Uranus", "Neptune", "Pluto"}
+
+	// Build real-SWE compute function
+	compute := func(year, month, day int, hour float64, planetID int) (float64, float64, float64, float64) {
+		utHour := hour - tzOff
+		jd := swe.Julday(year, month, day, utHour, true)
+		return swe.CalcUT(jd, planetID)
+	}
+
+	hits, err := dignity.ScanTransits(natalLongs, natalPlanets, startDate, endDate, dignity.HardAspectsOnly(), orbDeg, compute)
+	if err != nil {
+		return nil, err
+	}
+
+	compact := dignity.CompactTransitsWithRange(hits)
+
+	// Build JSON response
+	type hitJSON struct {
+		TransitPlanet string  `json:"transit_planet"`
+		NatalPlanet   string  `json:"natal_planet"`
+		Aspect        string  `json:"aspect"`
+		Orb           float64 `json:"orb"`
+		StartDate     string  `json:"start_date"`
+		EndDate       string  `json:"end_date"`
+	}
+	response := struct {
+		Name    string    `json:"name"`
+		Transits []hitJSON `json:"transits"`
+	}{
+		Name: name,
+	}
+	for _, c := range compact {
+		response.Transits = append(response.Transits, hitJSON{
+			TransitPlanet: c.TransitPlanet,
+			NatalPlanet:   c.NatalPlanet,
+			Aspect:        c.Aspect,
+			Orb:           c.MinOrb,
+			StartDate:     c.DateStart,
+			EndDate:       c.DateEnd,
+		})
+	}
+
+	return json.Marshal(response)
 }
 
 // printReport prints a human-readable multi-phase report.

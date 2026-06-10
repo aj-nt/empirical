@@ -17,11 +17,16 @@ type AspectFunc func() ([]byte, error)
 // TimingFunc computes timing layer convergence for a target date.
 type TimingFunc func(name string, year, month, day, hour, minute int, tzOff, lat, lng float64, targetDate string) ([]byte, error)
 
+// TransitFunc computes transits for a natal chart over a date range.
+// Returns compact transit hits as JSON bytes.
+type TransitFunc func(name string, year, month, day, hour, minute int, tzOff, lat, lng float64, startDate, endDate string, orbDeg float64) ([]byte, error)
+
 // Run starts an HTTP server on the given port. staticFS contains the embedded
 // static files (index.html, etc.). compute handles POST /api/recover.
 // aspects handles GET /api/aspect-catalog.
 // timing handles POST /api/timing-convergence.
-func Run(port int, staticFS fs.FS, compute ComputeFunc, aspects AspectFunc, timing TimingFunc) error {
+// transits handles POST /api/transits.
+func Run(port int, staticFS fs.FS, compute ComputeFunc, aspects AspectFunc, timing TimingFunc, transits TransitFunc) error {
 	mux := http.NewServeMux()
 
 	// Static files
@@ -92,6 +97,37 @@ func Run(port int, staticFS fs.FS, compute ComputeFunc, aspects AspectFunc, timi
 		w.Write(result)
 	})
 
+	// API: transits
+	mux.HandleFunc("/api/transits", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			http.Error(w, "POST only", http.StatusMethodNotAllowed)
+			return
+		}
+		var req TransitRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			http.Error(w, "invalid JSON: "+err.Error(), http.StatusBadRequest)
+			return
+		}
+		if transits == nil {
+			http.Error(w, "not available", http.StatusNotImplemented)
+			return
+		}
+		orb := req.Orb
+		if orb <= 0 {
+			orb = 3.0
+		}
+		result, err := transits(req.Name, req.Year, req.Month, req.Day,
+			req.Hour, req.Minute, req.TzOffset, req.Lat, req.Lng,
+			req.StartDate, req.EndDate, orb)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Write(result)
+	})
+
 	// CORS preflight
 	mux.HandleFunc("/api/", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodOptions {
@@ -141,4 +177,12 @@ type ChartRequest struct {
 type TimingRequest struct {
 	ChartRequest
 	TargetDate string `json:"target_date"`
+}
+
+// TransitRequest is the JSON payload for /api/transits.
+type TransitRequest struct {
+	ChartRequest
+	StartDate string  `json:"start_date"`
+	EndDate   string  `json:"end_date"`
+	Orb       float64 `json:"orb"`
 }
