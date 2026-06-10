@@ -10,7 +10,7 @@ Around 150 BCE, three pre-existing astronomical traditions were combined in Alex
 
 A single Go binary with a statically linked Swiss Ephemeris computes convergence across Western and Vedic traditions for dignity rules, house division, timing systems, node axis preservation, and zodiac comparison. A static catalog comparison adds Chinese aspect data. Each measurement includes a Monte Carlo random baseline so individual charts can be evaluated against a null distribution.
 
-Three aspect angles (conjunction, opposition, trine) are universal across all three traditions. The twelve-house division holds with 79.4% agreement across five competing methods (95% CI: 78.9-79.9). The node axis geometry is mathematically invariant. Dignity convergence averages 46.8% per chart (95% CI: 46.5-47.1) with a smooth distribution and no family patterning.
+Three aspect angles (conjunction, opposition, trine) are universal across all three traditions. The twelve-house division holds with 79.4% agreement across five competing methods (95% CI: 78.8-80.1). The node axis geometry is mathematically invariant. Dignity convergence averages 46.7% per chart (95% CI: 46.3-47.1) with a smooth distribution and no family patterning.
 
 The surface layer diverged. Three timing systems produce the same answer 4.5% of the time. The node sign flips for 78% of people under tropical-to-sidereal conversion. Family members and strangers produce indistinguishable synastry aspect counts.
 
@@ -132,7 +132,7 @@ The engine measures convergence across the planetary and horoscopic layers that 
 
 ### 4.1 Phase 1: Dignity Convergence
 
-The random baseline, computed from 10,000 charts (1900-2030), yields a mean of 3.27 planets agreeing out of 7 (46.8%, 95% CI: 46.5-47.1). The distribution is a bell curve centered on 3 of 7: 29.0% of charts at exactly 3, 25.6% at 4, 19.8% at 2. At the extremes, 1.1% show 0 and 0.3% show all 7.
+The random baseline, computed from 10,000 charts (1900-2030), yields a mean of 3.27 planets agreeing out of 7 (46.7%, 95% CI: 46.3-47.1). The distribution is a bell curve centered on 3 of 7: 29.0% of charts at exactly 3, 25.6% at 4, 19.8% at 2. At the extremes, 1.1% show 0 and 0.3% show all 7.
 
 A 17-person family dataset spanning three generations was scored. Scores ranged from 1 of 7 (14.3%) to 5 of 7 (71.4%), consistent with the random distribution. Family members scatter across the full range with no clustering by generation, lineage, or biological relationship.
 
@@ -144,7 +144,7 @@ Three angles are universal across Western, Vedic, and Chinese traditions: conjun
 
 ### 4.3 Phase 3: House Convergence
 
-The random baseline (N=5,000) yields a mean of 5.56 unambiguous planets out of 7 (79.4%, 95% CI: 78.9-79.9). The distribution is right-skewed: 39.1% of charts have all seven unambiguous. House convergence is a weak differentiator between individual charts. Planets near cusp boundaries are the only source of disagreement.
+The random baseline (N=5,000) yields a mean of 5.56 unambiguous planets out of 7 (79.4%, 95% CI: 78.8-80.1). The distribution is right-skewed: 39.1% of charts have all seven unambiguous. House convergence is a weak differentiator between individual charts. Planets near cusp boundaries are the only source of disagreement.
 
 The reference male and female subjects both score 6 of 7 unambiguous (65th percentile). The concept of 12 houses survives. Individual variation is noise-level.
 
@@ -188,7 +188,7 @@ The 12-house division holds across five competing methods at 79.4% agreement. Th
 
 Node axis geometry is invariant. The 180 degree opposition is a mathematical property of the orbit. No transmission can break it.
 
-Dignity convergence is partial: 46.8% mean agreement, a smooth bell curve, no family patterning. Individual variation spans the full range from 14% to 71%. The dignity table is real but partially preserved.
+Dignity convergence is partial: 46.7% mean agreement, a smooth bell curve, no family patterning. Individual variation spans the full range from 14% to 71%. The dignity table is real but partially preserved.
 
 ### 5.2 What Didn't
 
@@ -210,7 +210,7 @@ A computational nakshatra-xiu comparison module could extend this analysis to pe
 
 The engine measures structural convergence between traditions. It does not measure whether astrology works.
 
-A dignity rule (Sun domicile in Leo) is structural. The interpretation (confidence, leadership) is not. The engine can report that two systems agree on the rule 46.8% of the time. It cannot say whether the rule corresponds to anything outside itself.
+A dignity rule (Sun domicile in Leo) is structural. The interpretation (confidence, leadership) is not. The engine can report that two systems agree on the rule 46.7% of the time. It cannot say whether the rule corresponds to anything outside itself.
 
 Convergence may arise from the data, not the tradition. Conjunction and opposition are physically real alignments. Twelve equal divisions of a circle are mathematically natural. Some structural features may survive because they are encoded in the sky, not because they were faithfully transmitted. The engine cannot distinguish these explanations.
 
