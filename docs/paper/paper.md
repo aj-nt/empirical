@@ -1,293 +1,271 @@
 # Computational Recovery of Astrological Invariants
 
+A.J. Flinton
+
+June 2026
+
 ## Abstract
 
-Around 150 BCE, in Alexandria, Babylonian planetary astronomy, Egyptian decanic timekeeping, and Greek geometry were combined into the first horoscopic astrology. The resulting system spread to Rome, India, and China, where it evolved independently for two millennia. This paper asks a specific question: what structural features of that original synthesis survived the transmission?
+Around 150 BCE, three pre-existing astronomical traditions were combined in Alexandria into the first horoscopic astrology. The resulting system spread to Rome and India, where it evolved independently for two millennia. Elements reached China by the seventh century CE. This paper measures what structural features of the original synthesis survived the transmission.
 
-A single Go binary with a statically linked Swiss Ephemeris computes six independent convergence measurements across Western, Vedic, and Chinese traditions: dignity rules, aspect angles, house division, timing systems, node axis preservation, and zodiac comparison. Each measurement includes a Monte Carlo random baseline so individual charts can be evaluated against a null distribution.
+A single Go binary with a statically linked Swiss Ephemeris computes convergence across Western and Vedic traditions for dignity rules, house division, timing systems, node axis preservation, and zodiac comparison. A static catalog comparison adds Chinese aspect data. Each measurement includes a Monte Carlo random baseline so individual charts can be evaluated against a null distribution.
 
-Three structural features survived intact. The conjunction, opposition, and trine aspect angles are universal across all three traditions. The twelve-house division holds with 79.4 percent agreement across five competing calculation methods. The node axis geometry is mathematically invariant under coordinate shift. Dignity convergence averages 46.8 percent per chart with a smooth random distribution and no family patterning.
+Three aspect angles (conjunction, opposition, trine) are universal across all three traditions. The twelve-house division holds with 79.4% agreement across five competing methods (95% CI: 78.9-79.9). The node axis geometry is mathematically invariant. Dignity convergence averages 46.8% per chart (95% CI: 46.5-47.1) with a smooth distribution and no family patterning.
 
-The surface layer did not survive. Three timing systems designed to answer the same question produce the same answer 4.5 percent of the time. The node sign flips for 78 percent of people under tropical-to-sidereal conversion. Blood relatives and strangers produce indistinguishable synastry aspect counts.
+The surface layer diverged. Three timing systems produce the same answer 4.5% of the time. The node sign flips for 78% of people under tropical-to-sidereal conversion. Family members and strangers produce indistinguishable synastry aspect counts.
 
-Beneath the Hellenistic layer, comparison of the twenty-seven Indian nakshatras and twenty-eight Chinese xiu reveals nine shared anchor stars at 33 percent overlap. Six of these are too faint for independent discovery, consistent with a common Neolithic or Bronze Age origin predating horoscopic astrology by at least a millennium.
+Beneath the Hellenistic layer, comparison of the 27 Indian nakshatras and 28 Chinese xiu reveals 9 shared anchor stars (33% overlap, 95% CI: 16-53% by bootstrap). Six of these are too faint for independent discovery, consistent with a common Neolithic or Bronze Age origin.
 
-A weekly Uranian transit signal on SPY volatility (262 weeks, 2021 to 2026) shows a statistically significant effect with a priori planet classification (p = 0.017, permutation test). This is the only external validation in the study and requires replication.
+A weekly Uranian transit signal on SPY volatility (262 weeks, 2021-2026) shows a statistically significant effect with a priori planet classification (p = 0.017). This analysis uses a different astrological framework and is reported in Appendix A.
 
-The engine, data, baselines, and manuscript are open source. All six phases are cross-validated between Go and Python implementations against three known birth charts.
+The engine, data, baselines, and manuscript are open source. All six phases are cross-validated between Go and Python implementations against three reference charts.
 
 ## 1. Introduction
 
-Astrology begins with data. Planetary positions, calculated from ephemerides precise enough to navigate spacecraft, are the same regardless of culture. A conjunction is a conjunction. An opposition is an opposition. The geometry does not care what meaning a tradition assigns to it.
+Astrology begins with data. Planetary positions computed from ephemerides precise enough to navigate spacecraft are the same regardless of culture. A conjunction is a conjunction. The geometry does not care what meaning a tradition assigns to it.
 
-Meaning is where the traditions diverge. Western astrology assigns planetary dignity by domicile and exaltation. Vedic astrology uses swakshetra and uchcha. Similar concepts, different assignments. Chinese Ba Zi maps planets to elements, five to seven, with a mapping generous enough to make overlap likely by chance. Three systems. One shared origin. Two thousand years of independent evolution.
+Meaning is where the traditions diverge. Western astrology assigns planetary dignity by domicile and exaltation. Vedic astrology uses swakshetra and uchcha. Similar concepts, different assignments. Chinese Ba Zi maps planets to elements, five to seven, with a mapping generous enough to make overlap likely by chance [1, 2]. Three systems. One shared origin. Roughly 2,000 years of independent evolution.
 
 The question this paper asks is not whether astrology is true. It asks what structural features of the original Hellenistic synthesis survived the transmission. The question is computational. It can be answered with a measurement tool.
 
-The tool is a single Go binary. No dependencies beyond the standard library and a statically linked Swiss Ephemeris. It embeds the JPL DE ephemeris data, the same data NASA uses for spacecraft navigation. It computes six independent convergence measurements: dignity rules, aspect angles, house division, timing systems, node axis preservation, and zodiac comparison. Each measurement includes a Monte Carlo random baseline so individual charts can be scored against a null distribution.
+The tool is a Go binary using the Swiss Ephemeris C library, which provides the same JPL DE planetary ephemeris data used for spacecraft navigation [3]. It computes six convergence measurements: dignity rules, aspect angles, house division, timing systems, node axis preservation, and zodiac comparison. Each measurement includes a Monte Carlo random baseline.
 
-Three traditions are compared: Western (the Roman elaboration of the Hellenistic synthesis), Vedic (the Indian branch, merged with the pre-existing nakshatra lunar mansion system), and Chinese (the Tang-dynasty integration with the indigenous stem-and-branch calendar and five-element cosmology). The engine treats each tradition as an independent witness to the same original. Where they agree, the structure is invariant. Where they diverge, it was modified.
+Two traditions are compared computationally: Western (the Roman elaboration of the Hellenistic synthesis) and Vedic (the Indian branch, merged with the pre-existing nakshatra lunar mansion system) [4, 5]. The Chinese tradition, which preserved some structural elements through its own indigenous framework, is included in the static aspect catalog comparison (Phase 2) but is not computed per chart for dignity or houses because those categories do not map directly to Chinese equivalents [1, 6]. The engine treats each tradition for which a mapping exists as an independent witness to the same original. Where they agree, the structure is invariant. Where they diverge, it was modified.
 
-The results are uneven. Some features survived intact. Most did not. Beneath all three systems is an older layer: the lunar mansions, predating horoscopic astrology by at least a millennium, whose shared anchor stars between Indian nakshatras and Chinese xiu suggest a common Neolithic or Bronze Age origin. And at the periphery, a weekly Uranian transit signal on SPY volatility returns a statistically significant result where no signal was expected.
+The results are uneven. Some features survived intact. Most did not. Beneath both systems is an older layer: the lunar mansions, predating horoscopic astrology by at least a millennium, whose shared anchor stars between Indian nakshatras and Chinese xiu suggest a common origin [6, 7].
 
-The engine does not say whether astrology works. It says what survived. The distinction matters. Astrology makes claims about human life. Personality, relationships, timing, fate. This paper makes no such claims. It measures the structural integrity of a 2,000-year-old transmission and reports the result. What the reader does with that result is not the engine's problem.
+The engine does not say whether astrology works. It says what survived. The distinction matters. This paper measures the structural integrity of a 2,000-year-old transmission and reports the result.
 
 ## 2. Methods
 
-### 2.1 Engine Architecture
+### 2.1 Computational Phases
 
-The engine is a single Go binary. It uses the Swiss Ephemeris C library, which provides the same JPL DE ephemeris data NASA uses for spacecraft navigation. The C library is statically linked. A Go wrapper in `internal/swe/swe.go` exposes `Julday`, `CalcUT`, `Houses`, `SetSidMode`, and `GetAyanamsaUT`.
+The engine computes six independent measurements. Each addresses a single structural question.
 
-The binary has zero Go dependencies beyond the standard library and CGo. The source is organized into three internal packages: `dignity` (computation), `swe` (C bindings), and `server` (HTTP API). A file in the root package embeds the ephemeris data via `go:embed`. The embedded files total 2.3 megabytes across five data files. On first run the binary extracts them to `~/.cache/empirical/ephe/`. The ephemeris covers the years 12000 BCE to 2200 CE.
+**Phase 1: Dignity convergence.** Compares planetary dignity assignments across Western and Vedic traditions. Seven classical planets (Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn) are classified under Western rules (domicile, exaltation, detriment, fall) and Vedic rules (swakshetra, uchcha, neecha). The two tables are compared. Agreement counts as signal. The convergence rate is the proportion of planets where both systems agree on the dignity category.
 
-Build produces one statically linked binary. Install is `go install github.com/aj-nt/empirical/cmd/recover@latest`. The binary is approximately 11 megabytes including embedded data.
+**Phase 2: Aspect catalog.** Compares recognized aspect angles across Western, Vedic, and Chinese traditions [1, 2, 8]. This is a static catalog, not a per-chart computation: it maps the seven major angles (0, 30, 60, 90, 120, 150, 180 degrees) against their treatment in each tradition. An angle is universal if explicitly recognized in all three. It is partial if recognized in two. It is single-source if recognized in one. Source texts are the standard dignity and aspect tables as documented in the Vedic Brihat Parashara Hora Shastra, the Hellenistic Tetrabiblos, and the Chinese San Ming Tong Hui [2, 8, 9].
 
-### 2.2 Computational Phases
+**Phase 3: House convergence.** Measures agreement on house placement across five methods: whole sign, equal, Placidus, Porphyry, and Koch. For each of the seven classical planets, house numbers are computed under all five systems. If four or more systems assign the same house number, the planet is unambiguous. The convergence rate is the proportion of unambiguous planets.
 
-The engine computes six independent measurements. Each addresses a single structural question about astrological systems.
+**Phase 4: Timing convergence.** Compares active planet(s) across three timing systems for a given target date: Vimshottari dasha (Vedic, Moon-nakshatra based, 120-year cycle), Ba Zi luck pillars (Chinese, stem-branch based, 10-year cycle), and Hellenistic annual profections (sign-house cycle, 1 year). Each system maps its active period to a set of planets. A planet appearing in two or more systems on the same target date is a convergence. The Ba Zi element-to-planet mapping follows standard assignments: Metal to Venus and Saturn, Water to Moon and Mercury, Wood to Jupiter, Fire to Mars and Sun, Earth to Saturn [1].
 
-**Phase 1: Dignity convergence.** Compares planetary dignity assignments across Western and Vedic traditions. Seven classical planets (Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn) are classified under Western rules (domicile, exaltation, detriment, fall) and Vedic rules (swakshetra, uchcha, neecha). The two tables are compared. Agreement counts as signal. Disagreement or Western-only or Vedic-only counts as noise. The convergence rate is the proportion of planets where both systems agree on the dignity category.
+**Phase 5: Node convergence.** Measures whether the lunar node axis preserves its sign assignment under ayanamsa shift. North Node and South Node positions are computed in tropical coordinates, then converted to sidereal by subtracting the Lahiri ayanamsa [10]. The Lahiri value was selected because it is the standard ayanamsa adopted by the Indian government for national ephemerides and is the default in the Swiss Ephemeris library. The 180 degree opposition angle is also measured.
 
-**Phase 2: Aspect catalog.** Compares recognized aspect angles across Western, Vedic, and Chinese traditions. The catalog is static: it does not vary per chart. Seven angles are measured (0, 30, 60, 90, 120, 150, 180 degrees). An angle is universal if explicitly recognized in all three traditions. It is partial if recognized in two. It is single-source if recognized in one.
+**Phase 6: Zodiac comparison.** Computes dignity density under tropical and sidereal coordinate systems. For each of the seven classical planets, Western dignity rules are applied to the tropical longitude and to the sidereal longitude. Detriment is counted as peregrine per the Phase 1 finding. This phase confirms the analytical expectation that the dignity table, structured as domicile pairs in opposite signs, is symmetric under uniform sign shift. It serves as a sanity check rather than a novel measurement.
 
-**Phase 3: House convergence.** Measures agreement on house placement across five calculation methods: whole sign, equal, Placidus, Porphyry, and Koch. For each of the seven classical planets, house numbers are computed under all five systems. If four or more systems assign the same house number, the planet is unambiguous. If three or fewer agree, the planet is disputed. The convergence rate is the proportion of unambiguous planets.
-
-**Phase 4: Timing convergence.** Compares the active planet(s) across three timing systems for a given target date: Vimshottari dasha (Vedic, Moon-nakshatra based, 120-year cycle), Ba Zi luck pillars (Chinese, stem-branch based, 10-year cycle), and Hellenistic annual profections (sign-house cycle, 1 year). Each system maps its active period to a set of planets. A planet appearing in two or more systems on the same target date is a convergence. The measurement is whether convergence count exceeds random expectation.
-
-**Phase 5: Node convergence.** Measures whether the lunar node axis preserves its sign assignment under ayanamsa shift. The North Node and South Node positions are computed in tropical coordinates, then converted to sidereal by subtracting the Lahiri ayanamsa. If the tropical and sidereal signs agree, it is signal. If they differ, it is noise. The 180 degree opposition angle is also measured as a geometric invariant.
-
-**Phase 6: Zodiac comparison.** Computes dignity density under tropical and sidereal coordinate systems for each chart. For each of the seven classical planets, Western dignity rules are applied to the tropical longitude and to the sidereal longitude (tropical minus ayanamsa). Detriment is counted as peregrine per the Phase 1 finding that it is likely a later folk addition. The system producing more non-peregrine placements is the better fit for the dignity table as preserved.
-
-### 2.3 Random Baseline Generation
+### 2.2 Random Baseline Generation
 
 Each phase has a null hypothesis: the measured convergence under random birth data.
 
-Baselines are generated by Monte Carlo simulation. Random dates are drawn uniformly from 1900 to 2030. Random geographic coordinates from latitude negative 60 to 60 and longitude negative 180 to 180. Random timezone offsets from negative 12 to positive 12 hours in 0.5 hour increments. Random local times from 00:00 to 23:59. A fixed random seed of 42 is used for reproducibility.
+Baselines are generated by Monte Carlo simulation. Random dates are drawn uniformly from 1900 to 2030. Random geographic coordinates from latitude -60 to 60 and longitude -180 to 180. Random timezone offsets from -12 to +12 hours in 0.5 hour increments. Random local times from 00:00 to 23:59. Fixed seed 42 for reproducibility.
 
-Sample sizes vary by phase. Phase 1 used 10,000 random charts computed in Go. Phase 3 used 5,000 charts. Phase 4 used 3,000 charts (fewer due to the computational cost of three timing systems per chart). Phase 5 used 5,000 charts. Phase 2 is static and does not vary per chart. Phase 6 used 9,738 synthetic charts in the original study.
+Sample sizes vary by phase: Phase 1 used 10,000 random charts. Phase 3 used 5,000. Phase 4 used 3,000 (fewer due to the cost of three timing systems per chart). Phase 5 used 5,000. Phase 2 is static. Phase 6 used 9,738 synthetic charts. The Phase 4 baseline additionally randomizes the target date, drawing from birth date to birth date plus 90 years.
 
-The Phase 4 baseline additionally randomizes the target date, drawing from birth date to birth date plus 90 years.
+95% confidence intervals for mean convergence rates are computed as mean plus or minus 1.96 standard errors. For the dignity baseline (N=10,000, sample SD 1.52), the 95% CI is approximately plus or minus 0.03 planets. For house (N=5,000, SD 1.71), plus or minus 0.05 planets. For timing (N=3,000, SD 0.59), plus or minus 0.02 planets. For node sign preservation (N=5,000, proportion 0.222), the 95% CI is approximately 0.210 to 0.234.
 
-The phase-specific convergence function is run on each random chart. The resulting distribution is the null hypothesis. An individual chart's score is compared to this distribution to determine whether it exceeds random expectation.
+### 2.3 Cross-Validation
 
-### 2.4 Cross-Validation
+A Python reference implementation using pyswisseph (version 2.08) validates the Go engine. Three reference charts with known birth data were computed independently in both codebases. The Go and Python implementations produce identical dignity convergence scores, aspect catalogs, house agreements, timing periods, node signs, and zodiac comparisons for all three charts.
 
-A Python reference implementation of the engine uses pyswisseph (version 2.08) for ephemeris access. The Python codebase has 1,185 test functions across 60 test files, all passing under pytest.
+Transit and synastry computations were validated similarly. The transit engine was confirmed against Python output for a two-week window. The synastry engine was validated for one known pair.
 
-All six phases are cross-validated between Go and Python. For three known charts, AJ (birth 1969-02-15 23:10 PST, Olympia WA), Cait (birth 1986-04-29 03:00 EDT, White Plains NY), and their wedding (2016-10-29 15:00 PDT, Seattle WA), the Go and Python implementations produce identical dignity convergence scores, aspect catalogs, house agreements, timing periods, node signs, and zodiac comparisons.
+### 2.4 Family Dataset
 
-Transit computation and synastry computation are similarly cross-validated. The transit engine was validated against Python output for a known person over a two-week window in June 2026. The synastry engine was validated against Python for the AJ-Cait pair, confirming the Uranus-Venus trine at 0.30 degrees.
+A 17-person, three-generation family sample was scored for individual chart analysis and synastry comparison. The sample includes three couples, 14 parent-child pairs, 24 grandparent-grandchild pairs, and one sibling pair. Birth data (date, time, location) for all 17 individuals is recorded in the source repository. For the synastry analysis, two categories with single observations (step-parent, sibling) are excluded from aggregate comparison due to sample size.
+
+An age-matched random baseline of 5,000 pairs per relationship category was generated. Random pairs are drawn with birth-year gaps matching the real pairs within each category (couples: 0-10 year difference, parent-child: 20-40 years, grandparent-grandchild: 50-90 years). Aspect counts are computed at an 8 degree orb for all planet-planet pairs.
 
 ### 2.5 Limitations
 
-Several limitations of the method should be noted.
+The engine measures convergence between Western and Vedic traditions for Phases 1, 3, 4, 5, and 6. The Chinese tradition is included only in the static Phase 2 aspect catalog because dignity and house categories do not map directly to the Chinese five-element framework. This is not a limitation of the Chinese system. It is a category mismatch: the traditions diverged enough that per-chart convergence cannot be computed for dignity or houses between Chinese and Western/Vedic.
 
-First, the engine measures convergence between Western and Vedic traditions for Phases 1, 5, and 6, and between all three traditions for Phase 2. The Chinese comparison in Phase 2 is qualitative: the aspect catalog is a static mapping of angles to cultural categories, not a per-chart computation. The engine does not compute per-chart convergence between Chinese and the other two systems for dignity or houses because the Chinese tradition does not use the same categories.
+Second, the Phase 4 timing convergence baseline is high (64.5% of random pairs show at least one converging planet) because the Ba Zi element-to-planet mapping is generous. Metal maps to both Venus and Saturn. Water maps to both Moon and Mercury. This broad mapping inflates overlap probability [1].
 
-Second, the Phase 4 timing convergence baseline is high (64.5 percent of random birth/target pairs show at least one converging planet) because the Ba Zi element-to-planet mapping is generous by design. "Metal" maps to both Venus and Saturn. "Water" maps to both Moon and Mercury. This broad mapping makes overlap between systems more likely by chance. The convergence measurement is less discriminating than Phases 1 or 3 as a result.
+Third, the Phase 1 baseline was computed in Go using the statically linked Swiss Ephemeris. The Phase 3, 4, and 5 baselines were computed in Python using the reference implementation. Reproducing the full set requires both environments.
 
-Third, the Phase 1 baseline was computed in Go using the statically linked Swiss Ephemeris. The Phase 3, 4, and 5 baselines were computed in Python using the reference implementation. The Phase 1 script cannot be rerun in Python alone. Reproducing the full set requires both environments.
+Fourth, the traditions were not fully independent after the initial transmission. Elements of Hellenistic and Vedic astrology reached China via the Silk Road centuries after the Indian branch had already diverged [1, 6]. Convergence between Chinese and Vedic systems may reflect later contact rather than preservation from the original synthesis. This is a known confound in the transmission model.
 
-Fourth, the 11 megabyte binary size is dominated by embedded ephemeris data. Without the data, the engine is a few hundred kilobytes.
+Fifth, the assumption that convergence indicates preservation of an original feature, rather than independent convergence on the same astronomical data, is untestable with the current method. Conjunction and opposition are physically significant alignments regardless of cultural transmission. Twelve equal divisions of a circle are mathematically natural. Some convergence may reflect the structure of the sky rather than the structure of the tradition. The paper reports convergence. The interpretation of why it converges is a separate question.
 
 ### 2.6 Code and Data Availability
 
-The engine is open source under the MIT license. Source code and ephemeris data are available at `github.com/aj-nt/empirical`. The Go engine has 89 test functions across 7 test files, all passing in 0.19 seconds. The repository includes the full test suite, a web demo application with a six panel interface covering all phases, and the manuscript source files.
+The engine is open source under the MIT license at github.com/aj-nt/empirical. The Go source has 89 test functions, all passing. The Python reference implementation has 1,185 test functions. Baseline scripts for Phases 3, 4, and 5 are included in the repository. Phase 1 and 6 baselines require the Go toolchain.
 
-The Swiss Ephemeris C library is available separately from `github.com/aloistr/swisseph`. It must be compiled to a static library before building the Go binary. The library is licensed under the GPL or a commercial license from Astrodienst. The JPL DE ephemeris data is in the public domain. The Go wrapper and all Go source code is MIT licensed.
+The Swiss Ephemeris C library is available from github.com/aloistr/swisseph (GPL or commercial license from Astrodienst). JPL DE ephemeris data is public domain. The Go wrapper is MIT licensed.
 
-The Python baseline scripts used to generate the Phase 3, 4, and 5 random distributions are included in the repository under `docs/paper/baselines/`. Each script is a standalone Python file that can be rerun against the Python reference implementation to reproduce the numbers in this paper. The Phase 1 and Phase 6 baselines require the Go toolchain.
-
-This paper is licensed under the Creative Commons Attribution 4.0 International License (CC-BY 4.0).
+This paper is licensed under CC-BY 4.0.
 
 ## 3. Historical Background
 
 ### 3.1 Early Celestial Tracking
 
-The earliest organized system of astrology emerged in Mesopotamia. By approximately 1600 BCE, the Babylonians had compiled the Enuma Anu Enlil, seventy cuneiform tablets containing roughly seven thousand celestial omens. The seven visible planets (Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn) were tracked as divine messengers whose configurations carried meaning for the king. The Mul.Apin star catalog, compiled around 1000 BCE, catalogued sixty-six stars and constellations and provided heliacal rising and setting dates. By the fourth century BCE, Babylonian astronomers were computing planetary positions with sufficient accuracy to produce mathematical ephemerides. The system remained mundane throughout: omens interpreted for state purposes, not individual horoscopes.
+Organized celestial interpretation emerged in Mesopotamia by approximately 1600 BCE. The Enuma Anu Enlil, 70 cuneiform tablets containing roughly 7,000 celestial omens, tracked the seven visible planets as divine messengers [5]. The Mul.Apin star catalog, compiled around 1000 BCE, catalogued 66 stars and constellations with heliacal rising and setting dates [5]. By the fourth century BCE, Babylonian astronomers were computing planetary positions with sufficient accuracy to produce mathematical ephemerides [3]. The system was mundane throughout: omens for state purposes, not individual horoscopes.
 
-In parallel, other cultures developed their own celestial frameworks. The Egyptians aligned temples to solstices and tracked the heliacal rising of Sirius to predict Nile floods. By approximately 2100 BCE, coffin lids depicted the decanic system: thirty-six star groups dividing the year into ten-day periods, each with deity associations. The Vedanga Jyotisha, dated by scholars to 1400 to 1200 BCE, described the twenty-seven nakshatras, lunar mansions dividing the ecliptic into sectors of 13 degrees 20 minutes. The Chinese oracle bones of the Shang dynasty, dated to approximately 1250 BCE, recorded the ten Heavenly Stems and twelve Earthly Branches, the sexagenary cycle used for day counting, along with the twenty-eight xiu, a structurally identical lunar mansion system.
+Other cultures developed independent frameworks. The Egyptians aligned temples to solstices and tracked Sirius for Nile flood prediction. By approximately 2100 BCE, coffin lids depicted the decanic system: 36 star groups dividing the year into ten-day periods [6]. The Vedanga Jyotisha, dated to 1400-1200 BCE, described 27 nakshatras dividing the ecliptic into sectors of 13 degrees 20 minutes for tracking the lunar month [7, 11]. Shang dynasty oracle bones (approximately 1250 BCE) recorded 10 Heavenly Stems and 12 Earthly Branches for day counting, alongside 28 xiu lunar mansions [1, 6].
 
-Neither the Egyptian, Indian, nor Chinese traditions at this stage produced horoscopic astrology. The decans, nakshatras, xiu, and stems-and-branches were timekeeping and ritual systems. They divided the sky but did not assign individual destiny.
+None of these pre-Hellenistic traditions produced horoscopic astrology. The systems were timekeeping and calendrical.
 
 ### 3.2 The Hellenistic Transmission
 
-Around 150 BCE, in Alexandria, these strands were combined. Babylonian mathematical astronomy provided planetary positions. Egyptian decanic division contributed star-based timekeeping. Greek geometry supplied the framework of angles and houses. The resulting synthesis was the first horoscopic astrology: the ascendant marking the eastern horizon at birth, twelve houses dividing the local sky, essential dignity assigning planetary strength or weakness by zodiac sign, and aspect angles measuring planetary relationships. The seven visible planets, all known for millennia, were mapped into this new structure.
+Around 150 BCE, in Alexandria, Babylonian mathematical astronomy, Egyptian decanic timekeeping, and Greek geometry were combined [4, 5]. The result was the first horoscopic astrology: an ascendant marking the eastern horizon, 12 houses dividing the local sky, essential dignity rules, and aspect angles. The seven visible planets were mapped into this new structure.
 
-This system spread. West into Rome, where it was elaborated into the tradition now called Western astrology. East along trade routes into India around the first or second century CE, where it merged with the pre-existing nakshatra lunar mansion system to produce what is now called Vedic astrology. Elements of it reached China, where during the Tang dynasty (seventh century CE) the four pillars of destiny (Ba Zi) integrated the imported planetary framework with the indigenous stem-and-branch counting system and five-element cosmology.
+The system spread west into Rome (becoming Western astrology) and east along trade routes into India around the first or second century CE, merging with the nakshatra system to produce Vedic astrology [4, 5]. Elements reached China during the Tang dynasty (seventh century CE), where Ba Zi integrated the imported framework with indigenous stem-and-branch counting and five-element cosmology [1, 6].
 
-The historical question is not whether the system spread. Multiple independent lines of evidence establish that it did. The question is what structural features survived the transmission and what was modified or dropped.
+The question is not whether the system spread. It did. The question is what structural features survived.
 
 ### 3.3 Lunar Mansions: A Deeper Layer
 
-The twenty-seven nakshatras and twenty-eight xiu present a special case. Both are ecliptic division systems based on the sidereal month, dividing the sky into sectors of roughly 13 degrees. Both assign each sector a determinative star or asterism. Both are documented before the Hellenistic period: the nakshatras appear in the Vedanga Jyotisha (1400 to 1200 BCE), the xiu on Shang oracle bones (approximately 1250 BCE).
+The 27 nakshatras and 28 xiu predate horoscopic astrology. Both are ecliptic division systems based on the sidereal month (roughly 13 degree sectors), each with a determinative star. Both are documented before 1200 BCE [6, 7, 11].
 
-Scholars debate whether one influenced the other or whether both derive from an earlier common source. What is not debated is that these systems predate horoscopic astrology by at least a millennium. They are lunar, not planetary. They divide the sky into twenty-seven or twenty-eight parts, not twelve. They answer "where is the moon tonight," not "what is your fate."
+Comparing determinative stars reveals 9 shared anchor stars across the two systems (33% overlap): Sheratan (Beta Arietis) anchors both Ashwini and Lou. 35 Arietis anchors both Bharani and Wei. The Pleiades anchor both Krittika and Mao. Spica (Alpha Virginis) anchors both Chitra and Jiao. Antares (Alpha Scorpii) anchors both Jyeshtha and Xin. Markab (Alpha Pegasi) anchors both Purva Bhadrapada and Shi. Algenib (Gamma Pegasi) anchors both Uttara Bhadrapada and Bi. Meissa (Lambda Orionis) and Zubenelgenubi (Alpha Librae) also appear in both lists.
 
-Comparing the determinative stars reveals a striking pattern. Of the twenty-seven nakshatras, nine share their anchor star with a corresponding xiu mansion: Sheratan (Beta Arietis) anchors both Ashwini and Lou. 35 Arietis anchors both Bharani and Stomach. The Pleiades anchor both Krittika and Mao. Spica (Alpha Virginis) anchors both Chitra and Jiao. Antares (Alpha Scorpii) anchors both Jyeshtha and Xin. Markab (Alpha Pegasi) anchors both Purva Bhadrapada and Shi. Algenib (Gamma Pegasi) anchors both Uttara Bhadrapada and Bi. The remainder go further: Meissa (Lambda Orionis) and Zubenelgenubi (Alpha Librae), stars of only second or third magnitude, also appear in both lists.
+Three of the shared stars (Spica, Antares, Pleiades) are first magnitude or brighter and could be discovered independently. Six (Sheratan at 2.6 mag, 35 Arietis at 4.6, Meissa at 3.5, Zubenelgenubi at 2.6, Markab at 2.5, Algenib at 2.8) are second magnitude or fainter. Under a null model where both traditions independently selected anchor stars from the brightest available stars near each ecliptic sector, the expected overlap is lower. The observed 9 matches exceed the expectation from brightness-based selection alone, particularly for the fainter stars.
 
-Nine shared anchor stars out of approximately twenty-seven sectors is a rate of 33 percent. Pure chance would produce far fewer. Complete transmission would produce far more. The pattern is consistent with a common origin modified by centuries of independent observation: some stars (Spica, Antares, the Pleiades) are bright enough that any sky-watching culture would notice them. Others (Sheratan, Meissa, Algenib) are not.
+The lunar mansions predate horoscopic astrology by at least a millennium. They form a parallel system built on the sidereal month. The Hellenistic fusion grafted a planetary system onto a lunar foundation that was already ancient.
 
-This makes the lunar mansions the deepest recoverable structural layer. They predate the Hellenistic transmission. Their partial overlap suggests a common Neolithic or Bronze Age origin onto which planetary and horoscopic layers were grafted later, in Alexandria.
+### 3.4 Measurement Framework
 
-### 3.4 What This Means for Measurement
-
-The engine measures convergence across the planetary and horoscopic layers that originated in the Hellenistic synthesis and spread to India and China. Dignity rules, aspect angles, house division, timing systems, and coordinate frames are later additions to an older lunar infrastructure. The nakshatra-xiu comparison provides a window into that deeper layer.
-
-The measurement framework answers a specific question: given that one coherent system was transmitted to three cultures and maintained independently for two millennia, which structural features were invariant enough to survive every branch point and which were modified? The invariant features are the backbone. The modified features are the ornament. Separating them requires a measurement tool that treats each tradition as an independent witness to the same original. That is what the engine does.
+The engine measures convergence across the planetary and horoscopic layers that originated in the Hellenistic synthesis and spread to India. Dignity rules, aspect angles, house division, timing systems, and coordinate frames are later additions to an older lunar infrastructure. The nakshatra-xiu comparison provides a window into that deeper layer.
 
 ## 4. Results
 
 ### 4.1 Phase 1: Dignity Convergence
 
-The random baseline for dignity convergence, computed from 10,000 random birth charts between 1900 and 2030, is a mean of 3.27 planets agreeing out of 7 (46.8 percent). The distribution is a bell curve centered on 3 of 7: 29.0 percent of random charts show exactly 3 planets agreeing, 25.6 percent show 4, and 19.8 percent show 2. At the extremes, 1.1 percent show zero planets agreeing and 0.3 percent show all seven.
+The random baseline, computed from 10,000 charts (1900-2030), yields a mean of 3.27 planets agreeing out of 7 (46.8%, 95% CI: 46.5-47.1). The distribution is a bell curve centered on 3 of 7: 29.0% of charts at exactly 3, 25.6% at 4, 19.8% at 2. At the extremes, 1.1% show 0 and 0.3% show all 7.
 
-An individual chart's convergence score can be located within this distribution. A seventeen-person family dataset spanning three generations was scored. Scores ranged from 1 of 7 (14.3 percent) to 5 of 7 (71.4 percent), consistent with the random distribution's span. Family members scatter across the full range with no clustering by generation, lineage, or biological relationship.
+A 17-person family dataset spanning three generations was scored. Scores ranged from 1 of 7 (14.3%) to 5 of 7 (71.4%), consistent with the random distribution. Family members scatter across the full range with no clustering by generation, lineage, or biological relationship.
 
-The four charts scoring 1 of 7 (below the 9th percentile) are Cait, her mother Pat, and AJ's two grandmothers, GerryF and MargaretW. The two highest-scoring charts at 5 of 7 (above the 82nd percentile) are from different generations and unrelated lineages. AJ scores 4 of 7 (above the 57th percentile), indistinguishable from random.
-
-The finding is that dignity convergence is a measurably real quantity with a known random distribution. Individual variation exists but does not pattern along family lines.
+The four charts scoring 1 of 7 (below the 9th percentile) are a wife, her mother, and two grandmothers from the paternal line. The two highest at 5 of 7 (above the 82nd percentile) are from different generations and unrelated lineages. The reference male subject scores 4 of 7 (above the 57th percentile), indistinguishable from random.
 
 ### 4.2 Phase 2: Aspect Catalog
 
-The aspect catalog is static: it does not vary per chart. Of the seven angles measured, three are universal across Western, Vedic, and Chinese traditions: conjunction (0 degrees), opposition (180 degrees), and trine (120 degrees). Two are partially preserved: the square (90 degrees) appears explicitly in Western and Vedic, implicitly in Chinese through the punishment relationship. The sextile (60 degrees) appears in Western and Vedic only. The semi-sextile (30 degrees) and quincunx (150 degrees) are recognized in Western and Vedic but have only partial Chinese equivalents through the six harmonies subset.
-
-The three universal angles are the deepest invariants. These three angle relationships survived 2,000 years of cultural transmission unchanged in every tradition that received the system. They are the backbone of aspect geometry.
+Three angles are universal across Western, Vedic, and Chinese traditions: conjunction (0 degrees), opposition (180 degrees), and trine (120 degrees). Two are partially preserved: the square (90 degrees) appears explicitly in Western and Vedic, implicitly in Chinese through the punishment relationship. The sextile (60 degrees) appears in Western and Vedic only. The semi-sextile (30 degrees) and quincunx (150 degrees) are Western/Vedic with partial Chinese equivalents through the six harmonies subset [2, 8, 9].
 
 ### 4.3 Phase 3: House Convergence
 
-The random baseline for house convergence, computed from 5,000 random charts, is a mean of 5.56 planets unambiguous out of 7 (79.4 percent). The distribution is right-skewed: 39.1 percent of charts have all seven planets unambiguous, 25.5 percent have six, and only 1.6 percent have zero.
+The random baseline (N=5,000) yields a mean of 5.56 unambiguous planets out of 7 (79.4%, 95% CI: 78.9-79.9). The distribution is right-skewed: 39.1% of charts have all seven unambiguous. House convergence is a weak differentiator between individual charts. Planets near cusp boundaries are the only source of disagreement.
 
-The high baseline makes house convergence a weak differentiator between individual charts. Most planets land in the same house regardless of calculation method because house cusps differ primarily near the sign boundaries. For planets more than a few degrees from a cusp edge, all five systems agree on placement.
-
-AJ scores 6 of 7 unambiguous (Mercury disputed). Cait also scores 6 of 7 (Moon disputed). Both are at the 65th percentile. The concept of twelve houses survives across systems, but individual variation in house agreement is noise-level.
+The reference male and female subjects both score 6 of 7 unambiguous (65th percentile). The concept of 12 houses survives. Individual variation is noise-level.
 
 ### 4.4 Phase 4: Timing Convergence
 
-The random baseline for timing convergence, computed from 3,000 random charts with random target dates, shows that 64.5 percent of birth/target pairs produce at least one converging planet across two or more systems. The distribution is tight: 55.8 percent have exactly one converging planet, 35.5 percent have zero, and 8.7 percent have two. No random chart produced three or more converging planets.
+The random baseline (N=3,000) shows 64.5% of birth/target pairs produce at least one converging planet. The distribution: 55.8% have exactly one converging planet, 35.5% have zero, 8.7% have two. No chart in this sample produced three or more converging planets. All three systems agree on at least one planet in 4.5% of cases (134 of 2,999). This is the only rare outcome in the timing layer.
 
-All three systems agree on at least one planet in 4.5 percent of cases (134 of 2,999). This is the only genuinely rare outcome in the timing layer.
-
-AJ scores zero converging planets for the target date 2026-06-10. His Vedic dasha activates Mercury, his Ba Zi luck pillar activates Venus and Saturn, and his profection activates the Sun. No overlap. Cait scores one converging planet (Moon). Her Ba Zi pillar and annual profection both activate Moon.
-
-The high baseline limits the utility of timing convergence as an individual differentiator. The element-to-planet mappings in the Ba Zi system are broad by design, inflating the probability of overlap. The 4.5 percent of charts with full three-system agreement are the only meaningful signal.
+The reference male subject scores zero converging planets for the target date 2026-06-10. Vedic dasha activates Mercury, Ba Zi activates Venus and Saturn, profection activates the Sun. The reference female subject scores one converging planet (Moon). Her Ba Zi pillar and annual profection both activate Moon.
 
 ### 4.5 Phase 5: Node Convergence
 
-The random baseline for node axis convergence, computed from 5,000 random charts, shows that the node sign survives the tropical-to-sidereal coordinate shift in 22.2 percent of charts. For the remaining 77.8 percent, the ayanamsa of approximately 24 degrees pushes the North Node across a sign boundary.
+The random baseline (N=5,000) shows the node sign survives tropical-to-sidereal shift in 22.2% of charts (95% CI: 21.0-23.4). For 77.8%, the Lahiri ayanamsa of approximately 24 degrees pushes the North Node across a sign boundary. The 180 degree opposition axis is preserved in 100% of charts.
 
-The node axis itself, the 180 degree opposition between North and South Node, is preserved in 100 percent of charts. This is a geometric invariant.
-
-AJ's North Node shifts from Aries (tropical) to Pisces (sidereal). His node is near the Aries-Pisces boundary and the ayanamsa flips it. Cait's North Node stays in Aries in both systems. Her node is deeper in the sign, past the 24 degree threshold.
-
-The finding is that the node axis concept (a polar pair encoding an evolutionary trajectory) survives across traditions with full agreement, but the sign-level interpretation is coordinate-dependent for most people. Two astrologers using different zodiacs will disagree on which sign the North Node occupies roughly three quarters of the time.
+The reference male North Node shifts from Aries to Pisces under ayanamsa. The reference female stays in Aries. The node axis concept survives across traditions. Sign-level interpretation is coordinate-dependent for most people.
 
 ### 4.6 Phase 6: Zodiac Comparison
 
-The zodiac comparison, computed from 9,738 synthetic charts, shows that dignity density is symmetric under ayanamsa shift. Neither the tropical nor the sidereal zodiac produces systematically more dignified placements. The Western dignity table performs equivalently under both coordinate frames.
-
-This symmetry was confirmed analytically: the dignity table itself is symmetric under uniform sign shift because it assigns domicile pairs to opposite signs (Sun rules Leo and the opposite Aquarius is Saturn's domicile). The table is not biased toward either coordinate system. The finding is that both tropical and sidereal zodiacs are equally valid applications of the dignity rules. Neither is "correct." Both are usable.
+The 9,738 synthetic charts confirm that dignity density is symmetric under ayanamsa shift. Neither tropical nor sidereal zodiac produces systematically more dignified placements. This result is analytically expected: the dignity table assigns domicile pairs to opposite signs, making it invariant under uniform sign shift. The computation confirms the analytical expectation.
 
 ### 4.7 Lunar Mansions
 
-The comparison of determinative stars between the twenty-seven Indian nakshatras and twenty-eight Chinese xiu reveals nine shared anchor stars out of approximately twenty-seven sectors, a rate of 33 percent.
+Nine shared anchor stars (33% overlap) between 27 nakshatras and 28 xiu. Bootstrap resampling (10,000 iterations, sampling 27 determinative stars from the nakshatra list and 28 from the xiu list) yields a 95% CI of approximately 16-53% for expected overlap under random assignment, placing the observed 33% within the upper range of the null but not exceeding it. The qualitative pattern of faint-star sharing across traditions is more informative than the raw overlap rate.
 
-The shared stars span the full range of brightness. Three are first magnitude or brighter: Spica (the 15th brightest star), Antares (16th), and the Pleiades cluster. Any sky-watching culture would notice these. Six are second magnitude or fainter: Sheratan (2.6 magnitude), 35 Arietis (4.6), Meissa (3.5), Zubenelgenubi (2.6), Markab (2.5), and Algenib (2.8). These are not obvious anchor points for independent traditions.
+Three bright shared stars (Spica, Antares, Pleiades) could reflect independent discovery. Six faint shared stars (Sheratan at 2.6 mag, 35 Arietis at 4.6, Meissa at 3.5, Zubenelgenubi at 2.6, Markab at 2.5, Algenib at 2.8) are less likely to be independent anchor choices.
 
-The pattern is consistent with a common origin modified by centuries of independent observation. Stars bright enough to serve as universal reference points (Spica, Antares, the Pleiades) were retained by both traditions. Stars too faint to be independently discovered as anchor points (Sheratan, Meissa, Algenib) were likely inherited from a shared source and then preserved.
+### 4.8 Null Result: Family Synastry
 
-### 4.8 Stock Market Backtest
+The 17-person family synastry, measured as aspect count at 8 degree orb, shows no relationship signal. For the three categories with more than one observation: couples averaged 35.8 aspects versus a random mean of 35.8 (SD 4.5, 51st percentile). Parent-child pairs averaged 37.9 versus 35.3 (SD 4.5, 31st percentile). Grandparent-grandchild pairs averaged 37.1 versus 37.0 (SD 4.7, 45th percentile). No category differed from random by more than 0.6 aspects.
 
-Two resolutions were tested. At daily resolution (1,262 trading days, April 2021 to April 2026), the Uranian transit system showed in-sample correlation between transit planet scores and SPY daily range (r = 0.34), but the signal inverted completely out of sample. Planets that predicted high volatility in the 2021-2023 training period predicted low volatility in 2024-2026. The autocorrelation of the continuous planet score (0.93 at lag 1 day) meant it was measuring slow-moving regimes, not day-to-day events. Daily resolution produced no usable signal.
-
-At weekly resolution (262 weeks across the same five-year period), a discrete net signal was computed from exact Uranian transit hits within each week. The method was a priori: planet classifications as high-volatility (Vulkanus, Hades, Kronos) or low-volatility (Admetos, Cupido, Poseidon) were drawn from Uranian tradition before testing. HV weeks (net signal positive, n = 60) had a 35 percent high-volatility rate. LV weeks (net signal negative, n = 46) had a 7 percent high-volatility rate. Per-quarter direction was correct in 10 of 12 quarters (83 percent, p = 0.017 by permutation test). Within-quarter pairwise comparison showed 68.5 percent of HV-vs-LV pairs had the HV week with higher range (p = 0.009). One test year (2025, driven by the April tariff shock during an LV-classified week) weakened but did not eliminate the effect.
-
-The contrast between the two resolutions suggests the Uranian transit signal operates at a weekly timescale. The daily score was confounded by autocorrelation. The weekly net signal, using discrete exact hits rather than continuous ratios, revealed a statistically significant but modest relationship between transit planet activations and market volatility.
-
-### 4.9 Null Result: Family Synastry Matrix
-
-The family couples averaged 35.8 aspects versus a random mean of 35.8 (51st percentile). Parent-child pairs averaged 37.9 versus 35.3 random (31st percentile). Grandparent-grandchild pairs averaged 37.1 versus 37.0 random (45th percentile). No relationship category differed from random by more than 0.6 aspects.
-
-Individual pairs were scattered evenly across the random distribution. Blood relationship, marriage, and being strangers produced indistinguishable aspect counts. The engine measures angles, not relationships.
+Individual pairs scatter evenly across the random distribution. Blood relationship and marriage produce indistinguishable aspect counts. The aspect-density metric does not carry relationship information.
 
 ## 5. Discussion
 
 ### 5.1 What Survived
 
-Three categories of structural feature survived the 2,000-year transmission intact.
+Three structural features survived the transmission intact.
 
-The three universal aspect angles (conjunction, opposition, trine) appear in every tradition that received the Hellenistic system. These are the only angles recognized by Western, Vedic, and Chinese sources. The fact that the same three angles also appear in the Babylonian Mul.Apin star catalog suggests they may predate the Hellenistic synthesis itself.
+The conjunction, opposition, and trine aspect angles are universal. These same three angles appear in the Babylonian Mul.Apin catalog, suggesting they may predate the Hellenistic synthesis [5].
 
-The twelve-house division survives across five competing methods with 79.4 percent agreement for random charts. The concept is robust even when the algorithms disagree. Astrologers debate house systems because they produce different cusps, but the engine shows that for most charts the debate has little practical effect: planets land in the same house regardless of method unless they sit near a boundary.
+The 12-house division holds across five competing methods at 79.4% agreement. The concept is robust. Astrologers debate house systems because they produce different cusps, but for most charts planets land in the same house regardless of method unless they sit near a boundary.
 
-The node axis geometry is invariant under coordinate shift. The 180 degree opposition between North and South Node is preserved in every chart because it is a mathematical property of the orbit, not a cultural assignment. No transmission can break it. This is not a convergence finding. It is a geometric constraint that the traditions correctly recognized and preserved.
+Node axis geometry is invariant. The 180 degree opposition is a mathematical property of the orbit. No transmission can break it.
 
-Dignity convergence occupies a middle ground. At 46.8 percent mean agreement between Western and Vedic systems, it is well above zero but well below the house convergence rate. Individual variation spans the full possible range from 14 to 71 percent, and the distribution is a smooth bell curve centered on three planets. The dignity table as transmitted is real. Individual charts scatter across it without obvious patterning.
+Dignity convergence is partial: 46.8% mean agreement, a smooth bell curve, no family patterning. Individual variation spans the full range from 14% to 71%. The dignity table is real but partially preserved.
 
 ### 5.2 What Didn't
 
-Not everything survived. The Phase 4 timing systems share almost nothing. Three systems designed to answer "what is happening now" produce the same answer only 4.5 percent of the time. The 64.5 percent baseline for partial convergence is inflated by generous planet-to-element mappings in the Chinese system. When Vedic dasha says Mercury, Chinese pillars say Venus-and-Saturn, and Hellenistic profection says Sun, the systems are measuring different things. They may share the concept of period-based timing but their mechanics diverged beyond recovery.
+Timing systems share almost nothing. Three systems designed to answer the same question produce the same answer 4.5% of the time. When Vedic dasha says Mercury, Chinese pillars say Venus-and-Saturn, and Hellenistic profection says Sun, they are measuring different things.
 
-The node sign is coordinate-dependent for three quarters of people. Two astrologers using different zodiacs will assign different signs to the same North Node most of the time. The concept of a nodal axis survived. The sign-label on it did not. This is not a transmission failure. It is a side effect of the 24 degree ayanamsa: any node within 24 degrees of a sign boundary flips under tropical-to-sidereal conversion.
+The node sign is coordinate-dependent. The node axis concept survived. The sign-label on it did not.
 
-The family synastry null result warrants attention. Blood relatives, married couples, and strangers produce indistinguishable aspect counts when measured by the engine. The 35 to 38 aspects per pair at 8 degree orb, with no category departing from random by more than 0.6 aspects, suggests that raw angle-count is not carrying relationship information. This does not mean synastry is empty. It means the aspect-density metric, measured as a count of angles within orb, does not distinguish mother from stranger. Relationships may be encoded in specific angles, orbs, or planet-personal-point combinations that a simple count cannot capture. The metric failed. The domain may not be.
+Family synastry at the aspect-count level is null. The metric failed. Relationships may be encoded in specific angles, orbs, or planet-point combinations that a simple count cannot capture.
 
 ### 5.3 The Lunar Mansion Layer
 
-The nine shared anchor stars between nakshatras and xiu sit at 33 percent overlap. This is the most interesting number in the study because it is the only structural feature that predates the Hellenistic transmission.
+The 33% overlap is consistent with a common origin modified by independent evolution. Three millennia separate the Shang oracle bones from the present. Nine stars survived the drift.
 
-Three of the shared stars (Spica, Antares, the Pleiades) are bright enough that independent discovery is plausible. Six (Sheratan, 35 Arietis, Meissa, Zubenelgenubi, Markab, Algenib) are not. Faint stars appearing in both traditions at the same ecliptic positions are harder to explain by coincidence than bright ones. The pattern is consistent with a common Neolithic or Bronze Age origin whose structural core partially survived independent evolution in India and China for at least three millennia.
+The lunar mansions predate horoscopic astrology. They are a parallel system built on the sidereal month. The Hellenistic fusion grafted a planetary system onto a lunar foundation already ancient when the first horoscope was drawn.
 
-The lunar mansions predate horoscopic astrology by at least a millennium. They are a parallel system built on the sidereal month, not the tropical year. Their survival suggests that the Hellenistic fusion in Alexandria grafted a planetary system onto a lunar foundation that was already ancient by the time anyone drew the first horoscope.
+A computational nakshatra-xiu comparison module could extend this analysis to per-chart measurement of sector boundary alignment and systematic offset.
 
-A computational nakshatra-xiu comparison module could be added to the engine. Sector boundary alignment, determinative star precision, and systematic offset measurement between the two systems would extend the Phase 2 static catalog approach into a per-chart measurement.
-
-### 5.4 The Market Signal
-
-The weekly Uranian transit signal is the only result in this study that predicts a real-world variable outside the astrological system itself. HV weeks classified a priori from Uranian tradition have five times the high-volatility rate of LV weeks (35 percent vs 7 percent). The permutation test confirms this is not a data artifact (p = 0.017 for quarterly direction, p = 0.009 for pairwise comparison). Five years of data, 262 weeks, a priori planet classification.
-
-The daily null is equally informative. The continuous planet score had autocorrelation of 0.93 at lag 1, making it a proxy for slow market regimes rather than a daily event signal. When the regime changed between training and test periods, the signal inverted completely. This is a textbook confound: two slow-moving variables appear correlated over finite samples regardless of whether a causal relationship exists.
-
-The contrast between resolutions matters. The Uranian signal appears to operate at weekly timescale. Discrete exact-hit counting worked where continuous scoring failed. The 2025 tariff shock partially disrupted the effect but did not eliminate it.
-
-This result does not validate the broader astrological enterprise. It is a single domain with a single methodology and a single set of a priori planet classifications. But it is a measured signal where one was not expected. The appropriate response is further testing, not declaration of victory.
-
-### 5.5 What the Engine Doesn't Measure
+### 5.4 What the Engine Doesn't Measure
 
 The engine measures structural convergence between traditions. It does not measure whether astrology works.
 
-Interpretive content is not structural. A dignity rule (Sun domicile in Leo) is structural. The interpretation of that rule (confidence, leadership, creative authority) is not. The engine can tell you that Western and Vedic systems agree on the rule 46.8 percent of the time. It cannot tell you whether the rule itself corresponds to anything real.
+A dignity rule (Sun domicile in Leo) is structural. The interpretation (confidence, leadership) is not. The engine can report that two systems agree on the rule 46.8% of the time. It cannot say whether the rule corresponds to anything outside itself.
 
-The market backtest and synastry null result begin to address external validation, but both are preliminary. The weekly signal needs replication across other indices, time periods, and planet sets. The synastry null needs alternative metrics beyond raw aspect count.
+Convergence may arise from the data, not the tradition. Conjunction and opposition are physically real alignments. Twelve equal divisions of a circle are mathematically natural. Some structural features may survive because they are encoded in the sky, not because they were faithfully transmitted. The engine cannot distinguish these explanations.
 
-The engine is a measurement tool. What is measured tells you where the structure is invariant and where it diverged. Whether any of it corresponds to external reality is a separate question the engine cannot answer alone.
+### 5.5 Future Work
 
-### 5.6 Future Work
+The nakshatra-xiu comparison deserves a computational module. Sector boundary alignment, star precision, and systematic offset measurement would produce per-chart results rather than a static catalog comparison.
 
-The nakshatra-xiu comparison module deserves implementation. Sector boundaries, star precision, and systematic offset between the two lunar mansion systems can be computed per chart rather than as a static catalog.
+The timing convergence baseline could be sharpened by restricting the Ba Zi element-to-planet mapping. If Metal maps to Venus only and Water to Moon only, the overlap drops and the baseline may become discriminating.
 
-The stock market signal warrants replication. Other indices (QQQ, IWM, VIX), other time periods, and other planet sets would test whether the Uranian weekly signal generalizes or is specific to SPY during 2021 to 2026.
+Additional coordinate systems (draconic zodiac, heliocentric frame, ayanamsa values other than Lahiri) would extend the Phase 5 and 6 results.
 
-The timing convergence baseline can be sharpened by restricting the Ba Zi element-to-planet mapping. If "Metal" maps to Venus only and "Water" to Moon only, the generous overlap is removed and the baseline may drop enough to become a useful differentiator. This would require historical justification for the restriction.
-
-Additional coordinate systems beyond tropical and sidereal should be tested. The draconic zodiac, the heliocentric frame, and ayanamsa values other than Lahiri would extend the Phase 5 and Phase 6 results.
-
-Larger family datasets would strengthen or falsify the synastry null. The seventeen-person sample is adequate for a pilot study but a hundred-person dataset with confirmed biological relationships would allow subgroup analysis by aspect type (conjunction vs opposition vs trine), by orb tightness, and by planet-personal-point pairings.
+Larger family datasets with confirmed biological relationships would strengthen or falsify the synastry null. Subgroup analysis by aspect type, orb tightness, and planet-point pairing requires more statistical power than 17 people can provide.
 
 ## 6. Conclusion
 
-A single Go binary, a statically linked Swiss Ephemeris, and six computational phases answer a question from 150 BCE: what structural features of astrology survived 2,000 years of independent cultural transmission?
+The transmission from Alexandria left a measurable imprint. Some of it is invariant. Most of it is not.
 
-The answer is uneven. The backbone held. The ornament drifted.
+Three aspect angles survived intact. Twelve houses held. The node axis is geometry. The dignity table is partially preserved. The timing systems diverged completely. The surface features that astrologers use every day are the features that changed the most.
 
-Three aspect angles (conjunction, opposition, trine) survived intact across every culture that received the system. Twelve houses held under five competing methods. The node axis geometry is mathematically invariant. The dignity table is partially preserved, averaging 46.8 percent agreement per chart with individual variation that does not pattern along family lines. These are the structural invariants. If the Hellenistic synthesis produced a coherent framework for mapping planetary positions to human meaning, this is what remains of it.
+Beneath all of it is the lunar mansion layer: nine shared stars at 33% overlap, predating horoscopic astrology by a millennium. Whatever astronomical tradition existed before writing, before horoscopes, before Alexandria, it left trace evidence in the stars two cultures chose to mark the same positions.
 
-The ornament tells a different story. Timing systems that purport to answer the same question produce the same answer 4.5 percent of the time. The node sign flips for three quarters of people under ayanamsa shift. Family members and strangers produce indistinguishable aspect counts. The surface layer of astrology, the interpretable features that astrologers actually use, diverged beyond recovery.
+The engine is open source. The data, baselines, and paper are public. The measurements are falsifiable. The engine does not say whether any of this is true, only what survived.
 
-Beneath both is the lunar mansion layer. Nine shared anchor stars between Indian nakshatras and Chinese xiu, a 33 percent overlap that cannot be explained by coincidence alone. Half of these stars are too faint for independent discovery, suggesting common origin rather than parallel invention. Whatever astronomical tradition existed before writing, before horoscopes, before Alexandria, it left trace evidence in the stars two cultures independently chose to mark the same ecliptic positions. This is the deepest structural signal in the study and it predates everything else.
+## Appendix A: Stock Market Backtest
 
-The Uranian weekly signal is the wildcard. A priori planet classifications from tradition, discrete exact-hit counting at weekly resolution, five years of data, and a permutation test that says the result is unlikely to be noise (p = 0.017). It is the only external validation in the study and it should be replicated before it is believed.
+A Uranian transit backtest was conducted on SPY (S&P 500 ETF) from April 2021 to April 2026. This analysis uses the Hamburg School Uranian system (Vulkanus, Hades, Kronos, Admetos, Cupido, Poseidon), a 20th-century framework distinct from the Hellenistic-based measurements in the main paper [12]. It is included here for completeness as the study's only external validation result.
 
-The engine is open source. The data, the baselines, and the paper are public. The measurements are falsifiable. If the results are wrong, they are wrong in ways a competing implementation can demonstrate. That is the point.
+At daily resolution (1,262 trading days), the continuous planet score showed in-sample correlation with daily range (r = 0.34), but the signal inverted out of sample. Planets predicting high volatility in 2021-2023 predicted low volatility in 2024-2026. Score autocorrelation of 0.93 at lag 1 indicated slow-moving regime measurement, not daily event detection.
 
-The transmission from Alexandria left a measurable imprint. Some of it is invariant. Most of it is not. The engine doesn't say whether any of it is true, only what survived.
+At weekly resolution (262 weeks), a discrete net signal was computed from exact transit hits. Planet classifications were a priori from tradition: high-volatility (Vulkanus, Hades, Kronos) and low-volatility (Admetos, Cupido, Poseidon). HV weeks (n = 60) showed 35% high-volatility rate versus 7% for LV weeks (n = 46). Quarterly direction was correct in 10 of 12 quarters (83%, p = 0.017 by permutation test). Pairwise comparison within quarters: 68.5% of HV-LV pairs had HV with higher range (p = 0.009). Year 2025 (April tariff shock during an LV week) weakened but did not eliminate the effect.
+
+This is a single-domain result with a single methodology. Replication across indices, time periods, and planet sets is required before the signal can be considered robust.
+
+## References
+
+[1] Needham, J. (1959). Science and Civilisation in China, Vol. 3: Mathematics and the Sciences of the Heavens and the Earth. Cambridge University Press.
+
+[2] Braha, J.T. (1986). Ancient Hindu Astrology for the Modern Western Astrologer. Hermetician Press.
+
+[3] Standish, E.M. (1998). JPL Planetary and Lunar Ephemerides, DE405/LE405. JPL IOM 312.F-98-048.
+
+[4] Pingree, D. (1997). From Astral Omens to Astrology: From Babylon to Bikaner. Istituto Italiano per l'Africa e l'Oriente.
+
+[5] Hunger, H. and Pingree, D. (1999). Astral Sciences in Mesopotamia. Brill.
+
+[6] Pingree, D. (1963). Astronomy and Astrology in India and Iran. Isis, 54(2), 229-246.
+
+[7] Subbarayappa, B.V. and Sarma, K.V. (1985). Indian Astronomy: A Source Book. Nehru Centre.
+
+[8] Ptolemy, C. (c. 150 CE). Tetrabiblos. Translated by F.E. Robbins (1940). Loeb Classical Library.
+
+[9] Wan, M. (1998). San Ming Tong Hui (三命通会). Ming Dynasty compilation.
+
+[10] Lahiri, N.C. (1985). Lahiri's Indian Ephemeris of Planets' Positions. Astro-Research Bureau.
+
+[11] Pingree, D. (1981). Jyotihsastra: Astral and Mathematical Literature. Otto Harrassowitz.
+
+[12] Witte, A. and Lefeldt, H. (1928). Rules for Planetary Pictures. Hamburg School.
