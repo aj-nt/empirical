@@ -16,6 +16,22 @@ A weekly Uranian transit signal on SPY volatility (262 weeks, 2021 to 2026) show
 
 The engine, data, baselines, and manuscript are open source. All six phases are cross-validated between Go and Python implementations against three known birth charts.
 
+## 1. Introduction
+
+Astrology begins with data. Planetary positions, calculated from ephemerides precise enough to navigate spacecraft, are the same regardless of culture. A conjunction is a conjunction. An opposition is an opposition. The geometry does not care what meaning a tradition assigns to it.
+
+Meaning is where the traditions diverge. Western astrology assigns planetary dignity by domicile and exaltation. Vedic astrology uses swakshetra and uchcha. Similar concepts, different assignments. Chinese Ba Zi maps planets to elements, five to seven, with a mapping generous enough to make overlap likely by chance. Three systems. One shared origin. Two thousand years of independent evolution.
+
+The question this paper asks is not whether astrology is true. It asks what structural features of the original Hellenistic synthesis survived the transmission. The question is computational. It can be answered with a measurement tool.
+
+The tool is a single Go binary. No dependencies beyond the standard library and a statically linked Swiss Ephemeris. It embeds the JPL DE ephemeris data, the same data NASA uses for spacecraft navigation. It computes six independent convergence measurements: dignity rules, aspect angles, house division, timing systems, node axis preservation, and zodiac comparison. Each measurement includes a Monte Carlo random baseline so individual charts can be scored against a null distribution.
+
+Three traditions are compared: Western (the Roman elaboration of the Hellenistic synthesis), Vedic (the Indian branch, merged with the pre-existing nakshatra lunar mansion system), and Chinese (the Tang-dynasty integration with the indigenous stem-and-branch calendar and five-element cosmology). The engine treats each tradition as an independent witness to the same original. Where they agree, the structure is invariant. Where they diverge, it was modified.
+
+The results are uneven. Some features survived intact. Most did not. Beneath all three systems is an older layer: the lunar mansions, predating horoscopic astrology by at least a millennium, whose shared anchor stars between Indian nakshatras and Chinese xiu suggest a common Neolithic or Bronze Age origin. And at the periphery, a weekly Uranian transit signal on SPY volatility returns a statistically significant result where no signal was expected.
+
+The engine does not say whether astrology works. It says what survived. The distinction matters. Astrology makes claims about human life. Personality, relationships, timing, fate. This paper makes no such claims. It measures the structural integrity of a 2,000-year-old transmission and reports the result. What the reader does with that result is not the engine's problem.
+
 ## 2. Methods
 
 ### 2.1 Engine Architecture
