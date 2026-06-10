@@ -84,7 +84,7 @@ Around 150 BCE, in Alexandria, these strands were combined. Babylonian mathemati
 
 This system spread. West into Rome, where it was elaborated into the tradition now called Western astrology. East along trade routes into India around the first or second century CE, where it merged with the pre-existing nakshatra lunar mansion system to produce what is now called Vedic astrology. Elements of it reached China, where during the Tang dynasty (seventh century CE) the four pillars of destiny (Ba Zi) integrated the imported planetary framework with the indigenous stem-and-branch counting system and five-element cosmology.
 
-The historical question is not whether the system spread. Multiple independent lines of evidence establish that it did. The question is what structural features survived the journey and what was modified or dropped.
+The historical question is not whether the system spread. Multiple independent lines of evidence establish that it did. The question is what structural features survived the transmission and what was modified or dropped.
 
 ### 3.3 Lunar Mansions: A Deeper Layer
 
@@ -148,7 +148,7 @@ The node axis itself, the 180 degree opposition between North and South Node, is
 
 AJ's North Node shifts from Aries (tropical) to Pisces (sidereal). His node is near the Aries-Pisces boundary and the ayanamsa flips it. Cait's North Node stays in Aries in both systems. Her node is deeper in the sign, past the 24 degree threshold.
 
-The finding is that the node axis concept (a polar pair encoding an evolutionary trajectory) survives across traditions with full agreement, but the sign-level interpretation is coordinate-dependent for most people. Two astrologers using different zodiacs will disagree on which sign someone's North Node occupies roughly three quarters of the time.
+The finding is that the node axis concept (a polar pair encoding an evolutionary trajectory) survives across traditions with full agreement, but the sign-level interpretation is coordinate-dependent for most people. Two astrologers using different zodiacs will disagree on which sign the North Node occupies roughly three quarters of the time.
 
 ### 4.6 Phase 6: Zodiac Comparison
 
@@ -177,3 +177,67 @@ The contrast between the two resolutions suggests the Uranian transit signal ope
 The family couples averaged 35.8 aspects versus a random mean of 35.8 (51st percentile). Parent-child pairs averaged 37.9 versus 35.3 random (31st percentile). Grandparent-grandchild pairs averaged 37.1 versus 37.0 random (45th percentile). No relationship category differed from random by more than 0.6 aspects.
 
 Individual pairs were scattered evenly across the random distribution. Blood relationship, marriage, and being strangers produced indistinguishable aspect counts. The engine measures angles, not relationships.
+
+## 5. Discussion
+
+### 5.1 What Survived
+
+Three categories of structural feature survived the 2,000-year transmission intact.
+
+The three universal aspect angles (conjunction, opposition, trine) appear in every tradition that received the Hellenistic system. These are the only angles recognized by Western, Vedic, and Chinese sources. The fact that the same three angles also appear in the Babylonian Mul.Apin star catalog suggests they may predate the Hellenistic synthesis itself.
+
+The twelve-house division survives across five competing methods with 79.4 percent agreement for random charts. The concept is robust even when the algorithms disagree. Astrologers debate house systems because they produce different cusps, but the engine shows that for most charts the debate has little practical effect: planets land in the same house regardless of method unless they sit near a boundary.
+
+The node axis geometry is invariant under coordinate shift. The 180 degree opposition between North and South Node is preserved in every chart because it is a mathematical property of the orbit, not a cultural assignment. No transmission can break it. This is not a convergence finding. It is a geometric constraint that the traditions correctly recognized and preserved.
+
+Dignity convergence occupies a middle ground. At 46.8 percent mean agreement between Western and Vedic systems, it is well above zero but well below the house convergence rate. Individual variation spans the full possible range from 14 to 71 percent, and the distribution is a smooth bell curve centered on three planets. The dignity table as transmitted is real. Individual charts scatter across it without obvious patterning.
+
+### 5.2 What Didn't
+
+Not everything survived. The Phase 4 timing systems share almost nothing. Three systems designed to answer "what is happening now" produce the same answer only 4.5 percent of the time. The 64.5 percent baseline for partial convergence is inflated by generous planet-to-element mappings in the Chinese system. When Vedic dasha says Mercury, Chinese pillars say Venus-and-Saturn, and Hellenistic profection says Sun, the systems are measuring different things. They may share the concept of period-based timing but their mechanics diverged beyond recovery.
+
+The node sign is coordinate-dependent for three quarters of people. Two astrologers using different zodiacs will assign different signs to the same North Node most of the time. The concept of a nodal axis survived. The sign-label on it did not. This is not a transmission failure. It is a side effect of the 24 degree ayanamsa: any node within 24 degrees of a sign boundary flips under tropical-to-sidereal conversion.
+
+The family synastry null result warrants attention. Blood relatives, married couples, and strangers produce indistinguishable aspect counts when measured by the engine. The 35 to 38 aspects per pair at 8 degree orb, with no category departing from random by more than 0.6 aspects, suggests that raw angle-count is not carrying relationship information. This does not mean synastry is empty. It means the aspect-density metric, measured as a count of angles within orb, does not distinguish mother from stranger. Relationships may be encoded in specific angles, orbs, or planet-personal-point combinations that a simple count cannot capture. The metric failed. The domain may not be.
+
+### 5.3 The Lunar Mansion Layer
+
+The nine shared anchor stars between nakshatras and xiu sit at 33 percent overlap. This is the most interesting number in the study because it is the only structural feature that predates the Hellenistic transmission.
+
+Three of the shared stars (Spica, Antares, the Pleiades) are bright enough that independent discovery is plausible. Six (Sheratan, 35 Arietis, Meissa, Zubenelgenubi, Markab, Algenib) are not. Faint stars appearing in both traditions at the same ecliptic positions are harder to explain by coincidence than bright ones. The pattern is consistent with a common Neolithic or Bronze Age origin whose structural core partially survived independent evolution in India and China for at least three millennia.
+
+The lunar mansions predate horoscopic astrology by at least a millennium. They are a parallel system built on the sidereal month, not the tropical year. Their survival suggests that the Hellenistic fusion in Alexandria grafted a planetary system onto a lunar foundation that was already ancient by the time anyone drew the first horoscope.
+
+A computational nakshatra-xiu comparison module could be added to the engine. Sector boundary alignment, determinative star precision, and systematic offset measurement between the two systems would extend the Phase 2 static catalog approach into a per-chart measurement.
+
+### 5.4 The Market Signal
+
+The weekly Uranian transit signal is the only result in this study that predicts a real-world variable outside the astrological system itself. HV weeks classified a priori from Uranian tradition have five times the high-volatility rate of LV weeks (35 percent vs 7 percent). The permutation test confirms this is not a data artifact (p = 0.017 for quarterly direction, p = 0.009 for pairwise comparison). Five years of data, 262 weeks, a priori planet classification.
+
+The daily null is equally informative. The continuous planet score had autocorrelation of 0.93 at lag 1, making it a proxy for slow market regimes rather than a daily event signal. When the regime changed between training and test periods, the signal inverted completely. This is a textbook confound: two slow-moving variables appear correlated over finite samples regardless of whether a causal relationship exists.
+
+The contrast between resolutions matters. The Uranian signal appears to operate at weekly timescale. Discrete exact-hit counting worked where continuous scoring failed. The 2025 tariff shock partially disrupted the effect but did not eliminate it.
+
+This result does not validate the broader astrological enterprise. It is a single domain with a single methodology and a single set of a priori planet classifications. But it is a measured signal where one was not expected. The appropriate response is further testing, not declaration of victory.
+
+### 5.5 What the Engine Doesn't Measure
+
+The engine measures structural convergence between traditions. It does not measure whether astrology works.
+
+Interpretive content is not structural. A dignity rule (Sun domicile in Leo) is structural. The interpretation of that rule (confidence, leadership, creative authority) is not. The engine can tell you that Western and Vedic systems agree on the rule 46.8 percent of the time. It cannot tell you whether the rule itself corresponds to anything real.
+
+The market backtest and synastry null result begin to address external validation, but both are preliminary. The weekly signal needs replication across other indices, time periods, and planet sets. The synastry null needs alternative metrics beyond raw aspect count.
+
+The engine is a measurement tool. What is measured tells you where the structure is invariant and where it diverged. Whether any of it corresponds to external reality is a separate question the engine cannot answer alone.
+
+### 5.6 Future Work
+
+The nakshatra-xiu comparison module deserves implementation. Sector boundaries, star precision, and systematic offset between the two lunar mansion systems can be computed per chart rather than as a static catalog.
+
+The stock market signal warrants replication. Other indices (QQQ, IWM, VIX), other time periods, and other planet sets would test whether the Uranian weekly signal generalizes or is specific to SPY during 2021 to 2026.
+
+The timing convergence baseline can be sharpened by restricting the Ba Zi element-to-planet mapping. If "Metal" maps to Venus only and "Water" to Moon only, the generous overlap is removed and the baseline may drop enough to become a useful differentiator. This would require historical justification for the restriction.
+
+Additional coordinate systems beyond tropical and sidereal should be tested. The draconic zodiac, the heliocentric frame, and ayanamsa values other than Lahiri would extend the Phase 5 and Phase 6 results.
+
+Larger family datasets would strengthen or falsify the synastry null. The seventeen-person sample is adequate for a pilot study but a hundred-person dataset with confirmed biological relationships would allow subgroup analysis by aspect type (conjunction vs opposition vs trine), by orb tightness, and by planet-personal-point pairings.
