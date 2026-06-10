@@ -92,7 +92,7 @@ The twenty-seven nakshatras and twenty-eight xiu present a special case. Both ar
 
 Scholars debate whether one influenced the other or whether both derive from an earlier common source. What is not debated is that these systems predate horoscopic astrology by at least a millennium. They are lunar, not planetary. They divide the sky into twenty-seven or twenty-eight parts, not twelve. They answer "where is the moon tonight," not "what is your fate."
 
-Comparing the determinative stars reveals a striking pattern. Of the twenty-seven nakshatras, ten share their anchor star with a corresponding xiu mansion: Sheratan (Beta Arietis) anchors both Ashwini and Lou. The Pleiades anchor both Krittika and Mao. Spica (Alpha Virginis) anchors both Chitra and Jiao. Antares (Alpha Scorpii) anchors both Jyeshtha and Xin. Markab (Alpha Pegasi) anchors both Purva Bhadrapada and Shi. Algenib (Gamma Pegasi) anchors both Uttara Bhadrapada and Bi. The remainder go further: Meissa (Lambda Orionis), Castor (Alpha Geminorum), and Zubenelgenubi (Alpha Librae), stars of only second or third magnitude, also appear in both lists.
+Comparing the determinative stars reveals a striking pattern. Of the twenty-seven nakshatras, ten share their anchor star with a corresponding xiu mansion: Sheratan (Beta Arietis) anchors both Ashwini and Lou. 35 Arietis anchors both Bharani and Stomach. The Pleiades anchor both Krittika and Mao. Spica (Alpha Virginis) anchors both Chitra and Jiao. Antares (Alpha Scorpii) anchors both Jyeshtha and Xin. Markab (Alpha Pegasi) anchors both Purva Bhadrapada and Shi. Algenib (Gamma Pegasi) anchors both Uttara Bhadrapada and Bi. The remainder go further: Meissa (Lambda Orionis), Castor (Alpha Geminorum), and Zubenelgenubi (Alpha Librae), stars of only second or third magnitude, also appear in both lists.
 
 Ten shared anchor stars out of approximately twenty-seven sectors is a rate of 37 percent. Pure chance would produce far fewer. Complete transmission would produce far more. The pattern is consistent with a common origin modified by centuries of independent observation: some stars (Spica, Antares, the Pleiades) are bright enough that any sky-watching culture would notice them. Others (Sheratan, Meissa, Algenib) are not.
 
@@ -103,3 +103,75 @@ This makes the lunar mansions the deepest recoverable structural layer. They pre
 The engine measures convergence across the planetary and horoscopic layers that originated in the Hellenistic synthesis and spread to India and China. Dignity rules, aspect angles, house division, timing systems, and coordinate frames are later additions to an older lunar infrastructure. The nakshatra-xiu comparison provides a window into that deeper layer.
 
 The measurement framework answers a specific question: given that one coherent system was transmitted to three cultures and maintained independently for two millennia, which structural features were invariant enough to survive every branch point and which were modified? The invariant features are the backbone. The modified features are the ornament. Separating them requires a measurement tool that treats each tradition as an independent witness to the same original. That is what the engine does.
+
+## 4. Results
+
+### 4.1 Phase 1: Dignity Convergence
+
+The random baseline for dignity convergence, computed from 10,000 random birth charts between 1900 and 2030, is a mean of 3.27 planets agreeing out of 7 (46.8 percent). The distribution is a bell curve centered on 3 of 7: 29.0 percent of random charts show exactly 3 planets agreeing, 25.6 percent show 4, and 19.8 percent show 2. At the extremes, 1.1 percent show zero planets agreeing and 0.3 percent show all seven.
+
+An individual chart's convergence score can be located within this distribution. A seventeen-person family dataset spanning three generations was scored. Scores ranged from 1 of 7 (14.3 percent) to 5 of 7 (71.4 percent), consistent with the random distribution's span. Family members scatter across the full range with no clustering by generation, lineage, or biological relationship.
+
+The four charts scoring 1 of 7 (at the 1st percentile) are three women from different lineages and one from the maternal grandmother generation. The two highest-scoring charts at 5 of 7 (83rd percentile) are from different generations and unrelated lineages. AJ scores 4 of 7 (57th percentile), indistinguishable from random.
+
+The finding is that dignity convergence is a measurably real quantity with a known random distribution. Individual variation exists but does not pattern along family lines.
+
+### 4.2 Phase 2: Aspect Catalog
+
+The aspect catalog is static: it does not vary per chart. Of the seven angles measured, three are universal across Western, Vedic, and Chinese traditions: conjunction (0 degrees), opposition (180 degrees), and trine (120 degrees). Two are partially preserved: the square (90 degrees) appears explicitly in Western and Vedic, implicitly in Chinese through the punishment relationship. The sextile (60 degrees) appears in Western and Vedic only. The semi-sextile (30 degrees) and quincunx (150 degrees) are recognized in Western and Vedic but have only partial Chinese equivalents through the six harmonies subset.
+
+The three universal angles are the deepest invariants. These three angle relationships survived 2,000 years of cultural transmission unchanged in every tradition that received the system. They are the backbone of aspect geometry.
+
+### 4.3 Phase 3: House Convergence
+
+The random baseline for house convergence, computed from 5,000 random charts, is a mean of 5.56 planets unambiguous out of 7 (79.4 percent). The distribution is right-skewed: 39.1 percent of charts have all seven planets unambiguous, 25.5 percent have six, and only 1.6 percent have zero.
+
+The high baseline makes house convergence a weak differentiator between individual charts. Most planets land in the same house regardless of calculation method because house cusps differ primarily near the sign boundaries. For planets more than a few degrees from a cusp edge, all five systems agree on placement.
+
+AJ scores 6 of 7 unambiguous (Mercury disputed). Cait also scores 6 of 7 (Moon disputed). Both are at the 65th percentile. The concept of twelve houses survives across systems, but individual variation in house agreement is noise-level.
+
+### 4.4 Phase 4: Timing Convergence
+
+The random baseline for timing convergence, computed from 3,000 random charts with random target dates, shows that 64.5 percent of birth/target pairs produce at least one converging planet across two or more systems. The distribution is tight: 55.8 percent have exactly one converging planet, 35.5 percent have zero, and 8.7 percent have two. No random chart produced three or more converging planets.
+
+All three systems agree on at least one planet in 4.5 percent of cases (134 of 2,999). This is the only genuinely rare outcome in the timing layer.
+
+AJ scores zero converging planets for the target date 2026-06-10. His Vedic dasha activates Mercury, his Ba Zi luck pillar activates Venus and Saturn, and his profection activates the Sun. No overlap. Cait scores one converging planet (Moon). Her Ba Zi pillar and annual profection both activate Moon.
+
+The high baseline limits the utility of timing convergence as an individual differentiator. The element-to-planet mappings in the Ba Zi system are broad by design, inflating the probability of overlap. The 4.5 percent of charts with full three-system agreement are the only meaningful signal.
+
+### 4.5 Phase 5: Node Convergence
+
+The random baseline for node axis convergence, computed from 5,000 random charts, shows that the node sign survives the tropical-to-sidereal coordinate shift in 22.2 percent of charts. For the remaining 77.8 percent, the ayanamsa of approximately 24 degrees pushes the North Node across a sign boundary.
+
+The node axis itself, the 180 degree opposition between North and South Node, is preserved in 100 percent of charts. This is a geometric invariant.
+
+AJ's North Node shifts from Aries (tropical) to Pisces (sidereal). His node is near the Aries-Pisces boundary and the ayanamsa flips it. Cait's North Node stays in Aries in both systems. Her node is deeper in the sign, past the 24 degree threshold.
+
+The finding is that the node axis concept (a polar pair encoding an evolutionary trajectory) survives across traditions with full agreement, but the sign-level interpretation is coordinate-dependent for most people. Two astrologers using different zodiacs will disagree on which sign someone's North Node occupies roughly three quarters of the time.
+
+### 4.6 Phase 6: Zodiac Comparison
+
+The zodiac comparison, computed from 9,738 synthetic charts, shows that dignity density is symmetric under ayanamsa shift. Neither the tropical nor the sidereal zodiac produces systematically more dignified placements. The Western dignity table performs equivalently under both coordinate frames.
+
+This symmetry was confirmed analytically: the dignity table itself is symmetric under uniform sign shift because it assigns domicile pairs to opposite signs (Sun rules Leo and the opposite Aquarius is Saturn's domicile). The table is not biased toward either coordinate system. The finding is that both tropical and sidereal zodiacs are equally valid applications of the dignity rules. Neither is "correct." Both are usable.
+
+### 4.7 Lunar Mansions
+
+The comparison of determinative stars between the twenty-seven Indian nakshatras and twenty-eight Chinese xiu reveals ten shared anchor stars out of approximately twenty-seven sectors, a rate of 37 percent.
+
+The shared stars span the full range of brightness. Three are first magnitude or brighter: Spica (the 15th brightest star), Antares (16th), and the Pleiades cluster. Any sky-watching culture would notice these. Seven are second magnitude or fainter: Sheratan (2.6 magnitude), 35 Arietis (4.6), Meissa (3.5), Castor (1.9), Zubenelgenubi (2.6), Markab (2.5), and Algenib (2.8). These are not obvious anchor points for independent traditions.
+
+The pattern is consistent with a common origin modified by centuries of independent observation. Stars bright enough to serve as universal reference points (Spica, Antares, the Pleiades) were retained by both traditions. Stars too faint to be independently discovered as anchor points (Sheratan, Meissa, Algenib) were likely inherited from a shared source and then preserved.
+
+### 4.8 Null Results
+
+Two experiments produced null results and are reported here for completeness.
+
+**Stock market backtest.** Daily S&P 500 ETF (SPY) volatility was compared against transit scores over 29 trading days from April 2025 to March 2026. Pearson correlation between transit score and daily price range was r = 0.144. Spearman rank correlation was rho = negative 0.144. With the largest outlier (April 7, 2025) removed, Pearson was r = negative 0.144. Three-class accuracy was 41.4 percent, below the baseline of 89.7 percent for predicting normal-volatility days. High-volatility detection precision was 0.10. No planetary signal was found.
+
+**Family synastry matrix.** A seventeen-person three-generation family was analyzed for synastry aspect density at an 8 degree orb. The matrix covered 136 pairs across five relationship categories: couples (9 pairs), parent-child (14), grandparent-grandchild (24), step-parent (1), and siblings (1). An age-matched random baseline of 5,000 pairs per category was generated for comparison.
+
+The family couples averaged 35.8 aspects versus a random mean of 35.8 (51st percentile). Parent-child pairs averaged 37.9 versus 35.3 random (31st percentile). Grandparent-grandchild pairs averaged 37.1 versus 37.0 random (45th percentile). No relationship category differed from random by more than 0.6 aspects.
+
+Individual pairs were scattered evenly across the random distribution. Blood relationship, marriage, and being strangers produced indistinguishable aspect counts. The engine measures angles, not relationships.
