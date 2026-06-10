@@ -241,3 +241,21 @@ The timing convergence baseline can be sharpened by restricting the Ba Zi elemen
 Additional coordinate systems beyond tropical and sidereal should be tested. The draconic zodiac, the heliocentric frame, and ayanamsa values other than Lahiri would extend the Phase 5 and Phase 6 results.
 
 Larger family datasets would strengthen or falsify the synastry null. The seventeen-person sample is adequate for a pilot study but a hundred-person dataset with confirmed biological relationships would allow subgroup analysis by aspect type (conjunction vs opposition vs trine), by orb tightness, and by planet-personal-point pairings.
+
+## 6. Conclusion
+
+A single Go binary, a statically linked Swiss Ephemeris, and six computational phases answer a question from 150 BCE: what structural features of astrology survived 2,000 years of independent cultural transmission?
+
+The answer is uneven. The backbone held. The ornament drifted.
+
+Three aspect angles (conjunction, opposition, trine) survived intact across every culture that received the system. Twelve houses held under five competing methods. The node axis geometry is mathematically invariant. The dignity table is partially preserved, averaging 46.8 percent agreement per chart with individual variation that does not pattern along family lines. These are the structural invariants. If the Hellenistic synthesis produced a coherent framework for mapping planetary positions to human meaning, this is what remains of it.
+
+The ornament tells a different story. Timing systems that purport to answer the same question produce the same answer 4.5 percent of the time. The node sign flips for three quarters of people under ayanamsa shift. Family members and strangers produce indistinguishable aspect counts. The surface layer of astrology, the interpretable features that astrologers actually use, diverged beyond recovery.
+
+Beneath both is the lunar mansion layer. Nine shared anchor stars between Indian nakshatras and Chinese xiu, a 33 percent overlap that cannot be explained by coincidence alone. Half of these stars are too faint for independent discovery, suggesting common origin rather than parallel invention. Whatever astronomical tradition existed before writing, before horoscopes, before Alexandria, it left trace evidence in the stars two cultures independently chose to mark the same ecliptic positions. This is the deepest structural signal in the study and it predates everything else.
+
+The Uranian weekly signal is the wildcard. A priori planet classifications from tradition, discrete exact-hit counting at weekly resolution, five years of data, and a permutation test that says the result is unlikely to be noise (p = 0.017). It is the only external validation in the study and it should be replicated before it is believed.
+
+The engine is open source. The data, the baselines, and the paper are public. The measurements are falsifiable. If the results are wrong, they are wrong in ways a competing implementation can demonstrate. That is the point.
+
+The transmission from Alexandria left a measurable imprint. Some of it is invariant. Most of it is not. The engine doesn't say whether any of it is true, only what survived.
