@@ -14,7 +14,7 @@ Three aspect angles (conjunction, opposition, trine) are universal across all th
 
 The surface layer diverged. Three timing systems produce the same answer 4.5% of the time. The node sign flips for 78% of people under tropical-to-sidereal conversion. Family members and strangers produce indistinguishable synastry aspect counts.
 
-Beneath the Hellenistic layer, comparison of the 27 Indian nakshatras and 28 Chinese xiu reveals 9 shared anchor stars (33% overlap, 95% CI: 16-53% by bootstrap). Six of these are too faint for independent discovery, consistent with a common Neolithic or Bronze Age origin.
+Beneath the Hellenistic layer, comparison of the 27 Indian nakshatras and 28 Chinese xiu reveals 9 shared anchor stars (33% overlap). Bootstrap resampling from the actual star pools yields a null expectation of 10.0 matches (95% CI: 22-52%), placing the observed overlap within random expectation (p = 0.76). However, six of the nine shared stars are too faint for independent discovery, consistent with a common origin predating horoscopic astrology by at least a millennium.
 
 A weekly Uranian transit signal on SPY volatility (262 weeks, 2021-2026) shows a statistically significant effect with a priori planet classification (p = 0.017). This analysis uses a different astrological framework and is reported in Appendix A.
 
@@ -166,9 +166,9 @@ The 9,738 synthetic charts confirm that dignity density is symmetric under ayana
 
 ### 4.7 Lunar Mansions
 
-Nine shared anchor stars (33% overlap) between 27 nakshatras and 28 xiu. Bootstrap resampling (10,000 iterations, sampling 27 determinative stars from the nakshatra list and 28 from the xiu list) yields a 95% CI of approximately 16-53% for expected overlap under random assignment, placing the observed 33% within the upper range of the null but not exceeding it. The qualitative pattern of faint-star sharing across traditions is more informative than the raw overlap rate.
+Nine shared anchor stars (33% overlap) between 27 nakshatras and 28 xiu. Bootstrap resampling from the actual star pools (10,000 iterations) yields a null expectation of 10.0 matches (37%, 95% CI: 22-52%). The observed 9 matches is consistent with random assignment (p = 0.76). The raw overlap count does not distinguish signal from chance.
 
-Three bright shared stars (Spica, Antares, Pleiades) could reflect independent discovery. Six faint shared stars (Sheratan at 2.6 mag, 35 Arietis at 4.6, Meissa at 3.5, Zubenelgenubi at 2.6, Markab at 2.5, Algenib at 2.8) are less likely to be independent anchor choices.
+What does distinguish the result is the brightness distribution. Three of the nine shared stars (Spica, Antares, Pleiades) are first magnitude or brighter, plausible as independent discoveries. Six (Sheratan at 2.6 mag, 35 Arietis at 4.6, Meissa at 3.5, Zubenelgenubi at 2.6, Markab at 2.5, Algenib at 2.8) are second magnitude or fainter. That six faint stars appear in both systems at corresponding ecliptic positions is the qualitative signal. The raw count is noise. The faint-star pattern is worth investigation.
 
 ### 4.8 Null Result: Family Synastry
 
