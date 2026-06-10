@@ -1,6 +1,6 @@
 # Computational Recovery of Astrological Invariants
 
-## Methods
+## 2. Methods
 
 ### 2.1 Engine Architecture
 
@@ -67,3 +67,39 @@ The Swiss Ephemeris C library is available separately from `github.com/aloistr/s
 The Python baseline scripts used to generate the Phase 3, 4, and 5 random distributions are included in the repository under `docs/paper/baselines/`. Each script is a standalone Python file that can be rerun against the Python reference implementation to reproduce the numbers in this paper. The Phase 1 and Phase 6 baselines require the Go toolchain.
 
 This paper is licensed under the Creative Commons Attribution 4.0 International License (CC-BY 4.0).
+
+## 3. Historical Background
+
+### 3.1 Early Celestial Tracking
+
+The earliest organized system of astrology emerged in Mesopotamia. By approximately 1600 BCE, the Babylonians had compiled the Enuma Anu Enlil, seventy cuneiform tablets containing roughly seven thousand celestial omens. The seven visible planets (Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn) were tracked as divine messengers whose configurations carried meaning for the king. The Mul.Apin star catalog, compiled around 1000 BCE, catalogued sixty-six stars and constellations and provided heliacal rising and setting dates. By the fourth century BCE, Babylonian astronomers were computing planetary positions with sufficient accuracy to produce mathematical ephemerides. The system remained mundane throughout: omens interpreted for state purposes, not individual horoscopes.
+
+In parallel, other cultures developed their own celestial frameworks. The Egyptians aligned temples to solstices and tracked the heliacal rising of Sirius to predict Nile floods. By approximately 2100 BCE, coffin lids depicted the decanic system: thirty-six star groups dividing the year into ten-day periods, each with deity associations. The Vedanga Jyotisha, dated by scholars to 1400 to 1200 BCE, described the twenty-seven nakshatras, lunar mansions dividing the ecliptic into sectors of 13 degrees 20 minutes. The Chinese oracle bones of the Shang dynasty, dated to approximately 1250 BCE, recorded the ten Heavenly Stems and twelve Earthly Branches, the sexagenary cycle used for day counting, along with the twenty-eight xiu, a structurally identical lunar mansion system.
+
+Neither the Egyptian, Indian, nor Chinese traditions at this stage produced horoscopic astrology. The decans, nakshatras, xiu, and stems-and-branches were timekeeping and ritual systems. They divided the sky but did not assign individual destiny.
+
+### 3.2 The Hellenistic Transmission
+
+Around 150 BCE, in Alexandria, these strands were combined. Babylonian mathematical astronomy provided planetary positions. Egyptian decanic division contributed star-based timekeeping. Greek geometry supplied the framework of angles and houses. The resulting synthesis was the first horoscopic astrology: the ascendant marking the eastern horizon at birth, twelve houses dividing the local sky, essential dignity assigning planetary strength or weakness by zodiac sign, and aspect angles measuring planetary relationships. The seven visible planets, all known for millennia, were mapped into this new structure.
+
+This system spread. West into Rome, where it was elaborated into the tradition now called Western astrology. East along trade routes into India around the first or second century CE, where it merged with the pre-existing nakshatra lunar mansion system to produce what is now called Vedic astrology. Elements of it reached China, where during the Tang dynasty (seventh century CE) the four pillars of destiny (Ba Zi) integrated the imported planetary framework with the indigenous stem-and-branch counting system and five-element cosmology.
+
+The historical question is not whether the system spread. Multiple independent lines of evidence establish that it did. The question is what structural features survived the journey and what was modified or dropped.
+
+### 3.3 Lunar Mansions: A Deeper Layer
+
+The twenty-seven nakshatras and twenty-eight xiu present a special case. Both are ecliptic division systems based on the sidereal month, dividing the sky into sectors of roughly 13 degrees. Both assign each sector a determinative star or asterism. Both are documented before the Hellenistic period: the nakshatras appear in the Vedanga Jyotisha (1400 to 1200 BCE), the xiu on Shang oracle bones (approximately 1250 BCE).
+
+Scholars debate whether one influenced the other or whether both derive from an earlier common source. What is not debated is that these systems predate horoscopic astrology by at least a millennium. They are lunar, not planetary. They divide the sky into twenty-seven or twenty-eight parts, not twelve. They answer "where is the moon tonight," not "what is your fate."
+
+Comparing the determinative stars reveals a striking pattern. Of the twenty-seven nakshatras, ten share their anchor star with a corresponding xiu mansion: Sheratan (Beta Arietis) anchors both Ashwini and Lou. The Pleiades anchor both Krittika and Mao. Spica (Alpha Virginis) anchors both Chitra and Jiao. Antares (Alpha Scorpii) anchors both Jyeshtha and Xin. Markab (Alpha Pegasi) anchors both Purva Bhadrapada and Shi. Algenib (Gamma Pegasi) anchors both Uttara Bhadrapada and Bi. The remainder go further: Meissa (Lambda Orionis), Castor (Alpha Geminorum), and Zubenelgenubi (Alpha Librae), stars of only second or third magnitude, also appear in both lists.
+
+Ten shared anchor stars out of approximately twenty-seven sectors is a rate of 37 percent. Pure chance would produce far fewer. Complete transmission would produce far more. The pattern is consistent with a common origin modified by centuries of independent observation: some stars (Spica, Antares, the Pleiades) are bright enough that any sky-watching culture would notice them. Others (Sheratan, Meissa, Algenib) are not.
+
+This makes the lunar mansions the deepest recoverable structural layer. They predate the Hellenistic transmission. Their partial overlap suggests a common Neolithic or Bronze Age origin onto which planetary and horoscopic layers were grafted later, in Alexandria.
+
+### 3.4 What This Means for Measurement
+
+The engine measures convergence across the planetary and horoscopic layers that originated in the Hellenistic synthesis and spread to India and China. Dignity rules, aspect angles, house division, timing systems, and coordinate frames are later additions to an older lunar infrastructure. The nakshatra-xiu comparison provides a window into that deeper layer.
+
+The measurement framework answers a specific question: given that one coherent system was transmitted to three cultures and maintained independently for two millennia, which structural features were invariant enough to survive every branch point and which were modified? The invariant features are the backbone. The modified features are the ornament. Separating them requires a measurement tool that treats each tradition as an independent witness to the same original. That is what the engine does.
