@@ -92,9 +92,9 @@ The twenty-seven nakshatras and twenty-eight xiu present a special case. Both ar
 
 Scholars debate whether one influenced the other or whether both derive from an earlier common source. What is not debated is that these systems predate horoscopic astrology by at least a millennium. They are lunar, not planetary. They divide the sky into twenty-seven or twenty-eight parts, not twelve. They answer "where is the moon tonight," not "what is your fate."
 
-Comparing the determinative stars reveals a striking pattern. Of the twenty-seven nakshatras, ten share their anchor star with a corresponding xiu mansion: Sheratan (Beta Arietis) anchors both Ashwini and Lou. 35 Arietis anchors both Bharani and Stomach. The Pleiades anchor both Krittika and Mao. Spica (Alpha Virginis) anchors both Chitra and Jiao. Antares (Alpha Scorpii) anchors both Jyeshtha and Xin. Markab (Alpha Pegasi) anchors both Purva Bhadrapada and Shi. Algenib (Gamma Pegasi) anchors both Uttara Bhadrapada and Bi. The remainder go further: Meissa (Lambda Orionis), Castor (Alpha Geminorum), and Zubenelgenubi (Alpha Librae), stars of only second or third magnitude, also appear in both lists.
+Comparing the determinative stars reveals a striking pattern. Of the twenty-seven nakshatras, nine share their anchor star with a corresponding xiu mansion: Sheratan (Beta Arietis) anchors both Ashwini and Lou. 35 Arietis anchors both Bharani and Stomach. The Pleiades anchor both Krittika and Mao. Spica (Alpha Virginis) anchors both Chitra and Jiao. Antares (Alpha Scorpii) anchors both Jyeshtha and Xin. Markab (Alpha Pegasi) anchors both Purva Bhadrapada and Shi. Algenib (Gamma Pegasi) anchors both Uttara Bhadrapada and Bi. The remainder go further: Meissa (Lambda Orionis) and Zubenelgenubi (Alpha Librae), stars of only second or third magnitude, also appear in both lists.
 
-Ten shared anchor stars out of approximately twenty-seven sectors is a rate of 37 percent. Pure chance would produce far fewer. Complete transmission would produce far more. The pattern is consistent with a common origin modified by centuries of independent observation: some stars (Spica, Antares, the Pleiades) are bright enough that any sky-watching culture would notice them. Others (Sheratan, Meissa, Algenib) are not.
+Nine shared anchor stars out of approximately twenty-seven sectors is a rate of 33 percent. Pure chance would produce far fewer. Complete transmission would produce far more. The pattern is consistent with a common origin modified by centuries of independent observation: some stars (Spica, Antares, the Pleiades) are bright enough that any sky-watching culture would notice them. Others (Sheratan, Meissa, Algenib) are not.
 
 This makes the lunar mansions the deepest recoverable structural layer. They predate the Hellenistic transmission. Their partial overlap suggests a common Neolithic or Bronze Age origin onto which planetary and horoscopic layers were grafted later, in Alexandria.
 
@@ -158,9 +158,9 @@ This symmetry was confirmed analytically: the dignity table itself is symmetric 
 
 ### 4.7 Lunar Mansions
 
-The comparison of determinative stars between the twenty-seven Indian nakshatras and twenty-eight Chinese xiu reveals ten shared anchor stars out of approximately twenty-seven sectors, a rate of 37 percent.
+The comparison of determinative stars between the twenty-seven Indian nakshatras and twenty-eight Chinese xiu reveals nine shared anchor stars out of approximately twenty-seven sectors, a rate of 33 percent.
 
-The shared stars span the full range of brightness. Three are first magnitude or brighter: Spica (the 15th brightest star), Antares (16th), and the Pleiades cluster. Any sky-watching culture would notice these. Seven are second magnitude or fainter: Sheratan (2.6 magnitude), 35 Arietis (4.6), Meissa (3.5), Castor (1.9), Zubenelgenubi (2.6), Markab (2.5), and Algenib (2.8). These are not obvious anchor points for independent traditions.
+The shared stars span the full range of brightness. Three are first magnitude or brighter: Spica (the 15th brightest star), Antares (16th), and the Pleiades cluster. Any sky-watching culture would notice these. Six are second magnitude or fainter: Sheratan (2.6 magnitude), 35 Arietis (4.6), Meissa (3.5), Zubenelgenubi (2.6), Markab (2.5), and Algenib (2.8). These are not obvious anchor points for independent traditions.
 
 The pattern is consistent with a common origin modified by centuries of independent observation. Stars bright enough to serve as universal reference points (Spica, Antares, the Pleiades) were retained by both traditions. Stars too faint to be independently discovered as anchor points (Sheratan, Meissa, Algenib) were likely inherited from a shared source and then preserved.
 
