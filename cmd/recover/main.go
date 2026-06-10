@@ -7,6 +7,7 @@ import (
 	"io/fs"
 	"os"
 	"strconv"
+	"strings"
 
 	"github.com/aj-nt/empirical"
 	"github.com/aj-nt/empirical/internal/dignity"
@@ -156,6 +157,168 @@ func main() {
 			fmt.Println(string(result))
 		} else {
 			fmt.Print(string(result))
+		}
+		return
+	}
+
+	// ── batch subcommand ───────────────────────────────────────────
+	if len(os.Args) >= 2 && os.Args[1] == "batch" {
+		if len(os.Args) < 3 {
+			fmt.Fprintf(os.Stderr, "Usage: empirical batch <transits|synastry> [args...]\n")
+			fmt.Fprintf(os.Stderr, "  transits: --people a,b,c --start YYYY-MM-DD --end YYYY-MM-DD [--orb 3]\n")
+			fmt.Fprintf(os.Stderr, "  synastry: --people a,b,c [--orb 5]\n")
+			os.Exit(1)
+		}
+
+		subCmd := os.Args[2]
+		fs := flag.NewFlagSet("batch "+subCmd, flag.ExitOnError)
+		peopleStr := fs.String("people", "", "comma-separated names (aj,cait,pete,pat)")
+		orbDeg := fs.Float64("orb", 0, "max orb in degrees")
+		var startDate, endDate string
+		if subCmd == "transits" {
+			fs.StringVar(&startDate, "start", "", "start date (YYYY-MM-DD)")
+			fs.StringVar(&endDate, "end", "", "end date (YYYY-MM-DD)")
+		}
+		fs.Parse(os.Args[3:])
+
+		if *peopleStr == "" {
+			fmt.Fprintf(os.Stderr, "--people is required\n")
+			os.Exit(1)
+		}
+		peopleNames := splitComma(*peopleStr)
+		if len(peopleNames) == 0 {
+			fmt.Fprintf(os.Stderr, "no people listed\n")
+			os.Exit(1)
+		}
+
+		// Resolve birth data
+		type birth struct {
+			y, mo, d, h, mi int
+			tz, la, lo     float64
+		}
+		known := map[string]birth{
+			"aj":   {1969, 2, 15, 23, 10, -8, 47.038, -122.901},
+			"cait": {1986, 4, 29, 3, 0, -4, 41.034, -73.763},
+			"pete": {1952, 3, 1, 12, 0, -5, 40.9312, -73.8988},
+			"pat":  {1950, 12, 31, 12, 0, -5, 40.9312, -73.8988},
+		}
+
+		cacheDir := ""
+		natalPlanets := []string{"Sun", "Moon", "Mercury", "Venus", "Mars", "Jupiter", "Saturn", "Uranus", "Neptune", "Pluto"}
+		synastryAspects := []dignity.AspectDef{
+			{0, "conjunction"}, {60, "sextile"}, {90, "square"}, {120, "trine"}, {180, "opposition"},
+		}
+
+		switch subCmd {
+		case "transits":
+			if *orbDeg <= 0 { *orbDeg = 3.0 }
+			if startDate == "" || endDate == "" {
+				fmt.Fprintf(os.Stderr, "--start and --end required for batch transits\n")
+				os.Exit(1)
+			}
+
+			var people []dignity.BatchPerson
+			for _, name := range peopleNames {
+				b, ok := known[name]
+				if !ok {
+					fmt.Fprintf(os.Stderr, "unknown person: %s\n", name)
+					os.Exit(1)
+				}
+				cd := computePositions(b.y, b.mo, b.d, b.h, b.mi, b.tz, b.la, b.lo, cacheDir)
+				longs := make(map[string]float64)
+				for k, v := range cd.planets { longs[k] = v }
+				for _, oid := range []struct{ n string; id int }{{"Uranus", swe.URANUS}, {"Neptune", swe.NEPTUNE}, {"Pluto", swe.PLUTO}} {
+					lon, _, _, _ := swe.CalcUT(cd.jd, oid.id)
+					longs[oid.n] = lon
+				}
+				people = append(people, dignity.BatchPerson{Name: name, PlanetLongs: longs})
+			}
+
+			// Use first person's timezone for transit JD computation
+			first := known[peopleNames[0]]
+			compute := func(year, month, day int, hour float64, planetID int) (float64, float64, float64, float64) {
+				utHour := hour - first.tz
+				jd := swe.Julday(year, month, day, utHour, true)
+				return swe.CalcUT(jd, planetID)
+			}
+
+			results := dignity.BatchTransits(people, natalPlanets, startDate, endDate, dignity.HardAspectsOnly(), *orbDeg, compute)
+
+			// Build JSON
+			type hitJSON struct {
+				Transit string  `json:"transit"`
+				Natal   string  `json:"natal"`
+				Aspect  string  `json:"aspect"`
+				Orb     float64 `json:"orb"`
+				Start   string  `json:"start"`
+				End     string  `json:"end"`
+			}
+			type personJSON struct {
+				Name  string    `json:"name"`
+				Hits  []hitJSON `json:"hits"`
+			}
+			var out []personJSON
+			for _, r := range results {
+				compact := dignity.CompactTransitsWithRange(r.Hits)
+				pj := personJSON{Name: r.Name}
+				for _, c := range compact {
+					pj.Hits = append(pj.Hits, hitJSON{
+						Transit: c.TransitPlanet, Natal: c.NatalPlanet, Aspect: c.Aspect,
+						Orb: c.MinOrb, Start: c.DateStart, End: c.DateEnd,
+					})
+				}
+				out = append(out, pj)
+			}
+			js, _ := json.Marshal(out)
+			fmt.Println(string(js))
+
+		case "synastry":
+			if *orbDeg <= 0 { *orbDeg = 5.0 }
+
+			var people []dignity.BatchPerson
+			for _, name := range peopleNames {
+				b, ok := known[name]
+				if !ok {
+					fmt.Fprintf(os.Stderr, "unknown person: %s\n", name)
+					os.Exit(1)
+				}
+				cd := computePositions(b.y, b.mo, b.d, b.h, b.mi, b.tz, b.la, b.lo, cacheDir)
+				longs := make(map[string]float64)
+				for k, v := range cd.planets { longs[k] = v }
+				for _, oid := range []struct{ n string; id int }{{"Uranus", swe.URANUS}, {"Neptune", swe.NEPTUNE}, {"Pluto", swe.PLUTO}} {
+					lon, _, _, _ := swe.CalcUT(cd.jd, oid.id)
+					longs[oid.n] = lon
+				}
+				people = append(people, dignity.BatchPerson{Name: name, PlanetLongs: longs})
+			}
+
+			results := dignity.BatchSynastry(people, natalPlanets, synastryAspects, *orbDeg)
+
+			type hitJSON struct {
+				Planet1 string  `json:"planet1"`
+				Planet2 string  `json:"planet2"`
+				Aspect  string  `json:"aspect"`
+				Orb     float64 `json:"orb"`
+			}
+			type pairJSON struct {
+				Name1 string    `json:"name1"`
+				Name2 string    `json:"name2"`
+				Hits  []hitJSON `json:"hits"`
+			}
+			var out []pairJSON
+			for _, r := range results {
+				pj := pairJSON{Name1: r.Name1, Name2: r.Name2}
+				for _, h := range r.Hits {
+					pj.Hits = append(pj.Hits, hitJSON{Planet1: h.Planet1, Planet2: h.Planet2, Aspect: h.Aspect, Orb: h.Orb})
+				}
+				out = append(out, pj)
+			}
+			js, _ := json.Marshal(out)
+			fmt.Println(string(js))
+
+		default:
+			fmt.Fprintf(os.Stderr, "unknown batch subcommand: %s (use transits or synastry)\n", subCmd)
+			os.Exit(1)
 		}
 		return
 	}
@@ -363,6 +526,18 @@ func computeSynastry(name1 string, y1, mo1, d1, h1, mi1 int, tz1, la1, lo1 float
 	}
 
 	return json.Marshal(response)
+}
+
+// splitComma splits a comma-separated string into trimmed lowercase names.
+func splitComma(s string) []string {
+	var parts []string
+	for _, p := range strings.Split(s, ",") {
+		p = strings.TrimSpace(p)
+		if p != "" {
+			parts = append(parts, p)
+		}
+	}
+	return parts
 }
 
 // printReport prints a human-readable multi-phase report.
