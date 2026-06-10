@@ -1,5 +1,21 @@
 # Computational Recovery of Astrological Invariants
 
+## Abstract
+
+Around 150 BCE, in Alexandria, Babylonian planetary astronomy, Egyptian decanic timekeeping, and Greek geometry were combined into the first horoscopic astrology. The resulting system spread to Rome, India, and China, where it evolved independently for two millennia. This paper asks a specific question: what structural features of that original synthesis survived the transmission?
+
+A single Go binary with a statically linked Swiss Ephemeris computes six independent convergence measurements across Western, Vedic, and Chinese traditions: dignity rules, aspect angles, house division, timing systems, node axis preservation, and zodiac comparison. Each measurement includes a Monte Carlo random baseline so individual charts can be evaluated against a null distribution.
+
+Three structural features survived intact. The conjunction, opposition, and trine aspect angles are universal across all three traditions. The twelve-house division holds with 79.4 percent agreement across five competing calculation methods. The node axis geometry is mathematically invariant under coordinate shift. Dignity convergence averages 46.8 percent per chart with a smooth random distribution and no family patterning.
+
+The surface layer did not survive. Three timing systems designed to answer the same question produce the same answer 4.5 percent of the time. The node sign flips for 78 percent of people under tropical-to-sidereal conversion. Blood relatives and strangers produce indistinguishable synastry aspect counts.
+
+Beneath the Hellenistic layer, comparison of the twenty-seven Indian nakshatras and twenty-eight Chinese xiu reveals nine shared anchor stars at 33 percent overlap. Six of these are too faint for independent discovery, consistent with a common Neolithic or Bronze Age origin predating horoscopic astrology by at least a millennium.
+
+A weekly Uranian transit signal on SPY volatility (262 weeks, 2021 to 2026) shows a statistically significant effect with a priori planet classification (p = 0.017, permutation test). This is the only external validation in the study and requires replication.
+
+The engine, data, baselines, and manuscript are open source. All six phases are cross-validated between Go and Python implementations against three known birth charts.
+
 ## 2. Methods
 
 ### 2.1 Engine Architecture
