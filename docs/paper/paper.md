@@ -6,9 +6,7 @@ June 2026
 
 ## Abstract
 
-Around 150 BCE, Babylonian planetary astronomy, Egyptian decanic timekeeping, and Greek geometry were combined in Alexandria into the first horoscopic astrology. The system spread to Rome and India, evolving largely in isolation for two millennia. Elements reached China by the seventh century CE. This paper measures what structural features of the original synthesis survived.
-
-A single Go binary with a statically linked Swiss Ephemeris computes convergence across Western, Vedic, and Chinese traditions for dignity rules, aspect angles, house division, timing systems, node axis geometry, and zodiac comparison. Each measurement includes a Monte Carlo random baseline. All baselines are computed in Go; a Python reference implementation (pyswisseph) validates the engine against three reference charts.
+The first horoscopic astrology emerged in Alexandria around 150 BCE and spread to Rome and India, evolving largely in isolation for two millennia before elements reached China. This paper measures what structural features of the original synthesis survived, using a single Go binary with a statically linked Swiss Ephemeris. Six measurements covering dignity rules, aspect angles, house division, timing systems, node axis geometry, and zodiac comparison are each set against a Monte Carlo random baseline. All baselines are computed in Go and cross-validated against a Python reference implementation.
 
 Results form a continuum. Three aspect angles are universal, the node axis is geometry, and twelve houses hold at 83.0% agreement across five methods, forming the structural backbone. Dignity rules average 46.7% per chart in a smooth distribution with no family patterning. Timing shows 65.3% partial overlap but only 4.6% full three-system agreement once the generous element-to-planet mapping is accounted for. The node sign flips for 78.6% of people under ayanamsa shift. Family synastry is indistinguishable from random.
 
@@ -40,7 +38,7 @@ Pingree documented the historical transmission of Hellenistic astrology to India
 
 The Babylonian precedents have been studied extensively. Hunger and Pingree catalogued the Enuma Anu Enlil omen series and the Mul.Apin star catalog, establishing that pre-Hellenistic Babylonian astronomy was mundane: state omens, not individual horoscopes [5]. The mathematical ephemerides of the fourth century BCE provided the computational precision that Alexandria later deployed for a different purpose.
 
-Subbarayappa and Sarma documented the nakshatra system's role in early Indian astronomy, including its determinative stars and sector divisions [7]. This is the source material for the lunar mansion comparison in section 5.7. The comparison itself, cross-referencing nakshatra and xiu determinants and testing the overlap against null models, does not appear in the prior literature.
+Subbarayappa and Sarma documented the nakshatra system's role in early Indian astronomy, including its determinative stars and sector divisions [7]. This is the source material for the lunar mansion comparison in section 4.7. The comparison itself, cross-referencing nakshatra and xiu determinants and testing the overlap against null models, does not appear in the prior literature.
 
 This paper occupies the empty space between the historical record and a computational measurement. Pingree and Needham tell us the system spread. The engine tells us what survived.
 
@@ -105,7 +103,7 @@ Open source under MIT license at github.com/aj-nt/empirical. Go source: 89 test 
 
 ## 4. Results
 
-### 5.1 Phase 1: Dignity Convergence
+### 4.1 Phase 1: Dignity Convergence
 
 Random baseline (N=10,000): mean 3.27 of 7 planets agreeing (46.7%, 95% CI: 46.3-47.1, sample SD 1.52). Distribution: a smooth bell curve centered on 3. 29.0% of charts at exactly 3, 25.6% at 4, 19.8% at 2, 1.1% at 0, 0.3% at all 7.
 
@@ -113,19 +111,19 @@ The 17-person family sample scored from 14.3% to 71.4%. Family members scatter a
 
 The dignity table survived partially. Not intact. Not random. A smooth continuum with individual scores spanning the full range.
 
-### 5.2 Phase 2: Aspect Catalog
+### 4.2 Phase 2: Aspect Catalog
 
 Three angles are universal: conjunction, opposition, trine. Square (90 degrees) is explicit in Western and Vedic, implicit in Chinese through the punishment relationship. Sextile (60 degrees) appears in Western and Vedic only. Semi-sextile and quincunx are Western/Vedic with partial Chinese equivalents.
 
 These same three universal angles appear in the Babylonian Mul.Apin catalog, suggesting they predate the Hellenistic synthesis itself [5].
 
-### 5.3 Phase 3: House Convergence
+### 4.3 Phase 3: House Convergence
 
 Random baseline (N=5,000): mean 5.81 of 7 unambiguous (83.0%, 95% CI: 81.8-84.2, sample SD 1.63). Right-skewed: 42.9% of charts have all seven unambiguous. Planets near cusp boundaries are the only source of disagreement between methods.
 
 The concept of twelve houses survived. The specific method for computing them (Placidus vs. whole sign, Porphyry vs. Koch) matters only at the edges.
 
-### 5.4 Phase 4: Timing Convergence
+### 4.4 Phase 4: Timing Convergence
 
 Random baseline (N=5,000): 65.3% of birth/target pairs produce at least one converging planet. Distribution: 56.1% exactly one, 34.7% zero, 9.1% two. None observed at three or more. The convergence count is structurally bounded by the seven classical planets. No computation errors occurred.
 
@@ -133,15 +131,15 @@ Full three-system agreement, where Vimshottari dasha, Ba Zi luck pillars, and He
 
 The 65.3% partial overlap sounds like a strong signal but largely reflects the generous element-to-planet mapping. When Metal maps to both Saturn and Venus, and Water to both Moon and Mercury, overlap is likely by construction. The 4.6% full agreement is the cleaner number. Three independent timing systems converging on the same planet is genuinely rare.
 
-### 5.5 Phase 5: Node Convergence
+### 4.5 Phase 5: Node Convergence
 
 Random baseline (N=5,000): the node sign survives tropical-to-sidereal shift in 21.4% of charts (95% CI: 20.3-22.5). The Lahiri ayanamsa of approximately 24 degrees pushes the North Node across a sign boundary for the remaining 78.6%. The 180 degree opposition axis is preserved in every case. The node axis concept survived; the sign label on it did not.
 
-### 5.6 Phase 6: Zodiac Comparison
+### 4.6 Phase 6: Zodiac Comparison
 
 9,738 synthetic charts confirm symmetry. Neither tropical nor sidereal zodiac produces systematically more dignified placements. The analytical expectation, that a dignity table assigning domicile pairs to opposite signs is invariant under uniform sign shift, is confirmed computationally.
 
-### 5.7 Lunar Mansions
+### 4.7 Lunar Mansions
 
 Nine shared anchor stars (33% overlap) between 27 nakshatras and 23 xiu with documented single-star determinants. The nine: Sheratan (Beta Arietis, 2.6 mag) anchors Ashwini and Lou (婁). 35 Arietis (4.6 mag) anchors Bharani and Wei (胃). The Pleiades (1.6 mag) anchor Krittika and Mao (昴). Spica (Alpha Virginis, 0.98 mag) anchors Chitra and Jiao (角). Antares (Alpha Scorpii, 1.06 mag) anchors Jyeshtha and Xin (心). Markab (Alpha Pegasi, 2.5 mag) anchors Purva Bhadrapada and Shi (室). Algenib (Gamma Pegasi, 2.8 mag) anchors Uttara Bhadrapada and Bi (壁). Meissa (Lambda Orionis, 3.5 mag) anchors Mrigashira and Zi (觜). Zubenelgenubi (Alpha Librae, 2.6 mag) anchors Vishakha and Di (氐).
 
@@ -149,7 +147,7 @@ Three of these are first magnitude or brighter: Spica, Antares, the Pleiades. Pl
 
 Under Null 2, the total overlap of 9 is unremarkable (null expectation 8.5, p = 0.75). Two cultures independently selecting bright stars from available celestial candidates should end up with roughly this many matches. The composition of the overlap tells a different story. They should end up with perhaps one faint star in common. They ended up with six. Something other than independent brightness-weighted selection is operating here.
 
-### 5.8 Family Synastry
+### 4.8 Family Synastry
 
 Null result at 8 degree orb across all relationship categories. Couples: 35.8 aspects versus random mean 35.8 (sample SD 4.5). Parent-child: 37.9 vs. 35.3 (SD 4.5). Grandparent-grandchild: 37.1 vs. 37.0 (SD 4.7). No category deviates by more than 0.6 aspects from random expectation. Individual pairs scatter evenly across the random distribution.
 
