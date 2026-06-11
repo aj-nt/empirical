@@ -477,10 +477,13 @@ func ComputeProfection(birthYear, birthMonth, birthDay int, targetDate time.Time
 
 	// Sign on profected house cusp (whole-sign from ASC)
 	ascSignIdx := int(math.Mod(ascLon, 360)/30) % 12
-	if ascSignIdx < 0 {
+	for ascSignIdx < 0 {
 		ascSignIdx += 12
 	}
 	profSignIdx := (ascSignIdx + house - 1) % 12
+	for profSignIdx < 0 {
+		profSignIdx += 12
+	}
 	profSign := hellZodiacSigns[profSignIdx]
 	lord := hellSignRulerships[profSign]
 
