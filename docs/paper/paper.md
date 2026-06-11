@@ -111,6 +111,8 @@ The 17-person family sample scored from 14.3% to 71.4%. Family members scatter a
 
 The dignity table survived partially. Not intact. Not random. A smooth continuum with individual scores spanning the full range.
 
+![Figure 1: Phase 1 dignity convergence distribution across 10,000 random charts. Mean 3.27/7 (46.7%).](figures/phase1.png)
+
 ### 4.2 Phase 2: Aspect Catalog
 
 Three angles are universal: conjunction, opposition, trine. Square (90 degrees) is explicit in Western and Vedic, implicit in Chinese through the punishment relationship. Sextile (60 degrees) appears in Western and Vedic only. Semi-sextile and quincunx are Western/Vedic with partial Chinese equivalents.
@@ -123,6 +125,8 @@ Random baseline (N=5,000): mean 5.81 of 7 unambiguous (83.0%, 95% CI: 81.8-84.2,
 
 The concept of twelve houses survived. The specific method for computing them (Placidus vs. whole sign, Porphyry vs. Koch) matters only at the edges.
 
+![Figure 2: House convergence across five methods (N=5,000). Mean 5.81/7 planets unambiguous (83.0%).](figures/phase3.png)
+
 ### 4.4 Phase 4: Timing Convergence
 
 Random baseline (N=5,000): 65.3% of birth/target pairs produce at least one converging planet. Distribution: 56.1% exactly one, 34.7% zero, 9.1% two. None observed at three or more. The convergence count is structurally bounded by the seven classical planets. No computation errors occurred.
@@ -130,6 +134,8 @@ Random baseline (N=5,000): 65.3% of birth/target pairs produce at least one conv
 Full three-system agreement, where Vimshottari dasha, Ba Zi luck pillars, and Hellenistic annual profections all activate the same planet for the same date, occurs in 4.6% of cases (232 of 5,000, 95% CI: 4.0-5.3%).
 
 The 65.3% partial overlap sounds like a strong signal but largely reflects the generous element-to-planet mapping. When Metal maps to both Saturn and Venus, and Water to both Moon and Mercury, overlap is likely by construction. The 4.6% full agreement is the cleaner number. Three independent timing systems converging on the same planet is genuinely rare.
+
+![Figure 3: Timing convergence distribution (N=5,000). Most pairs overlap on exactly one planet; full three-system agreement occurs in 4.6% of cases.](figures/phase4.png)
 
 ### 4.5 Phase 5: Node Convergence
 
@@ -146,6 +152,8 @@ Nine shared anchor stars (33% overlap) between 27 nakshatras and 23 xiu with doc
 Three of these are first magnitude or brighter: Spica, Antares, the Pleiades. Plausible as independent anchor choices by any culture tracking the sky. The remaining six (Sheratan, 35 Arietis, Meissa, Zubenelgenubi, Markab, Algenib) are second magnitude or fainter. Under brightness-weighted null selection, the expected faint-star overlap is 1.0 (CI: 0-3). The observed 6 is a deviation of roughly five standard errors (p = 0.0002).
 
 Under Null 2, the total overlap of 9 is unremarkable (null expectation 8.5, p = 0.75). Two cultures independently selecting bright stars from available celestial candidates should end up with roughly this many matches. The composition of the overlap tells a different story. They should end up with perhaps one faint star in common. They ended up with six. Something other than independent brightness-weighted selection is operating here.
+
+![Figure 4: Lunar mansion null models (10,000 bootstrap iterations). Left: uniform null (mean 18.4, p=0). Center: brightness-weighted null (mean 8.5, p=0.75). Right: own-pool weighted null (mean 3.3, p=0.0000). Red vertical line marks observed value of 9 shared stars.](figures/lunar_nulls.png)
 
 ### 4.8 Family Synastry
 
