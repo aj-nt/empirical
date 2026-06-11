@@ -22,7 +22,7 @@ Around 150 BCE, at the intersection of Babylonian astronomy, Egyptian timekeepin
 
 The traditions diverged. Western astrology assigns dignity by domicile, exaltation, detriment, and fall. Vedic astrology uses swakshetra, uchcha, and neecha. Similar concepts with different assignments. Chinese Ba Zi maps planets to elements, five to seven, with a mapping generous enough to make overlap likely by chance. Three systems. One shared origin. Roughly 2,000 years of largely separate development, with some secondary contact via the Silk Road after the Indian branch had already diverged [1, 6].
 
-The question is not whether astrology is true. It asks: what structural features of the original synthesis survived the transmission? The question is computational and it can be answered with a measurement tool.
+The question is not whether astrology is true. It asks: what structural features of the original synthesis survived the transmission? The answer is not binary. Some features held. Some didn't. The results form a continuum. The question is computational and it can be answered with a measurement tool.
 
 The tool is a Go binary using the Swiss Ephemeris C library. The same JPL DE ephemeris data used for spacecraft navigation [3]. It computes six measurements: dignity rules, aspect angles, house division, timing systems, node axis preservation, and zodiac comparison. Each phase compares Western and Vedic traditions computationally. The Chinese tradition is included for aspects (Phase 2) and timing (Phase 4), where cross-system comparison is possible. Dignity and houses in the Chinese framework do not map cleanly to Western or Vedic equivalents [1, 6].
 
