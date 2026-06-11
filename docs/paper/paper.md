@@ -10,7 +10,7 @@
 10|
 A single Go binary with a statically linked Swiss Ephemeris computes convergence across Western, Vedic, and Chinese traditions for dignity rules, aspect angles, house division, timing systems, node axis geometry, and zodiac comparison. Each measurement includes a Monte Carlo random baseline. All baselines are computed in Go; a Python reference implementation (pyswisseph) validates the engine against three reference charts.
 
-Results form a spectrum. Three aspect angles are universal. House division holds at 83.0% agreement across five methods. Node axis geometry is invariant. Dignity rules average 46.7% per chart with no family patterning. Timing systems show 65.3% partial overlap but only 4.6% full three-system agreement. The node sign flips for 78.6% of people under ayanamsa shift. Family synastry is indistinguishable from random.
+Results form a continuum. Three aspect angles are universal, the node axis is geometry, and twelve houses hold at 83.0% agreement across five methods, forming the structural backbone. Dignity rules average 46.7% per chart in a smooth distribution with no family patterning. Timing shows 65.3% partial overlap but only 4.6% full three-system agreement once the generous element-to-planet mapping is accounted for. The node sign flips for 78.6% of people under ayanamsa shift. Family synastry is indistinguishable from random.
 14|
 15|Beneath these is an older layer. Comparison of 27 Indian nakshatras and 23 documented Chinese xiu reveals 9 shared anchor stars. Under brightness-weighted null selection, the total overlap is expected (p = 0.75), but the faint-star composition is not: 6 of 9 are second magnitude or fainter, where the null expects 1 (p = 0.0002). The total overlap is consistent with independent selection. The composition is quantitative evidence for common origin.
 16|
@@ -170,7 +170,7 @@ Full three-system agreement, where Vimshottari dasha, Ba Zi luck pillars, and He
 172|
 173|The results span a continuum. No single threshold separates the things that survived from the things that didn't.
 174|
-Three aspect angles are universal and predate the Hellenistic synthesis. Twelve houses hold at 83.0% — the concept is intact, the edges blur. The node axis is geometry. Dignity is partially preserved at 46.7%, a smooth distribution with no relationship to blood or marriage. Timing converges fully for 4.6% of the population. The rest is noise amplified by generous mapping choices. The node sign is coordinate-dependent. Family synastry at the aspect-count level is null.
+Three aspect angles are universal and predate the Hellenistic synthesis. Twelve houses hold at 83.0%. The concept is intact, the edges blur. The node axis is geometry. Dignity is partially preserved at 46.7%, a smooth distribution with no relationship to blood or marriage. Timing converges fully for 4.6% of the population. The rest is noise amplified by generous mapping choices. The node sign is coordinate-dependent. Family synastry at the aspect-count level is null.
 176|
 177|The most charitable reading: the Hellenistic synthesis produced a system whose backbone (aspects, houses, geometry) transmitted cleanly for 2,000 years. The ornament, dignity assignments, timing methods, drifted but did not randomize completely.
 178|
@@ -182,7 +182,7 @@ Three aspect angles are universal and predate the Hellenistic synthesis. Twelve 
 184|
 185|The null synastry result is the cleanest negative. Seventeen people, three generations, no detectable relationship signal in aspect density. This could mean planetary aspects do not encode biological relationship. It could mean they do, but not at 8 degree orb and not in raw count. Either way, the metric failed.
 186|
-187|A weekly Uranian transit signal on SPY (262 weeks) showed a statistically significant effect (p = 0.017). The analysis uses a different astrological framework employing hypothetical trans-Neptunian points. It is separated into Supplementary Material because it belongs to a different research question. The Hellenistic synthesis did not include Vulkanus and Hades. It is included here for completeness as the study's only external validation result.
+187|A weekly Uranian transit signal on SPY (262 weeks) showed a statistically significant effect (p = 0.017). The analysis uses a different astrological framework employing hypothetical trans-Neptunian points and is separated into Supplementary Material. It belongs to a different research question. The Hellenistic synthesis did not include Vulkanus and Hades. It is the study's only external validation result.
 188|
 189|## 7. Conclusion
 190|
