@@ -44,19 +44,8 @@ Subbarayappa and Sarma documented the nakshatra system's role in early Indian as
 
 This paper occupies the empty space between the historical record and a computational measurement. Pingree and Needham tell us the system spread. The engine tells us what survived.
 
-## 3. Historical Background
 
-Organized celestial interpretation emerged in Mesopotamia by approximately 1600 BCE. The Enuma Anu Enlil catalogued roughly 7,000 celestial omens across 70 cuneiform tablets, tracking the seven visible planets as divine messengers [5]. The Mul.Apin star catalog (c. 1000 BCE) listed 66 stars and constellations with heliacal rising and setting dates. By the fourth century BCE, Babylonian astronomers were computing planetary positions accurate enough to produce mathematical ephemerides [3]. The system was mundane throughout: omens for the state, not horoscopes for individuals.
-
-Other cultures developed independent frameworks. Egyptian coffin lids from approximately 2100 BCE depicted 36 decans dividing the year into ten-day periods [6]. The Vedanga Jyotisha (1400-1200 BCE) described 27 nakshatras for tracking the lunar month [7, 11]. Shang oracle bones (c. 1250 BCE) recorded 10 Heavenly Stems and 12 Earthly Branches for day counting, alongside 28 xiu lunar mansions [1, 6]. None of these produced horoscopic astrology. They were timekeeping and calendrical.
-
-Around 150 BCE, in Alexandria, the three traditions were combined. Babylonian mathematical astronomy, Egyptian decanic divisions, and Greek geometric reasoning produced the first horoscopic system: an ascendant marking the eastern horizon, houses dividing the local sky, essential dignity rules, and aspect angles [4, 5].
-
-The system spread west into Rome and east into India by the first or second century CE, merging with the nakshatra system to produce Vedic astrology [4, 5]. Elements reached Tang dynasty China in the seventh century CE, where Ba Zi integrated the planetary framework with indigenous five-element cosmology and stem-branch counting [1, 6].
-
-The question is not whether the system spread. It did. The question is what structural features survived.
-
-## 4. Methods
+## 3. Methods
 
 ### 3.1 Computational Phases
 
@@ -114,7 +103,7 @@ The lunar mansion null models do not control for ecliptic position. Stars near t
 
 Open source under MIT license at github.com/aj-nt/empirical. Go source: 89 test functions, all passing. Python reference: 1,185 test functions. Baseline scripts included. Swiss Ephemeris via github.com/aloistr/swisseph (GPL). This paper is licensed under CC-BY 4.0.
 
-## 5. Results
+## 4. Results
 
 ### 5.1 Phase 1: Dignity Convergence
 
@@ -166,7 +155,7 @@ Null result at 8 degree orb across all relationship categories. Couples: 35.8 as
 
 The aspect-density metric does not carry relationship information. This does not rule out synastry as a whole. Specific angles, tighter orbs, or planet-point combinations might carry a signal that a simple count cannot. But the broad-brush approach finds nothing.
 
-## 6. Discussion
+## 5. Discussion
 
 The results span a continuum. No single threshold separates the things that survived from the things that didn't.
 
@@ -182,7 +171,7 @@ The lunar mansion result lands somewhere between these readings. It also predate
 
 The null synastry result is the cleanest negative. Seventeen people, three generations, no detectable relationship signal in aspect density. This could mean planetary aspects do not encode biological relationship. It could mean they do, but not at 8 degree orb and not in raw count. Either way, the metric failed.
 
-## 7. Conclusion
+## 6. Conclusion
 
 A single Go binary ran six measurements against a question from 150 BCE.
 
