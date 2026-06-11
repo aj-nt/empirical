@@ -186,13 +186,13 @@ Three aspect angles are universal and predate the Hellenistic synthesis. Twelve 
 188|
 189|## 7. Conclusion
 190|
-191|A single Go binary. Six convergence measurements. A question from 150 BCE.
-192|
-193|The backbone held. The ornament drifted. Beneath both is a lunar layer. Nine shared stars whose faint-star concentration (p = 0.0002) suggests a common origin predating writing, predating horoscopes, predating everything the Hellenistic fusion produced. If the ecliptic position confound holds up under testing, it's not a finding; if it doesn't, it's the most interesting result in the paper.
-194|
-195|The next module is a nakshatra-xiu computational comparison that measures sector boundary alignment per chart rather than as a static catalog. The star-magnitude null models need ecliptic position controls. The timing baseline needs a tighter element-to-planet mapping. The synastry measurement needs a better metric.
-196|
-197|The code is at github.com/aj-nt/empirical. The baselines are reproducible. The measurements are falsifiable. If the faint-star signal is ecliptic geography, show me.
+A single Go binary ran six convergence measurements against a question from 150 BCE.
+
+The backbone held and the ornament drifted. Beneath both is a lunar layer: nine shared stars whose faint-star concentration (p = 0.0002) suggests a common origin predating everything the Hellenistic fusion produced. If the ecliptic position confound holds up under testing, this is not a finding. If it does not, it is the most interesting result in the paper.
+
+What comes next: ecliptic position controls for the star-magnitude null models, a nakshatra-xiu computational comparison that measures sector boundary alignment per chart, a tighter element-to-planet mapping for the timing baseline, and a better synastry metric.
+
+The code is at github.com/aj-nt/empirical. The baselines are reproducible, the measurements falsifiable. If the faint-star signal is ecliptic geography, show me.
 198|
 199|## Supplementary Material
 200|
