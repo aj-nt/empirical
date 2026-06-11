@@ -180,11 +180,9 @@ Three aspect angles are universal and predate the Hellenistic synthesis. Twelve 
 182|
 183|The lunar mansion result lands somewhere between these readings. The total overlap does not distinguish signal from noise. The faint-star composition does. Under the most reasonable null model, cultures independently selecting bright stars from a shared celestial pool would share roughly one faint star. The observed six is unlikely to the point of being informative. The obvious confound is ecliptic position. Faint stars near the ecliptic are inherently more likely to anchor lunar mansions, and the null models do not control for this. If the faint shared stars are disproportionately close to the ecliptic, the signal may be celestial geography rather than cultural transmission. That test is the necessary next step.
 184|
-185|The null synastry result is the cleanest negative. Seventeen people, three generations, no detectable relationship signal in aspect density. This could mean planetary aspects do not encode biological relationship. It could mean they do, but not at 8 degree orb and not in raw count. Either way, the metric failed.
-186|
-187|A weekly Uranian transit signal on SPY (262 weeks) showed a statistically significant effect (p = 0.017). The analysis uses a different astrological framework employing hypothetical trans-Neptunian points and is separated into Supplementary Material. It belongs to a different research question. The Hellenistic synthesis did not include Vulkanus and Hades. It is the study's only external validation result.
-188|
-189|## 7. Conclusion
+The null synastry result is the cleanest negative. Seventeen people, three generations, no detectable relationship signal in aspect density. This could mean planetary aspects do not encode biological relationship. It could mean they do, but not at 8 degree orb and not in raw count. Either way, the metric failed.
+
+## 7. Conclusion
 190|
 A single Go binary ran six convergence measurements against a question from 150 BCE.
 
@@ -193,18 +191,8 @@ The backbone held and the ornament drifted. Beneath both is a lunar layer: nine 
 What comes next: ecliptic position controls for the star-magnitude null models, a nakshatra-xiu computational comparison that measures sector boundary alignment per chart, a tighter element-to-planet mapping for the timing baseline, and a better synastry metric.
 
 The code is at github.com/aj-nt/empirical. The baselines are reproducible, the measurements falsifiable. If the faint-star signal is ecliptic geography, show me.
-198|
-199|## Supplementary Material
-200|
-201|A weekly Uranian transit backtest was conducted on SPY (S&P 500 ETF) from April 2021 to April 2026. This analysis uses the Hamburg School Uranian system, a 20th-century framework employing hypothetical trans-Neptunian points (Vulkanus, Hades, Kronos, Admetos, Cupido, Poseidon). It is distinct from the Hellenistic-based measurements in the main paper.
-202|
-203|At daily resolution (1,262 trading days), a continuous point score showed in-sample correlation with daily range (r = 0.34) but inverted out of sample. Score autocorrelation of 0.93 at lag 1 indicated regime measurement, not daily event detection.
-204|
-205|At weekly resolution (262 weeks), a discrete net signal computed from exact transit hits produced statistically significant results. Point classifications were a priori: high-volatility (Vulkanus, Hades, Kronos) and low-volatility (Admetos, Cupido, Poseidon). HV weeks (n = 60) showed 35% high-volatility rate versus 7% for LV weeks (n = 46). Quarterly direction was correct in 10 of 12 quarters (83%, p = 0.017 by permutation test). Pairwise: 68.5% of HV-LV pairs had HV with higher range (p = 0.009).
-206|
-207|This is a single-domain result with a single methodology. Replication across indices, time periods, and point sets is required.
-208|
-209|## References
+
+## References
 210|
 211|[1] Needham, J. (1959). Science and Civilisation in China, Vol. 3. Cambridge University Press.
 212|
