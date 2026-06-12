@@ -10,7 +10,7 @@ The first horoscopic astrology emerged in Alexandria around 150 BCE and spread t
 
 Results form a continuum. Three aspect angles are universal, the node axis is geometry, and twelve houses hold at 83.0% agreement across five methods, forming the structural backbone. Dignity rules average 46.7% per chart in a smooth distribution with no family patterning. Timing shows 65.3% partial overlap but only 4.6% full three-system agreement once the generous element-to-planet mapping is accounted for. The node sign flips for 78.6% of people under ayanamsa shift. Family synastry is indistinguishable from random.
 
-Beneath these is an older layer. Comparison of 27 Indian nakshatras and 23 documented Chinese xiu reveals 9 shared anchor stars. Under brightness-weighted null selection, the total overlap is expected (p = 0.75), but the faint-star composition is not: 6 of 9 are second magnitude or fainter, where the null expects 1 (p = 0.0002). The total overlap is consistent with independent selection. The composition is quantitative evidence for common origin.
+Beneath these is an older layer. Comparison of 27 Indian nakshatras and 28 Chinese xiu reveals 9 shared anchor stars. Under brightness-weighted null selection, the total overlap is expected (p = 0.38), but the faint-star composition is not: 6 of 9 are second magnitude or fainter, where the null expects 1.2 (p = 0.0003). An ecliptic position confound test finds the shared faint stars are directionally closer to the ecliptic but not significantly so (p = 0.19). A combined brightness-and-ecliptic null model raises the expected faint overlap to 1.9, and the observed 6 still yields p = 0.0031. The total overlap is consistent with independent selection. The composition is quantitative evidence for common origin.
 
 The engine, data, baselines, and manuscript are open source. All phases cross-validated between Go and Python implementations.
 
@@ -73,15 +73,19 @@ Seventeen people across three generations scored for individual chart analysis a
 
 ### 3.5 Lunar Mansion Null Models
 
-Three null models test whether the 9 observed shared stars (33% overlap) exceed random expectation. All use 10,000 bootstrap iterations. The star pools are 27 nakshatra determinants and 23 xiu determinants with documented single-star anchors; five xiu use asterisms rather than single stars and are excluded from the comparison.
+Three null models test whether the 9 observed shared stars between 27 nakshatra and 28 xiu determinants exceed random expectation. All use 10,000 bootstrap iterations. The star pools are 27 nakshatra determinants and 28 xiu determinants, all with documented single-star anchors per Wikipedia. The combined pool contains 46 unique stars. Magnitudes are from the Swiss Ephemeris catalog.
 
-**Null 1 (Uniform):** Each system selects 27 stars uniformly from the combined pool of 41 unique stars. Bootstrap mean: 18.4 (95% CI: 16-21). Observed 9 is well below expectation (p = 0.0000).
+**Null 1 (Uniform):** Each system selects 27 stars uniformly from the combined pool of 46 stars, without replacement. Bootstrap mean: 16.4 (95% CI: 16.4-16.5). Observed 9 is well below expectation (p = 0.0000). Both cultures were selective, not random.
 
-**Null 2 (Brightness-weighted, combined pool):** Selection probability proportional to exp(-magnitude). Brighter stars are proportionally more likely to be selected. Bootstrap mean: 8.5 (95% CI: 5-12). Observed 9 is consistent (p = 0.75). For faint stars (magnitude at or above 2.5): null mean 1.0 (95% CI: 0-3). Observed 6 yields p = 0.0002.
+**Null 2 (Brightness-weighted, combined pool):** Selection probability proportional to exp(-magnitude). Brighter stars are proportionally more likely to be selected. Bootstrap mean total: 8.1 (95% CI: 8.0-8.1). Observed 9 is consistent (p = 0.38). For faint stars (magnitude >= 2.5): null mean 1.2 (95% CI: 1.2-1.2). Observed 6 yields p = 0.0003.
 
-**Null 3 (Brightness-weighted, own pools):** Each system selects from its own documented pool, weighted by brightness. Bootstrap mean: 3.3 (95% CI: 1-5). Observed 9 exceeds expectation (p = 0.0000). Faint stars: expected 0.9 (CI: 0-3), observed 6 (p = 0.0000). This model is conservative. It assumes each culture chose from exactly their 27 and 23 star pools, which biases against overlap if the actual pool of available bright stars near each ecliptic sector was shared.
+**Null 3 (Brightness + ecliptic proximity weighted):** Selection probability proportional to exp(-magnitude) * exp(-|latitude|/10 deg). Stars near the ecliptic are more likely to be selected. Bootstrap mean total: 7.6 (95% CI: 7.6-7.7). Observed 9, p = 0.28. Faint stars: null mean 1.9 (95% CI: 1.9-1.9). Observed 6 yields p = 0.0031.
 
-Null 2 is the most reasonable model. Both cultures independently selected bright stars from available celestial candidates. The total overlap is unremarkable. The faint-star composition is not.
+Null 2 is the primary model. Both cultures independently selected bright stars from available celestial candidates. The total overlap is unremarkable. The faint-star composition is not.
+
+An ecliptic position confound test (100,000 permutations) compares the mean absolute ecliptic latitude of shared faint stars (14.8 deg) against non-shared faint stars (22.0 deg). The difference does not reach significance (p = 0.19). Shared faint stars are directionally closer to the ecliptic but not systematically enough to explain the overlap as celestial geography alone.
+
+All lunar mansion analysis is implemented in the Go binary at `internal/dignity/lunar_mansion.go` and reproducible via `empirical lunar-mansion`.
 
 ### 3.6 Limitations
 
@@ -95,7 +99,7 @@ Convergence may arise from astronomical data rather than cultural transmission. 
 
 Phase 1 maps a four-state system onto a three-state system. Phase 4 maps five elements onto seven planets. The reported rates are conditioned on those mapping choices.
 
-The lunar mansion null models do not control for ecliptic position. Stars near the ecliptic are inherently more likely to anchor lunar mansions regardless of brightness. If the faint shared stars are disproportionately close to the ecliptic relative to the non-shared pool, the brightness-weighted signal could be an artifact of celestial geography rather than common cultural origin. A position-aware null model is the necessary next test. This is the most significant unaddressed confound in this result.
+The lunar mansion null models do not control for ecliptic position. Stars near the ecliptic are inherently more likely to anchor lunar mansions regardless of brightness. A direct test of this confound (section 3.5) found that shared faint stars are directionally closer to the ecliptic (mean |lat| 14.8 deg vs 22.0 deg for non-shared) but the difference does not reach significance (p = 0.19). A null model incorporating both brightness and ecliptic proximity weights (Null 3) raises the expected faint overlap from 1.2 to 1.9, and the observed 6 still yields p = 0.0031. The confound is real but does not nullify the result.
 
 ### 3.7 Code and Data Availability
 
@@ -147,11 +151,19 @@ Random baseline (N=5,000): the node sign survives tropical-to-sidereal shift in 
 
 ### 4.7 Lunar Mansions
 
-Nine shared anchor stars (33% overlap) between 27 nakshatras and 23 xiu with documented single-star determinants. The nine: Sheratan (Beta Arietis, 2.6 mag) anchors Ashwini and Lou (婁). 35 Arietis (4.6 mag) anchors Bharani and Wei (胃). The Pleiades (1.6 mag) anchor Krittika and Mao (昴). Spica (Alpha Virginis, 0.98 mag) anchors Chitra and Jiao (角). Antares (Alpha Scorpii, 1.06 mag) anchors Jyeshtha and Xin (心). Markab (Alpha Pegasi, 2.5 mag) anchors Purva Bhadrapada and Shi (室). Algenib (Gamma Pegasi, 2.8 mag) anchors Uttara Bhadrapada and Bi (壁). Meissa (Lambda Orionis, 3.5 mag) anchors Mrigashira and Zi (觜). Zubenelgenubi (Alpha Librae, 2.6 mag) anchors Vishakha and Di (氐).
+Nine shared anchor stars between 27 nakshatras and 28 xiu, all with documented single-star determinants. The nine: Sheratan (Beta Arietis, 2.65 mag) anchors Ashwini and Lou (婁). 35 Arietis (4.60 mag) anchors Bharani and Wei (胃). Spica (Alpha Virginis, 0.97 mag) anchors Chitra and Jiao (角). Antares (Alpha Scorpii, 0.91 mag) anchors Jyeshtha and Xin (心). Markab (Alpha Pegasi, 2.48 mag) anchors Purva Bhadrapada and Shi (室). Algenib (Gamma Pegasi, 2.84 mag) anchors Uttara Bhadrapada and Bi (壁). Meissa (Lambda Orionis, 3.66 mag) anchors Mrigashira and Zi (觜). Zubenelgenubi (Alpha Librae, 2.75 mag) anchors Vishakha and Di (氐). Delta Hydrae (4.14 mag) anchors Ashlesha and Liu (柳). Magnitudes are from the Swiss Ephemeris catalog.
 
-Three of these are first magnitude or brighter: Spica, Antares, the Pleiades. Plausible as independent anchor choices by any culture tracking the sky. The remaining six (Sheratan, 35 Arietis, Meissa, Zubenelgenubi, Markab, Algenib) are second magnitude or fainter. Under brightness-weighted null selection, the expected faint-star overlap is 1.0 (CI: 0-3). The observed 6 is a deviation of roughly five standard errors (p = 0.0002).
+Krittika and Mao both point to the Pleiades cluster but to different specific stars: Alcyone (Eta Tauri, 2.87 mag) for the nakshatra, Electra (17 Tauri, 3.70 mag) for the xiu. Under strict star-by-star matching they are not shared. The paper previously treated the cluster as shared; the corrected analysis uses individual star identities throughout.
 
-Under Null 2, the total overlap of 9 is unremarkable (null expectation 8.5, p = 0.75). Two cultures independently selecting bright stars from available celestial candidates should end up with roughly this many matches. The composition of the overlap tells a different story. They should end up with perhaps one faint star in common. They ended up with six. Something other than independent brightness-weighted selection is operating here.
+Three are first magnitude or brighter: Spica, Antares, and Markab. Plausible as independent anchor choices by any culture tracking the sky. The remaining six (Sheratan, 35 Arietis, Meissa, Zubenelgenubi, Algenib, Delta Hydrae) are second magnitude or fainter. Under brightness-weighted null selection, the expected faint-star overlap is 1.2 (95% CI: 1.2-1.2). The observed 6 yields p = 0.0003.
+
+Under Null 2, the total overlap of 9 is unremarkable (null expectation 8.1, 95% CI: 8.0-8.1, p = 0.38). Two cultures independently selecting bright stars from available celestial candidates should end up with roughly this many matches. The composition of the overlap tells a different story. They should end up with roughly one faint star in common. They ended up with six. Something other than independent brightness-weighted selection is operating here.
+
+An additional null model weights by both brightness and ecliptic proximity (weight = exp(-mag) * exp(-|lat|/10 deg)). Under this model, the expected faint overlap rises to 1.9 (95% CI: 1.9-1.9) and the observed 6 yields p = 0.0031. The signal weakens but survives.
+
+The ecliptic position confound was tested directly. Shared faint stars have a mean absolute ecliptic latitude of 14.8 degrees, compared to 22.0 degrees for non-shared faint stars. A permutation test (N = 100,000) gives p = 0.19 — the difference does not reach significance. Shared faint stars are directionally closer to the ecliptic, but not systematically enough to explain the overlap as celestial geography alone.
+
+All lunar mansion analysis is reproducible via `empirical lunar-mansion` in the Go binary. The null models, star data, and confound test are in `internal/dignity/lunar_mansion.go`.
 
 ![Figure 4: Lunar mansion null models (10,000 bootstrap iterations). Left: uniform null (mean 18.4, p=0). Center: brightness-weighted null (mean 8.5, p=0.75). Right: own-pool weighted null (mean 3.3, p=0.0000). Red vertical line marks observed value of 9 shared stars.](figures/lunar_nulls.png)
 
@@ -173,7 +185,7 @@ The least charitable reading: the features that survived are the features encode
 
 Which reading you prefer depends on what you think dignity convergence means. At 46.7%, with a smooth distribution, the dignity table is clearly not random. It is also clearly not intact. Some assignments were preserved. Some were modified. The lack of family patterning suggests these modifications are cultural, not heritable. Two systems inherited the same table and each changed different cells. The result is a set of rules that agree about half the time.
 
-The lunar mansion result lands somewhere between these readings. It also predates the Hellenistic synthesis by a millennium: the best signal in this paper comes from before the thing the paper set out to measure. The total overlap does not distinguish signal from noise. The faint-star composition does. Under the most reasonable null model, cultures independently selecting bright stars from a shared celestial pool would share roughly one faint star. The observed six is unlikely to the point of being informative. The obvious confound is ecliptic position. Faint stars near the ecliptic are inherently more likely to anchor lunar mansions, and the null models do not control for this. If the faint shared stars are disproportionately close to the ecliptic, the signal may be celestial geography rather than cultural transmission. That test is the necessary next step.
+The lunar mansion result lands somewhere between these readings. It also predates the Hellenistic synthesis by a millennium: the best signal in this paper comes from before the thing the paper set out to measure. The total overlap does not distinguish signal from noise (p = 0.38). The faint-star composition does (p = 0.0003). Under the most reasonable null model, cultures independently selecting bright stars from a shared celestial pool would share roughly one faint star. The observed six is unlikely to the point of being informative. The obvious confound is ecliptic position. Faint stars near the ecliptic are inherently more likely to anchor lunar mansions, and the null models were tested for this. Shared faint stars are directionally closer to the ecliptic (mean |lat| 14.8 deg vs 22.0 deg) but the difference does not reach significance (p = 0.19). A null model incorporating both brightness and ecliptic proximity weights raises the expected faint overlap to 1.9, and the observed 6 still yields p = 0.0031. The confound is real but does not nullify the result.
 
 The null synastry result is the cleanest negative. Seventeen people, three generations, no detectable relationship signal in aspect density. This could mean planetary aspects do not encode biological relationship. It could mean they do, but not at 8 degree orb and not in raw count. Either way, the metric failed.
 
@@ -181,11 +193,11 @@ The null synastry result is the cleanest negative. Seventeen people, three gener
 
 A single Go binary ran six measurements against a question from 150 BCE.
 
-The backbone held and the ornament drifted. Beneath both is a lunar layer: nine shared stars whose faint-star concentration (p = 0.0002) suggests a common origin predating everything the Hellenistic fusion produced. If the ecliptic position confound holds up under testing, this is not a finding. If it does not, it is the most interesting result in the paper.
+The backbone held and the ornament drifted. Beneath both is a lunar layer: nine shared stars whose faint-star concentration (p = 0.0003) suggests a common origin predating everything the Hellenistic fusion produced. The ecliptic position confound was tested and does not nullify the result (p = 0.19 for the latitude difference; p = 0.0031 under a combined brightness-and-ecliptic null model). The faint-star signal survived its most obvious challenge.
 
-What comes next: ecliptic position controls for the star-magnitude null models, a nakshatra-xiu computational comparison that measures sector boundary alignment per chart, a tighter element-to-planet mapping for the timing baseline, and a better synastry metric.
+What comes next: a nakshatra-xiu computational comparison that measures sector boundary alignment per chart, a tighter element-to-planet mapping for the timing baseline, and a better synastry metric.
 
-The code is at github.com/aj-nt/empirical. The baselines are reproducible, the measurements falsifiable. If the faint-star signal is ecliptic geography, show me.
+The code is at github.com/aj-nt/empirical. The baselines are reproducible, the measurements falsifiable. The lunar mansion analysis is a single command: `empirical lunar-mansion`.
 
 ## References
 

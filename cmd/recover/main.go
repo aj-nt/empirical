@@ -323,6 +323,36 @@ func main() {
 		return
 	}
 
+	// ── lunar-mansion subcommand ────────────────────────────────────
+	if len(os.Args) >= 2 && os.Args[1] == "lunar-mansion" {
+		fs := flag.NewFlagSet("lunar-mansion", flag.ExitOnError)
+		jsonOut := fs.Bool("json", false, "output as JSON")
+		seed := fs.Int64("seed", 42, "random seed")
+		fs.Parse(os.Args[2:])
+
+		report := dignity.ComputeLunarMansionReport(*seed)
+
+		if *jsonOut {
+			js, err := report.LunarMansionReportJSON()
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "JSON error: %v\n", err)
+				os.Exit(1)
+			}
+			fmt.Println(string(js))
+		} else {
+			fmt.Print(dignity.FormatSharedStars())
+			fmt.Println()
+			fmt.Print(dignity.FormatNullModelResult(report.NullModelUniform))
+			fmt.Println()
+			fmt.Print(dignity.FormatNullModelResult(report.NullModelBrightness))
+			fmt.Println()
+			fmt.Print(dignity.FormatNullModelResult(report.NullModelEcliptic))
+			fmt.Println()
+			fmt.Print(dignity.FormatEclipticConfoundResult(report.EclipticConfound))
+		}
+		return
+	}
+
 	// ── recover command (default) ───────────────────────────────────
 	jsonOut := flag.Bool("json", false, "output as JSON instead of text")
 	flag.Parse()
