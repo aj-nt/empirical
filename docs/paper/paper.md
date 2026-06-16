@@ -435,6 +435,28 @@ The measurement framework — cross-tradition comparison against computed null e
 
 The code is at github.com/aj-nt/empirical. The baselines are reproducible, the measurements falsifiable. The full system includes 35 API endpoints, a web dashboard, and a comprehensive manual at MANUAL.md.
 
+## 7. Application: The Koiné Astrology System
+
+The measurements in this paper are not an endpoint. They are a filter — a way to separate what survived transmission from what was invented locally. Koiné (github.com/aj-nt/koine) is a synthesis system built from what passed through that filter.
+
+Koiné is not a measurement engine. It is an astrological system — a working tool that produces natal, synastry, transit, draconic, and event chart interpretations. Every design decision traces to a quantitative finding in this paper:
+
+**3-state dignity (domicile, exaltation, fall).** Per-state analysis (Section 3.2, revised June 2026) shows that domicile/swakshetra, exaltation/uchcha, and fall/neecha assignments are identical across Western and Vedic tables (100% agreement). Three of four dignity states survived transmission intact. Detriment is excluded — it is a Western-only innovation with no Vedic equivalent. Outer planets (Uranus, Neptune, Pluto) receive domicile assignments only; their exaltation and fall signs are modern inventions with no cross-traditional signal.
+
+**Whole-sign houses.** House convergence across 8 systems is 88.7% at a 75% agreement threshold (Phase 3). Houses are the most stable structural element across traditions. Whole-sign houses are the oldest system and avoid the arbitrary choice of quadrant system.
+
+**Four aspects (conjunction, square, trine, opposition).** Conjunction, opposition, and trine are universal across Western, Vedic, and Chinese traditions (Phase 2). Square is included because it is also universal and is the engine of dynamic tension — critical for event timing and relationship dynamics. Sextile and minor aspects are excluded.
+
+**Ten real planets (Sun through Pluto).** Asteroids, Uranian/TNP points, Lilith, and Chiron are excluded. If a body was not known to Hellenistic Alexandria, it cannot have survived transmission. Outer planets are included because they are physically real and were discovered, not invented.
+
+**No timing system.** Timing convergence across Vimshottari dasha, Ba Zi luck pillars, and Hellenistic profections is 2.14% — consistent with random chance (2.31%, Phase 4). Koiné provides transit interpretation instead — real-time planetary positions against the natal chart, which is physically deterministic.
+
+**No lunar mansions.** Three-way mansion convergence per chart is zero (Phase 7). Shared anchor stars do not produce shared mansion placements when the three systems define their sector boundaries differently.
+
+**Deterministic interpretation.** Koiné uses 240 authored template entries (10 planets × 12 signs for planet-in-sign, plus 10 planets × 12 houses for planet-in-house) rather than an LLM. The interpretation is deterministic and reproducible — the same chart always produces the same text. This is a design choice, not a paper finding: if the system is built from falsifiable measurements, the output should be falsifiable too.
+
+Koiné is not a claim that these elements are "true" or that excluded elements are "false." It is a claim that these elements have cross-traditional signal and excluded elements do not. The paper measured what survived. Koiné uses what survived. The system is open source (MIT), the paper is CC-BY 4.0. Both are at github.com/aj-nt.
+
 ## References
 
 [1] Needham, J. (1959). Science and Civilisation in China, Vol. 3. Cambridge University Press.
