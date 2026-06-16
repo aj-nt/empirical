@@ -39,6 +39,8 @@ type StarEntry struct {
 	XiuName        string  // Which xiu this anchors (empty if nakshatra-only)
 	XiuNum         int     // Xiu number 1-28 (0 if nakshatra-only)
 	XiuPinyin      string  // Pinyin for xiu name
+	ManazilName    string  // Which manazil this anchors (empty if not manazil)
+	ManazilNum     int     // Manazil number 1-28 (0 if not manazil)
 }
 
 // NakshatraStars returns the 27 nakshatra determinative stars.
@@ -107,6 +109,44 @@ func XiuStars() []StarEntry {
 		{Key: "Gamma Corvi", StarName: "Gienah", Bayer: "Gamma Corvi", Magnitude: 2.58, EclipticLon: 176.89, EclipticLat: 16.63, XiuName: "Chariot", XiuNum: 28, XiuPinyin: "Zhen"},
 	}
 }
+// ManazilStars returns the 28 Arabic manazil al-qamar determinative stars.
+// Data from Wikipedia "Lunar mansion" page, magnitudes from Swiss Ephemeris.
+// Where a mansion lists multiple stars, the brightest or first-listed is used
+// as the primary determinant, following the same convention as nakshatra/xiu.
+func ManazilStars() []StarEntry {
+	return []StarEntry{
+		{Key: "Beta Arietis", StarName: "Sheratan", Bayer: "Beta Arietis", Magnitude: 2.65, EclipticLon: 33.97, EclipticLat: 8.49, ManazilName: "ash-Sharatan", ManazilNum: 1},
+		{Key: "41 Arietis", StarName: "41 Arietis", Magnitude: 4.36, EclipticLon: 22.68, EclipticLat: 27.15, ManazilName: "al-Butayn", ManazilNum: 2},
+		{Key: "Eta Tauri", StarName: "Alcyone", Bayer: "Eta Tauri", Magnitude: 2.87, EclipticLon: 59.99, EclipticLat: 4.05, ManazilName: "ath-Thuraya", ManazilNum: 3},
+		{Key: "Alpha Tauri", StarName: "Aldebaran", Bayer: "Alpha Tauri", Magnitude: 0.86, EclipticLon: 69.79, EclipticLat: -5.47, ManazilName: "ad-Dabaran", ManazilNum: 4},
+		{Key: "Lambda Orionis", StarName: "Meissa", Bayer: "Lambda Orionis", Magnitude: 3.66, EclipticLon: 83.71, EclipticLat: -13.37, ManazilName: "al-Haq'a", ManazilNum: 5},
+		{Key: "Alhena", StarName: "Alhena", Bayer: "Gamma Geminorum", Magnitude: 1.92, EclipticLon: 99.11, EclipticLat: -6.74, ManazilName: "al-Han'a", ManazilNum: 6},
+		{Key: "Alpha Geminorum", StarName: "Castor", Bayer: "Alpha Geminorum", Magnitude: 1.58, EclipticLon: 110.24, EclipticLat: 10.10, ManazilName: "adh-Dhira'a", ManazilNum: 7},
+		{Key: "Praesepe", StarName: "Praesepe", Magnitude: 3.70, EclipticLon: 127.20, EclipticLat: 1.56, ManazilName: "an-Nathra", ManazilNum: 8},
+		{Key: "Alterf", StarName: "Alterf", Bayer: "Lambda Leonis", Magnitude: 4.31, EclipticLon: 137.87, EclipticLat: 7.89, ManazilName: "at-Tarf", ManazilNum: 9},
+		{Key: "Alpha Leonis", StarName: "Regulus", Bayer: "Alpha Leonis", Magnitude: 1.40, EclipticLon: 149.83, EclipticLat: 0.46, ManazilName: "al-Jabha", ManazilNum: 10},
+		{Key: "Delta Leonis", StarName: "Zosma", Bayer: "Delta Leonis", Magnitude: 2.53, EclipticLon: 161.32, EclipticLat: 14.33, ManazilName: "az-Zubra", ManazilNum: 11},
+		{Key: "Beta Leonis", StarName: "Denebola", Bayer: "Beta Leonis", Magnitude: 2.13, EclipticLon: 171.62, EclipticLat: 12.27, ManazilName: "as-Sarfa", ManazilNum: 12},
+		{Key: "Zavijava", StarName: "Zavijava", Bayer: "Beta Virginis", Magnitude: 3.60, EclipticLon: 177.16, EclipticLat: 0.69, ManazilName: "al-'Awa'", ManazilNum: 13},
+		{Key: "Alpha Virginis", StarName: "Spica", Bayer: "Alpha Virginis", Magnitude: 0.97, EclipticLon: 195.43, EclipticLat: 18.33, ManazilName: "as-Simak al-A'zal", ManazilNum: 14},
+		{Key: "Kappa Virginis", StarName: "Kappa Virginis", Magnitude: 4.18, EclipticLon: 207.45, EclipticLat: 21.70, ManazilName: "al-Ghafr", ManazilNum: 15},
+		{Key: "Alpha Librae", StarName: "Zubenelgenubi", Bayer: "Alpha Librae", Magnitude: 2.75, EclipticLon: 214.70, EclipticLat: 30.78, ManazilName: "az-Zubana", ManazilNum: 16},
+		{Key: "Beta Scorpii", StarName: "Acrab", Bayer: "Beta Scorpii", Magnitude: 2.62, EclipticLon: 234.60, EclipticLat: 38.18, ManazilName: "al-Iklil", ManazilNum: 17},
+		{Key: "Alpha Scorpii", StarName: "Antares", Bayer: "Alpha Scorpii", Magnitude: 0.91, EclipticLon: 239.60, EclipticLat: 46.65, ManazilName: "al-Qalb", ManazilNum: 18},
+		{Key: "Shaula", StarName: "Shaula", Bayer: "Lambda Scorpii", Magnitude: 1.62, EclipticLon: 264.58, EclipticLat: -13.79, ManazilName: "ash-Shawla", ManazilNum: 19},
+		{Key: "Gamma Sagittarii", StarName: "Gamma Sagittarii", Magnitude: 2.98, EclipticLon: 272.10, EclipticLat: 53.00, ManazilName: "an-Na'a'im", ManazilNum: 20},
+		{Key: "Albaldah", StarName: "Albaldah", Bayer: "Pi Sagittarii", Magnitude: 2.88, EclipticLon: 286.24, EclipticLat: 1.44, ManazilName: "al-Balda", ManazilNum: 21},
+		{Key: "Algedi", StarName: "Algedi", Bayer: "Alpha Capricorni", Magnitude: 4.27, EclipticLon: 303.76, EclipticLat: 6.99, ManazilName: "Sa'd adh-Dhabih", ManazilNum: 22},
+		{Key: "Epsilon Aquarii", StarName: "Epsilon Aquarii", Magnitude: 3.78, EclipticLon: 316.99, EclipticLat: 25.37, ManazilName: "Sa'd Bul'", ManazilNum: 23},
+		{Key: "Beta Aquarii", StarName: "Beta Aquarii", Magnitude: 2.89, EclipticLon: 326.75, EclipticLat: 18.07, ManazilName: "Sa'd as-Su'ud", ManazilNum: 24},
+		{Key: "Sadachbia", StarName: "Sadachbia", Bayer: "Gamma Aquarii", Magnitude: 3.83, EclipticLon: 336.71, EclipticLat: 8.24, ManazilName: "Sa'd al-Akhbiya", ManazilNum: 25},
+		{Key: "Alpha Pegasi", StarName: "Markab", Bayer: "Alpha Pegasi", Magnitude: 2.48, EclipticLon: 353.49, EclipticLat: 19.41, ManazilName: "al-Fargh al-Awal", ManazilNum: 26},
+		{Key: "Alpheratz", StarName: "Alpheratz", Bayer: "Alpha Andromedae", Magnitude: 2.06, EclipticLon: 14.31, EclipticLat: 25.68, ManazilName: "al-Fargh ath-Thani", ManazilNum: 27},
+		{Key: "Mirach", StarName: "Mirach", Bayer: "Beta Andromedae", Magnitude: 2.05, EclipticLon: 30.40, EclipticLat: 25.95, ManazilName: "al-Hut", ManazilNum: 28},
+	}
+}
+
+
 
 // ── Shared Star Identification ────────────────────────────────────────────
 
@@ -828,4 +868,647 @@ func sampleWithoutReplacement(rng *rand.Rand, pool []float64, n int) []float64 {
 		result[i] = pool[indices[i]]
 	}
 	return result
+}
+
+// ── Per-Chart Mansion Placement ───────────────────────────────────────────
+
+// MansionPlacement records which mansion a planet falls in.
+type MansionPlacement struct {
+	Planet       string  `json:"planet"`
+	TropicalLon  float64 `json:"tropical_lon"`
+	SiderealLon  float64 `json:"sidereal_lon"`
+	Nakshatra    string  `json:"nakshatra"`
+	NakshatraNum int     `json:"nakshatra_num"`
+	Xiu          string  `json:"xiu"`
+	XiuNum       int     `json:"xiu_num"`
+	XiuPinyin    string  `json:"xiu_pinyin"`
+	Manazil      string  `json:"manazil,omitempty"`
+	ManazilNum   int     `json:"manazil_num,omitempty"`
+	Converges    bool    `json:"converges"` // true if nakshatra and xiu share the same anchor star
+}
+
+// MansionConvergence holds per-chart mansion placement results.
+type MansionConvergence struct {
+	Name       string             `json:"name"`
+	Ayanamsa   float64            `json:"ayanamsa"`
+	Planets    []MansionPlacement `json:"planets"`
+	Converging int                `json:"converging"`
+	Total      int                `json:"total"`
+}
+
+// NakshatraForLongitude returns the nakshatra for a sidereal longitude.
+// Nakshatras are 13°20' (13.333°) sectors starting at 0° Aries (sidereal).
+func NakshatraForLongitude(sidLon float64) (name string, num int) {
+	lon := normalizeLon(sidLon)
+	idx := int(lon / (360.0 / 27.0))
+	if idx >= 27 {
+		idx = 26
+	}
+	stars := NakshatraStars()
+	return stars[idx].NakshatraName, stars[idx].NakshatraNum
+}
+
+// XiuForLongitude returns the Chinese xiu for a sidereal longitude.
+// Xiu are unequal sectors anchored to determinative stars.
+// The sector boundary is the midpoint between consecutive anchor stars.
+func XiuForLongitude(sidLon float64) (name string, num int, pinyin string) {
+	lon := normalizeLon(sidLon)
+	stars := XiuStars()
+
+	// Build boundary array: midpoint between consecutive stars
+	// Xiu 1 starts at the midpoint between star 28 and star 1
+	for i := 0; i < 28; i++ {
+		curr := stars[i]
+		next := stars[(i+1)%28]
+
+		// Midpoint between current and next star
+		boundary := (curr.EclipticLon + next.EclipticLon) / 2.0
+		if next.EclipticLon < curr.EclipticLon {
+			// Wrap-around case
+			boundary = (curr.EclipticLon + next.EclipticLon + 360) / 2.0
+			if boundary >= 360 {
+				boundary -= 360
+			}
+		}
+
+		// Check if lon falls in this sector
+		prev := stars[(i+27)%28]
+		prevBoundary := (prev.EclipticLon + curr.EclipticLon) / 2.0
+		if curr.EclipticLon < prev.EclipticLon {
+			prevBoundary = (prev.EclipticLon + curr.EclipticLon + 360) / 2.0
+			if prevBoundary >= 360 {
+				prevBoundary -= 360
+			}
+		}
+
+		if inSector(lon, prevBoundary, boundary) {
+			return curr.XiuName, curr.XiuNum, curr.XiuPinyin
+		}
+	}
+
+	// Fallback: return last xiu
+	return stars[27].XiuName, stars[27].XiuNum, stars[27].XiuPinyin
+}
+
+// inSector checks if lon falls in the sector from start to end (inclusive of start, exclusive of end).
+func inSector(lon, start, end float64) bool {
+	if start <= end {
+		return lon >= start && lon < end
+	}
+	// Wrap-around sector
+	return lon >= start || lon < end
+}
+
+// ComputeMansionConvergence computes nakshatra and xiu placements for all planets
+// in a natal chart, using sidereal positions (tropical - ayanamsa).
+func ComputeMansionConvergence(name string, tropical map[string]float64, ayanamsa float64) *MansionConvergence {
+	// Build shared star lookup
+	shared := FindSharedStars()
+	sharedKeys := make(map[string]bool)
+	for _, s := range shared {
+		sharedKeys[s.Key] = true
+	}
+
+	// Build nakshatra star key lookup
+	naks := NakshatraStars()
+	naksKeyToName := make(map[string]string)
+	for _, s := range naks {
+		naksKeyToName[s.Key] = s.NakshatraName
+	}
+
+	// Build xiu star key lookup
+	xius := XiuStars()
+	xiuKeyToName := make(map[string]string)
+	xiuKeyToPinyin := make(map[string]string)
+	for _, s := range xius {
+		xiuKeyToName[s.Key] = s.XiuName
+		xiuKeyToPinyin[s.Key] = s.XiuPinyin
+	}
+
+	// Classical planets only for empirical verification
+	planets := []string{"Sun", "Moon", "Mercury", "Venus", "Mars", "Jupiter", "Saturn"}
+
+	var placements []MansionPlacement
+	converging := 0
+
+	for _, p := range planets {
+		tropLon, ok := tropical[p]
+		if !ok {
+			continue
+		}
+		sidLon := normalizeLon(tropLon - ayanamsa)
+
+		nakName, nakNum := NakshatraForLongitude(sidLon)
+		xiuName, xiuNum, xiuPinyin := XiuForLongitude(sidLon)
+
+		// Check convergence: do the nakshatra and xiu share the same anchor star?
+		converges := false
+		for _, s := range naks {
+			if s.NakshatraName == nakName {
+				if sharedKeys[s.Key] {
+					// This nakshatra's star is shared — check if the xiu also uses it
+					for _, x := range xius {
+						if x.Key == s.Key && x.XiuName == xiuName {
+							converges = true
+							break
+						}
+					}
+				}
+				break
+			}
+		}
+
+		if converges {
+			converging++
+		}
+
+		placements = append(placements, MansionPlacement{
+			Planet:       p,
+			TropicalLon:  tropLon,
+			SiderealLon:  sidLon,
+			Nakshatra:    nakName,
+			NakshatraNum: nakNum,
+			Xiu:          xiuName,
+			XiuNum:       xiuNum,
+			XiuPinyin:    xiuPinyin,
+			Converges:    converges,
+		})
+	}
+
+	return &MansionConvergence{
+		Name:       name,
+		Ayanamsa:   ayanamsa,
+		Planets:    placements,
+		Converging: converging,
+		Total:      len(placements),
+	}
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Three-Way Mansion Comparison (Nakshatra / Xiu / Manazil)
+// ═══════════════════════════════════════════════════════════════════════════
+
+// ThreePoolCombined returns all unique stars from nakshatra, xiu, and manazil.
+func ThreePoolCombined() []StarEntry {
+	naks := NakshatraStars()
+	xius := XiuStars()
+	manazils := ManazilStars()
+
+	seen := make(map[string]bool)
+	var pool []StarEntry
+	for _, s := range naks {
+		if !seen[s.Key] {
+			seen[s.Key] = true
+			pool = append(pool, s)
+		}
+	}
+	for _, s := range xius {
+		if !seen[s.Key] {
+			seen[s.Key] = true
+			pool = append(pool, s)
+		}
+	}
+	for _, s := range manazils {
+		if !seen[s.Key] {
+			seen[s.Key] = true
+			pool = append(pool, s)
+		}
+	}
+	return pool
+}
+
+// ThreeWayShared holds stars that appear in multiple mansion systems.
+type ThreeWayShared struct {
+	Key       string
+	StarName  string
+	Bayer     string
+	Magnitude float64
+	EclipticLat float64
+	IsFaint   bool
+	InNakshatra bool
+	InXiu       bool
+	InManazil   bool
+	NakshatraName string
+	XiuName       string
+	ManazilName   string
+}
+
+// FindThreeWayShared returns all stars and their membership across the three systems.
+func FindThreeWayShared() []ThreeWayShared {
+	naks := NakshatraStars()
+	xius := XiuStars()
+	manazils := ManazilStars()
+
+	nMap := make(map[string]StarEntry)
+	for _, s := range naks {
+		nMap[s.Key] = s
+	}
+	xMap := make(map[string]StarEntry)
+	for _, s := range xius {
+		xMap[s.Key] = s
+	}
+	mMap := make(map[string]StarEntry)
+	for _, s := range manazils {
+		mMap[s.Key] = s
+	}
+
+	// Collect all unique keys
+	allKeys := make(map[string]bool)
+	for _, s := range naks {
+		allKeys[s.Key] = true
+	}
+	for _, s := range xius {
+		allKeys[s.Key] = true
+	}
+	for _, s := range manazils {
+		allKeys[s.Key] = true
+	}
+
+	var result []ThreeWayShared
+	for key := range allKeys {
+		n, inN := nMap[key]
+		x, inX := xMap[key]
+		m, inM := mMap[key]
+
+		// Get magnitude from whichever system has it
+		mag := 0.0
+		starName := key
+		bayer := ""
+		lat := 0.0
+		if inN {
+			mag = n.Magnitude
+			starName = n.StarName
+			bayer = n.Bayer
+			lat = n.EclipticLat
+		} else if inX {
+			mag = x.Magnitude
+			starName = x.StarName
+			bayer = x.Bayer
+			lat = x.EclipticLat
+		} else if inM {
+			mag = m.Magnitude
+			starName = m.StarName
+			bayer = m.Bayer
+			lat = m.EclipticLat
+		}
+
+		ts := ThreeWayShared{
+			Key:        key,
+			StarName:   starName,
+			Bayer:      bayer,
+			Magnitude:  mag,
+			EclipticLat: lat,
+			IsFaint:    mag >= FaintThreshold,
+			InNakshatra: inN,
+			InXiu:       inX,
+			InManazil:   inM,
+		}
+		if inN {
+			ts.NakshatraName = n.NakshatraName
+		}
+		if inX {
+			ts.XiuName = x.XiuName
+		}
+		if inM {
+			ts.ManazilName = m.ManazilName
+		}
+		result = append(result, ts)
+	}
+
+	sort.Slice(result, func(i, j int) bool {
+		return result[i].Key < result[j].Key
+	})
+	return result
+}
+
+// ThreeWayNullResult holds the output of a three-way null model run.
+type ThreeWayNullResult struct {
+	ModelName          string
+	Iterations         int
+	PoolSize           int
+	FaintThreshold     float64
+	ObservedAllThree   int
+	ObservedAllThreeFaint int
+	ObservedNakXiu     int
+	ObservedNakMan     int
+	ObservedXiuMan     int
+	NullMeanAllThree   float64
+	NullCIAllThreeLow  float64
+	NullCIAllThreeHigh float64
+	NullMeanAllThreeFaint float64
+	NullCIAllThreeFaintLow float64
+	NullCIAllThreeFaintHigh float64
+	NullMeanNakXiu     float64
+	NullMeanNakMan     float64
+	NullMeanXiuMan     float64
+	PAllThreeGE        float64
+	PAllThreeFaintGE   float64
+}
+
+// RunThreeWayNullBrightness runs a three-way brightness-weighted null model.
+// All three cultures independently select stars from the combined three-system pool,
+// with selection probability proportional to exp(-magnitude).
+func RunThreeWayNullBrightness(cfg NullModelConfig) ThreeWayNullResult {
+	pool := ThreePoolCombined()
+	keys := make([]string, len(pool))
+	mags := make([]float64, len(pool))
+	for i, s := range pool {
+		keys[i] = s.Key
+		mags[i] = s.Magnitude
+	}
+
+	// Compute weights
+	weights := make([]float64, len(pool))
+	totalWeight := 0.0
+	for i, m := range mags {
+		w := math.Exp(-m)
+		if cfg.UseEclipticWeight {
+			w *= math.Exp(-math.Abs(pool[i].EclipticLat) / cfg.EclipticScale)
+		}
+		weights[i] = w
+		totalWeight += w
+	}
+	probs := make([]float64, len(pool))
+	for i, w := range weights {
+		probs[i] = w / totalWeight
+	}
+
+	rng := rand.New(rand.NewSource(cfg.Seed))
+
+	// Observed values
+	allStars := FindThreeWayShared()
+	obsAllThree := 0
+	obsAllThreeFaint := 0
+	obsNakXiu := 0
+	obsNakMan := 0
+	obsXiuMan := 0
+	for _, s := range allStars {
+		if s.InNakshatra && s.InXiu && s.InManazil {
+			obsAllThree++
+			if s.IsFaint {
+				obsAllThreeFaint++
+			}
+		}
+		if s.InNakshatra && s.InXiu {
+			obsNakXiu++
+		}
+		if s.InNakshatra && s.InManazil {
+			obsNakMan++
+		}
+		if s.InXiu && s.InManazil {
+			obsXiuMan++
+		}
+	}
+
+	allThreeOverlaps := make([]int, cfg.Iterations)
+	allThreeFaintOverlaps := make([]int, cfg.Iterations)
+	nakXiuOverlaps := make([]int, cfg.Iterations)
+	nakManOverlaps := make([]int, cfg.Iterations)
+	xiuManOverlaps := make([]int, cfg.Iterations)
+
+	for i := 0; i < cfg.Iterations; i++ {
+		// Nakshatra draws
+		nakSet := make(map[string]bool)
+		for j := 0; j < cfg.NakshatraDraws; j++ {
+			idx := weightedRandom(rng, probs)
+			nakSet[keys[idx]] = true
+		}
+
+		// Xiu draws
+		xiuSet := make(map[string]bool)
+		for j := 0; j < cfg.XiuDraws; j++ {
+			idx := weightedRandom(rng, probs)
+			xiuSet[keys[idx]] = true
+		}
+
+		// Manazil draws
+		manSet := make(map[string]bool)
+		for j := 0; j < 28; j++ {
+			idx := weightedRandom(rng, probs)
+			manSet[keys[idx]] = true
+		}
+
+		// Three-way overlap
+		allThree := 0
+		allThreeFaint := 0
+		for k := range nakSet {
+			if xiuSet[k] && manSet[k] {
+				allThree++
+				for pi, pk := range keys {
+					if pk == k {
+						if mags[pi] >= cfg.FaintThreshold {
+							allThreeFaint++
+						}
+						break
+					}
+				}
+			}
+		}
+
+		// Pairwise overlaps
+		nakXiu := 0
+		for k := range nakSet {
+			if xiuSet[k] {
+				nakXiu++
+			}
+		}
+		nakMan := 0
+		for k := range nakSet {
+			if manSet[k] {
+				nakMan++
+			}
+		}
+		xiuMan := 0
+		for k := range xiuSet {
+			if manSet[k] {
+				xiuMan++
+			}
+		}
+
+		allThreeOverlaps[i] = allThree
+		allThreeFaintOverlaps[i] = allThreeFaint
+		nakXiuOverlaps[i] = nakXiu
+		nakManOverlaps[i] = nakMan
+		xiuManOverlaps[i] = xiuMan
+	}
+
+	// Statistics
+	meanAllThree := meanInt(allThreeOverlaps)
+	sdAllThree := stddev(allThreeOverlaps, meanAllThree)
+	seAllThree := sdAllThree / math.Sqrt(float64(cfg.Iterations))
+
+	meanAllThreeFaint := meanInt(allThreeFaintOverlaps)
+	sdAllThreeFaint := stddev(allThreeFaintOverlaps, meanAllThreeFaint)
+	seAllThreeFaint := sdAllThreeFaint / math.Sqrt(float64(cfg.Iterations))
+
+	meanNakXiu := meanInt(nakXiuOverlaps)
+	meanNakMan := meanInt(nakManOverlaps)
+	meanXiuMan := meanInt(xiuManOverlaps)
+
+	pAllThreeGE := float64(countGE(allThreeOverlaps, obsAllThree)) / float64(cfg.Iterations)
+	pAllThreeFaintGE := float64(countGE(allThreeFaintOverlaps, obsAllThreeFaint)) / float64(cfg.Iterations)
+
+	return ThreeWayNullResult{
+		ModelName:            cfg.Name,
+		Iterations:           cfg.Iterations,
+		PoolSize:             len(pool),
+		FaintThreshold:       cfg.FaintThreshold,
+		ObservedAllThree:     obsAllThree,
+		ObservedAllThreeFaint: obsAllThreeFaint,
+		ObservedNakXiu:       obsNakXiu,
+		ObservedNakMan:       obsNakMan,
+		ObservedXiuMan:       obsXiuMan,
+		NullMeanAllThree:     meanAllThree,
+		NullCIAllThreeLow:    meanAllThree - 1.96*seAllThree,
+		NullCIAllThreeHigh:   meanAllThree + 1.96*seAllThree,
+		NullMeanAllThreeFaint: meanAllThreeFaint,
+		NullCIAllThreeFaintLow: meanAllThreeFaint - 1.96*seAllThreeFaint,
+		NullCIAllThreeFaintHigh: meanAllThreeFaint + 1.96*seAllThreeFaint,
+		NullMeanNakXiu:       meanNakXiu,
+		NullMeanNakMan:       meanNakMan,
+		NullMeanXiuMan:       meanXiuMan,
+		PAllThreeGE:          pAllThreeGE,
+		PAllThreeFaintGE:     pAllThreeFaintGE,
+	}
+}
+
+
+// ComputeMansionThreeWayConvergence computes mansion convergence across
+// all three systems: nakshatra, xiu, and manazil.
+// A planet converges if its nakshatra and xiu share a star AND its manazil
+// also shares that same star (three-way convergence).
+func ComputeMansionThreeWayConvergence(name string, tropical map[string]float64, ayanamsa float64) *MansionConvergence {
+	// Build three-way shared star lookup
+	allStars := FindThreeWayShared()
+	threeWayKeys := make(map[string]bool)
+	for _, s := range allStars {
+		if s.InNakshatra && s.InXiu && s.InManazil {
+			threeWayKeys[s.Key] = true
+		}
+	}
+
+	// Build nakshatra star key lookup
+	naks := NakshatraStars()
+	naksKeyToName := make(map[string]string)
+	for _, s := range naks {
+		naksKeyToName[s.Key] = s.NakshatraName
+	}
+
+	// Build xiu star key lookup
+	xius := XiuStars()
+	xiuKeyToName := make(map[string]string)
+	xiuKeyToPinyin := make(map[string]string)
+	for _, s := range xius {
+		xiuKeyToName[s.Key] = s.XiuName
+		xiuKeyToPinyin[s.Key] = s.XiuPinyin
+	}
+
+	// Build manazil star key lookup
+	manazils := ManazilStars()
+	manKeyToName := make(map[string]string)
+	for _, s := range manazils {
+		manKeyToName[s.Key] = s.ManazilName
+	}
+
+	// Classical planets only
+	planets := []string{"Sun", "Moon", "Mercury", "Venus", "Mars", "Jupiter", "Saturn"}
+
+	var placements []MansionPlacement
+	converging := 0
+
+	for _, p := range planets {
+		tropLon, ok := tropical[p]
+		if !ok {
+			continue
+		}
+		sidLon := normalizeLon(tropLon - ayanamsa)
+
+		nakName, nakNum := NakshatraForLongitude(sidLon)
+		xiuName, xiuNum, xiuPinyin := XiuForLongitude(sidLon)
+		manName, manNum := ManazilForLongitude(sidLon)
+
+		// Check three-way convergence
+		converges := false
+		for _, s := range naks {
+			if s.NakshatraName == nakName {
+				if threeWayKeys[s.Key] {
+					// This nakshatra's star is three-way shared — check xiu and manazil
+					for _, x := range xius {
+						if x.Key == s.Key && x.XiuName == xiuName {
+							for _, m := range manazils {
+								if m.Key == s.Key && m.ManazilName == manName {
+									converges = true
+									break
+								}
+							}
+							break
+						}
+					}
+				}
+				break
+			}
+		}
+
+		placement := MansionPlacement{
+			Planet:        p,
+			TropicalLon:   tropLon,
+			SiderealLon:   sidLon,
+			Nakshatra:     nakName,
+			NakshatraNum:  nakNum,
+			Xiu:           xiuName,
+			XiuNum:        xiuNum,
+			XiuPinyin:     xiuPinyin,
+			Manazil:       manName,
+			ManazilNum:    manNum,
+			Converges:     converges,
+		}
+		placements = append(placements, placement)
+		if converges {
+			converging++
+		}
+	}
+
+	return &MansionConvergence{
+		Name:       name,
+		Planets:    placements,
+		Converging: converging,
+		Total:      len(placements),
+	}
+}
+
+// ManazilForLongitude returns the manazil name and number for a given sidereal longitude.
+// Manazil boundaries are midpoints between consecutive determinative stars,
+// following the same convention as XiuForLongitude.
+func ManazilForLongitude(sidLon float64) (string, int) {
+	lon := normalizeLon(sidLon)
+	stars := ManazilStars()
+
+	for i := 0; i < 28; i++ {
+		curr := stars[i]
+		next := stars[(i+1)%28]
+
+		// Midpoint between current and next star
+		boundary := (curr.EclipticLon + next.EclipticLon) / 2.0
+		if next.EclipticLon < curr.EclipticLon {
+			boundary = (curr.EclipticLon + next.EclipticLon + 360) / 2.0
+			if boundary >= 360 {
+				boundary -= 360
+			}
+		}
+
+		prev := stars[(i+27)%28]
+		prevBoundary := (prev.EclipticLon + curr.EclipticLon) / 2.0
+		if curr.EclipticLon < prev.EclipticLon {
+			prevBoundary = (prev.EclipticLon + curr.EclipticLon + 360) / 2.0
+			if prevBoundary >= 360 {
+				prevBoundary -= 360
+			}
+		}
+
+		if inSector(lon, prevBoundary, boundary) {
+			return curr.ManazilName, curr.ManazilNum
+		}
+	}
+
+	return stars[27].ManazilName, stars[27].ManazilNum
 }

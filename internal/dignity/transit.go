@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"math"
 	"time"
+
+	"github.com/aj-nt/empirical/internal/swe"
 )
 
 // ── Transit Engine ───────────────────────────────────────────────────────
@@ -24,6 +26,17 @@ func HardAspectsOnly() []AspectDef {
 	return []AspectDef{
 		{0, "conjunction"},
 		{90, "square"},
+		{180, "opposition"},
+	}
+}
+
+// DefaultAspects returns the five standard Ptolemaic aspects.
+func DefaultAspects() []AspectDef {
+	return []AspectDef{
+		{0, "conjunction"},
+		{60, "sextile"},
+		{90, "square"},
+		{120, "trine"},
 		{180, "opposition"},
 	}
 }
@@ -56,6 +69,20 @@ func DefaultTransitPlanets() []planetSpec {
 		{"Uranus", 7},
 		{"Neptune", 8},
 		{"Pluto", 9},
+		{"Ceres", swe.CERES},
+		{"Pallas", swe.PALLAS},
+		{"Juno", swe.JUNO},
+		{"Vesta", swe.VESTA},
+		{"Lilith", swe.MEAN_APOG},
+		{"Chiron", swe.CHIRON},
+		{"Cupido", swe.CUPIDO},
+		{"Hades", swe.HADES},
+		{"Zeus", swe.ZEUS},
+		{"Kronos", swe.KRONOS},
+		{"Apollon", swe.APOLLON},
+		{"Admetos", swe.ADMETOS},
+		{"Poseidon", swe.POSEIDON},
+		{"Vulkanus", swe.VULKANUS},
 	}
 }
 
@@ -175,4 +202,66 @@ func CompactTransitsWithRange(hits []TransitHit) []struct {
 		})
 	}
 	return result
+}
+
+// ScanTransitToTransit computes aspects between transiting planets over a date
+// range. Returns compacted hits (date ranges with closest orb). This captures
+// the actual sky weather — temporary geometric structures between moving
+// planets, independent of any natal chart.
+func ScanTransitToTransit(
+	startDate, endDate string,
+	aspects []AspectDef,
+	orbDeg float64,
+	compute ComputeFunc,
+) ([]TransitHit, error) {
+	start, err := time.Parse("2006-01-02", startDate)
+	if err != nil {
+		return nil, fmt.Errorf("invalid start date: %w", err)
+	}
+	end, err := time.Parse("2006-01-02", endDate)
+	if err != nil {
+		return nil, fmt.Errorf("invalid end date: %w", err)
+	}
+
+	transitPlanets := DefaultTransitPlanets()
+	var hits []TransitHit
+
+	current := start
+	for !current.After(end) {
+		y, m, d := current.Year(), int(current.Month()), current.Day()
+
+		// Compute all transit positions for this day
+		positions := make(map[string]float64)
+		for _, tp := range transitPlanets {
+			lon, _, _, _ := compute(y, m, d, 12.0, tp.ID)
+			positions[tp.Name] = lon
+		}
+
+		// Check all pairs
+		names := make([]string, 0, len(positions))
+		for n := range positions {
+			names = append(names, n)
+		}
+		for i := 0; i < len(names); i++ {
+			for j := i + 1; j < len(names); j++ {
+				p1, p2 := names[i], names[j]
+				dist := angleDist(positions[p1], positions[p2])
+				for _, asp := range aspects {
+					diff := math.Abs(dist - asp.Angle)
+					if diff <= orbDeg {
+						hits = append(hits, TransitHit{
+							Date:          current.Format("2006-01-02"),
+							TransitPlanet: p1,
+							NatalPlanet:   p2,
+							Aspect:        asp.Name,
+							Orb:           math.Round(diff*100) / 100,
+						})
+					}
+				}
+			}
+		}
+		current = current.AddDate(0, 0, 1)
+	}
+
+	return hits, nil
 }

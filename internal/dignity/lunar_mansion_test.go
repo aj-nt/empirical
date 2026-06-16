@@ -286,3 +286,135 @@ func TestLunarMansionReportJSON(t *testing.T) {
 		t.Errorf("JSON output too short: %d bytes", len(jsonBytes))
 	}
 }
+
+// ── Per-Chart Mansion Placement ───────────────────────────────────────────
+
+func TestNakshatraForLongitude(t *testing.T) {
+	// Ashwini (nakshatra 1) starts at 0° sidereal
+	name, num := NakshatraForLongitude(0.0)
+	if name != "Ashwini" || num != 1 {
+		t.Errorf("0° → %s (#%d), want Ashwini (#1)", name, num)
+	}
+
+	// Mid-Ashwini
+	name, num = NakshatraForLongitude(6.66)
+	if name != "Ashwini" {
+		t.Errorf("6.66° → %s, want Ashwini", name)
+	}
+
+	// Bharani starts at 13.33°
+	name, num = NakshatraForLongitude(13.34)
+	if name != "Bharani" || num != 2 {
+		t.Errorf("13.34° → %s (#%d), want Bharani (#2)", name, num)
+	}
+
+	// Last nakshatra: Revati (27) at 346.67-360°
+	name, num = NakshatraForLongitude(350.0)
+	if name != "Revati" || num != 27 {
+		t.Errorf("350° → %s (#%d), want Revati (#27)", name, num)
+	}
+
+	// Wrap-around
+	name, num = NakshatraForLongitude(360.0)
+	if name != "Ashwini" || num != 1 {
+		t.Errorf("360° → %s (#%d), want Ashwini (#1)", name, num)
+	}
+}
+
+func TestXiuForLongitude(t *testing.T) {
+	// Jiao (Horn, xiu 1) anchored by Spica at 195.43°
+	// Previous star: Zhen (Gienah, Gamma Corvi) at 176.89°
+	// Boundary: (176.89 + 195.43)/2 = 186.16°
+	// Next star: Kang (Kappa Virginis) at 207.45°
+	// Boundary: (195.43 + 207.45)/2 = 201.44°
+	// So Jiao spans 186.16° to 201.44°
+
+	name, num, pinyin := XiuForLongitude(195.0)
+	if name != "Horn" || num != 1 || pinyin != "Jiao" {
+		t.Errorf("195° → %s (#%d, %s), want Horn (#1, Jiao)", name, num, pinyin)
+	}
+
+	// Kang (Neck, xiu 2) anchored by Kappa Virginis at 207.45°
+	name, num, pinyin = XiuForLongitude(205.0)
+	if name != "Neck" || num != 2 || pinyin != "Kang" {
+		t.Errorf("205° → %s (#%d, %s), want Neck (#2, Kang)", name, num, pinyin)
+	}
+
+	// Wrap-around: Bi (Wall, xiu 14) anchored by Algenib at 9.16°
+	// Previous: Shi (Markab) at 353.49°, boundary = (353.49+9.16)/2 = 1.325°
+	// Next: Kui (Eta And) at 22.38°, boundary = (9.16+22.38)/2 = 15.77°
+	name, num, pinyin = XiuForLongitude(5.0)
+	if name != "Wall" || num != 14 || pinyin != "Bi" {
+		t.Errorf("5° → %s (#%d, %s), want Wall (#14, Bi)", name, num, pinyin)
+	}
+
+	// Wrap-around: 0.5° falls in Shi (Encampment, xiu 13) sector [343.42°, 1.325°)
+	name, num, pinyin = XiuForLongitude(0.5)
+	if name != "Encampment" || num != 13 || pinyin != "Shi" {
+		t.Errorf("0.5° → %s (#%d, %s), want Encampment (#13, Shi)", name, num, pinyin)
+	}
+}
+
+func TestComputeMansionConvergence_KnownChart(t *testing.T) {
+	// AJ's chart: tropical positions, Lahiri ayanamsa ~24.23°
+	tropical := map[string]float64{
+		"Sun":     327.27,
+		"Moon":    329.58,
+		"Mercury": 299.94,
+		"Venus":   350.12,
+		"Mars":    220.15,
+		"Jupiter": 182.78,
+		"Saturn":  50.42,
+	}
+	ayanamsa := 24.23
+
+	result := ComputeMansionConvergence("AJ", tropical, ayanamsa)
+	if result.Total != 7 {
+		t.Errorf("Total = %d, want 7", result.Total)
+	}
+	if result.Ayanamsa != ayanamsa {
+		t.Errorf("Ayanamsa = %f, want %f", result.Ayanamsa, ayanamsa)
+	}
+
+	// Verify each planet has both mansion assignments
+	for _, p := range result.Planets {
+		if p.Nakshatra == "" {
+			t.Errorf("%s: empty nakshatra", p.Planet)
+		}
+		if p.Xiu == "" {
+			t.Errorf("%s: empty xiu", p.Planet)
+		}
+		if p.NakshatraNum < 1 || p.NakshatraNum > 27 {
+			t.Errorf("%s: nakshatra num %d out of range", p.Planet, p.NakshatraNum)
+		}
+		if p.XiuNum < 1 || p.XiuNum > 28 {
+			t.Errorf("%s: xiu num %d out of range", p.Planet, p.XiuNum)
+		}
+	}
+
+	// Convergence should be low — only 9 of 55 mansion pairs share stars
+	// Most planets won't land in a shared pair
+	if result.Converging > result.Total {
+		t.Errorf("Converging %d > Total %d", result.Converging, result.Total)
+	}
+}
+
+func TestComputeMansionConvergence_NoConvergence(t *testing.T) {
+	// Chart where all planets fall in non-shared mansion pairs
+	// Use longitudes that avoid the 9 shared anchor stars
+	tropical := map[string]float64{
+		"Sun":     100.0,
+		"Moon":    120.0,
+		"Mercury": 140.0,
+		"Venus":   160.0,
+		"Mars":    250.0,
+		"Jupiter": 270.0,
+		"Saturn":  290.0,
+	}
+	ayanamsa := 24.0
+
+	result := ComputeMansionConvergence("test", tropical, ayanamsa)
+	if result.Converging != 0 {
+		t.Errorf("Converging = %d, want 0 for non-shared positions", result.Converging)
+	}
+}

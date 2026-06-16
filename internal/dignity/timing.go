@@ -516,12 +516,25 @@ var vedicPlanetMap = map[string]struct {
 	"Ketu":    {[]string{"Ketu", "Neptune"}, nil},
 }
 
-// Ba Zi element → planet mapping.
+// Ba Zi element → planet mapping (generous — 5 elements → 7 planets).
 var elementToPlanets = map[string][]string{
 	"Metal": {"Saturn", "Venus"},
 	"Wood":  {"Jupiter"},
 	"Water": {"Moon", "Mercury"},
 	"Fire":  {"Mars", "Sun"},
+	"Earth": {"Saturn"},
+}
+
+// TightElementToPlanets uses the Chinese planet names (五行星):
+// 金星 (Metal Star) = Venus, 木星 (Wood Star) = Jupiter,
+// 水星 (Water Star) = Mercury, 火星 (Fire Star) = Mars,
+// 土星 (Earth Star) = Saturn.
+// One-to-one. Sun, Moon, Rahu, Ketu have no Ba Zi equivalent.
+var TightElementToPlanets = map[string][]string{
+	"Metal": {"Venus"},
+	"Wood":  {"Jupiter"},
+	"Water": {"Mercury"},
+	"Fire":  {"Mars"},
 	"Earth": {"Saturn"},
 }
 
@@ -703,4 +716,116 @@ func FormatTimingConvergence(tc *TimingConvergence) string {
 	b.WriteString("RECOVERY IMPLICATION: Timing layers use fundamentally different architectures (planet cycles vs element cycles vs annual houses). Direct date convergence is impossible. Planet-level thematic convergence suggests the original system had a unified timing grammar — different traditions preserved different facets. When two or more systems activate the same planet, that period's theme is likely signal, not noise.\n")
 
 	return b.String()
+}
+
+// ComputeTimingConvergenceTight is like ComputeTimingConvergence but uses
+// the tight one-to-one element-to-planet mapping (Chinese planet names).
+// Metal=Venus, Wood=Jupiter, Water=Mercury, Fire=Mars, Earth=Saturn.
+// Sun, Moon, Rahu, Ketu have no Ba Zi equivalent and can never converge.
+func ComputeTimingConvergenceTight(
+	targetDateStr string,
+	name string,
+	dashaEntry *VimshottariDashaEntry,
+	baZiPillars BaZiFourPillars,
+	birthYear, birthMonth, birthDay int,
+	profection ProfectionInfo,
+) *TimingConvergence {
+	tc := &TimingConvergence{
+		Name:       name,
+		TargetDate: targetDateStr,
+	}
+
+	// ── Vedic Dasha (same as generous) ──
+	if dashaEntry != nil {
+		mapping, ok := vedicPlanetMap[dashaEntry.Planet]
+		if !ok {
+			mapping = struct {
+				Planets  []string
+				Elements []string
+			}{[]string{dashaEntry.Planet}, nil}
+		}
+		tc.Periods = append(tc.Periods, TimingPeriod{
+			System:   "vedic_dasha",
+			Name:     dashaEntry.Planet + " mahadasha",
+			Start:    dashaEntry.Start,
+			End:      dashaEntry.End,
+			Years:    dashaEntry.Years,
+			Planets:  mapping.Planets,
+			Elements: mapping.Elements,
+		})
+	}
+
+	// ── Ba Zi Luck Pillars (tight mapping) ──
+	dm := baZiPillars.DayMaster
+	direction := 1
+	if dm.YinYang == "Yin" {
+		direction = -1
+	}
+	msIdx := baZiStemIndex(baZiPillars.Month.Stem)
+	mbIdx := baZiBranchIndex(baZiPillars.Month.Branch)
+
+	target, _ := time.Parse("2006-01-02", targetDateStr)
+
+	found := false
+	for i := 0; i < 10 && !found; i++ {
+		lpStem := baZiHeavenlyStems[intMod(msIdx+direction*(i+1), 10)]
+		lpBranch := baZiEarthlyBranches[intMod(mbIdx+direction*(i+1), 12)]
+		lpStemIdx := baZiStemIndex(lpStem)
+		lpBranchIdx := baZiBranchIndex(lpBranch)
+		lpElement := baZiStemElements[lpStemIdx]
+		lpBrElem := baZiBranchElements[lpBranchIdx]
+
+		lpStart := time.Date(birthYear+i*10, time.Month(birthMonth), birthDay, 0, 0, 0, 0, time.UTC)
+		lpEnd := time.Date(birthYear+(i+1)*10, time.Month(birthMonth), birthDay, 0, 0, 0, 0, time.UTC)
+
+		if !target.Before(lpStart) && target.Before(lpEnd) {
+			// Tight mapping: one-to-one element → planet
+			planetSet := make(map[string]bool)
+			for _, p := range TightElementToPlanets[lpElement] {
+				planetSet[p] = true
+			}
+			for _, p := range TightElementToPlanets[lpBrElem] {
+				planetSet[p] = true
+			}
+			var allPlanets []string
+			for p := range planetSet {
+				allPlanets = append(allPlanets, p)
+			}
+			tc.Periods = append(tc.Periods, TimingPeriod{
+				System:   "ba_zi_luck_pillar",
+				Name:     lpStem + lpBranch + " luck pillar",
+				Start:    lpStart.Format("2006-01-02"),
+				End:      lpEnd.Format("2006-01-02"),
+				Years:    10,
+				Planets:  allPlanets,
+				Elements: []string{lpElement, lpBrElem},
+			})
+			found = true
+		}
+	}
+
+	// ── Hellenistic Profection (same as generous) ──
+	var profPlanets []string
+	if profection.LordOfYear != "" {
+		profPlanets = append(profPlanets, profection.LordOfYear)
+		if profection.ProfectedSign != "" {
+			if ruler, ok := hellSignRulerships[profection.ProfectedSign]; ok && ruler != profection.LordOfYear {
+				profPlanets = append(profPlanets, ruler)
+			}
+		}
+	}
+
+	tc.Periods = append(tc.Periods, TimingPeriod{
+		System:   "profection",
+		Name:     fmt.Sprintf("H%d %s (lord: %s)", profection.ProfectedHouse, profection.ProfectedSign, profection.LordOfYear),
+		Start:    profection.ProfectionStart,
+		End:      profection.ProfectionEnd,
+		Years:    1,
+		Planets:  profPlanets,
+		Elements: []string{profection.Element},
+	})
+
+	tc.finalize()
+
+	return tc
 }

@@ -21,16 +21,21 @@ import (
 // invariance layer — treat with higher uncertainty than aspect geometry
 // or dignity.
 
-// HouseSystem names for the five comparison systems.
-var CompareHouseSystems = []string{"whole_sign", "equal", "placidus", "porphyry", "koch"}
+// CompareHouseSystems lists all house systems used in the convergence measurement.
+// The original five (whole_sign, equal, placidus, porphyry, koch) are extended
+// with three Medieval systems: regiomontanus, alcabitius, campanus.
+var CompareHouseSystems = []string{"whole_sign", "equal", "placidus", "porphyry", "koch", "regiomontanus", "alcabitius", "campanus"}
 
 // sweph house codes
 var swephCode = map[string]byte{
-	"placidus":  'P',
-	"porphyry":  'O',
-	"koch":      'K',
-	"equal":     'E',
-	"whole_sign": 'W',
+	"placidus":      'P',
+	"porphyry":      'O',
+	"koch":          'K',
+	"equal":         'E',
+	"whole_sign":    'W',
+	"regiomontanus": 'R',
+	"alcabitius":    'B',
+	"campanus":      'C',
 }
 
 // PlanetHouse records a single planet's house placement across all systems.
@@ -69,14 +74,20 @@ func (ph *PlanetHouse) ConsensusHouse() int {
 	return bestH
 }
 
-// IsUnambiguous returns true if at least 4 out of 5 systems agree.
+// IsUnambiguous returns true if at least 75% of systems agree on the house.
+// For 5 systems: 4+ (80%). For 8 systems: 6+ (75%).
 func (ph *PlanetHouse) IsUnambiguous() bool {
-	return ph.AgreementCount() >= 4
+	n := len(ph.Placements)
+	threshold := int(float64(n) * 0.75)
+	if threshold < 2 {
+		threshold = 2
+	}
+	return ph.AgreementCount() >= threshold
 }
 
-// IsDisputed returns true if 3 or fewer systems agree.
+// IsDisputed returns true if fewer than 75% of systems agree.
 func (ph *PlanetHouse) IsDisputed() bool {
-	return ph.AgreementCount() <= 3
+	return !ph.IsUnambiguous()
 }
 
 // AgreementRatio returns fraction of systems agreeing (0.0-1.0).
@@ -209,7 +220,21 @@ func ComputeHouseConvergence(
 	}
 	cusps["equal"] = eq
 
-	// Compute placements for each classical planet
+	// Regiomontanus: from SWE directly
+	regioCusps, _ := swe.Houses(jd, lat, lng, swephCode["regiomontanus"])
+	cusps["regiomontanus"] = regioCusps
+
+	// Alcabitius: from SWE directly
+	alcabCusps, _ := swe.Houses(jd, lat, lng, swephCode["alcabitius"])
+	cusps["alcabitius"] = alcabCusps
+
+	// Campanus: from SWE directly
+	campCusps, _ := swe.Houses(jd, lat, lng, swephCode["campanus"])
+	cusps["campanus"] = campCusps
+
+	// Compute placements for each classical planet (empirical verification uses
+	// only the 7 classical planets — outer planets, asteroids, and Uranian
+	// points are Western-only and would dilute the cross-system signal)
 	for _, planet := range ClassicalPlanets {
 		lon, ok := tropicalLons[planet]
 		if !ok {
