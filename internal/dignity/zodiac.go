@@ -80,7 +80,8 @@ func ComputeZodiacComparison(tropicalLons map[string]float64, ayan float64, name
 }
 
 // zodiacDignityDensity counts non-peregrine placements.
-// Detriment is treated as peregrine (Phase 1 finding: detriment is noise).
+// Detriment is treated as peregrine (Phase 1 revised finding: detriment is
+// Western-only with no Vedic equivalent — zero cross-traditional signal).
 func zodiacDignityDensity(longitudes map[string]float64) *ZodiacScore {
 	placements := make(map[string]string)
 	signs := make(map[string]string)
@@ -94,7 +95,8 @@ func zodiacDignityDensity(longitudes map[string]float64) *ZodiacScore {
 		}
 		sign := SignForLongitude(lon)
 		dig := WesternDignity(planet, sign)
-		// Phase 1 finding: detriment is likely noise → treat as peregrine
+		// Phase 1 revised finding: detriment is Western-only innovation.
+		// Vedic has no detriment category — treat as peregrine for density.
 		if dig == "detriment" {
 			dig = "peregrine"
 		}

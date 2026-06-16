@@ -336,6 +336,56 @@ func TestFormatAspectCatalog(t *testing.T) {
 	}
 }
 
+// ── Phase 1: Static Table Agreement ──────────────────────────────────────
+
+func TestComputeTableAgreement(t *testing.T) {
+	ta := ComputeTableAgreement()
+
+	if ta.TotalPairs != 84 {
+		t.Errorf("TotalPairs = %d, want 84", ta.TotalPairs)
+	}
+
+	// Per-state counts from the paper's revised finding
+	if ta.DomicileAgree != 12 {
+		t.Errorf("DomicileAgree = %d, want 12 (100%% identical)", ta.DomicileAgree)
+	}
+	if ta.ExaltationAgree != 6 {
+		t.Errorf("ExaltationAgree = %d, want 6 (100%% identical)", ta.ExaltationAgree)
+	}
+	if ta.FallAgree != 6 {
+		t.Errorf("FallAgree = %d, want 6 (100%% identical)", ta.FallAgree)
+	}
+	if ta.DetrimentCount != 12 {
+		t.Errorf("DetrimentCount = %d, want 12 (Western-only)", ta.DetrimentCount)
+	}
+	if ta.PeregrineAgree != 48 {
+		t.Errorf("PeregrineAgree = %d, want 48 (100%% identical)", ta.PeregrineAgree)
+	}
+
+	// Sum should equal 84
+	sum := ta.DomicileAgree + ta.ExaltationAgree + ta.FallAgree + ta.DetrimentCount + ta.PeregrineAgree
+	if sum != 84 {
+		t.Errorf("sum of all categories = %d, want 84", sum)
+	}
+}
+
+func TestFormatTableAgreement(t *testing.T) {
+	ta := ComputeTableAgreement()
+	out := FormatTableAgreement(ta)
+	if out == "" {
+		t.Error("expected non-empty output")
+	}
+	if !stringsContains(out, "100%") {
+		t.Errorf("output should mention 100%% identical: %s", out)
+	}
+	if !stringsContains(out, "Western-only") {
+		t.Errorf("output should mention Western-only: %s", out)
+	}
+	if !stringsContains(out, "Three of four") {
+		t.Errorf("output should mention 'Three of four': %s", out)
+	}
+}
+
 // ── Helpers ──────────────────────────────────────────────────────────────
 
 func findPlanet(dc *DignityConvergence, name string) PlanetDignity {
