@@ -1,4 +1,4 @@
-# Computational Recovery of Astrological Invariants
+# Computational Comparison of Western, Vedic, and Arabic Astrological Frameworks
 
 A.J. Flinton
 
@@ -6,198 +6,434 @@ June 2026
 
 ## Abstract
 
-The first horoscopic astrology emerged in Alexandria around 150 BCE and spread to Rome and India, evolving largely in isolation for two millennia before elements reached China. This paper measures what structural features of the original synthesis survived, using a single Go binary with a statically linked Swiss Ephemeris. Six measurements covering dignity rules, aspect angles, house division, timing systems, node axis geometry, and zodiac comparison are each set against a Monte Carlo random baseline. All baselines are computed in Go and cross-validated against a Python reference implementation.
+Western and Vedic astrology share a common origin in Hellenistic Alexandria (~150 BCE) but diverged over two millennia of largely separate development. This paper measures the degree of structural agreement between the two traditions using a single Go binary with a statically linked Swiss Ephemeris. Seventeen measurements compare Western, Vedic, and Arabic computational outputs — dignity rules, aspect angles, house division (extended to 8 systems including three Medieval methods), timing systems, node axis geometry, zodiac comparison, draconic transit behavior, two-way and three-way lunar mansion convergence, Arabic Parts, relocation house shift, fixed star conjunctions, secondary progressions, primary directions, relocation-dignity interaction, and electional date selection — each set against a Monte Carlo random baseline. All phases are reproducible from the current baseline tool. Results are reported with multi-seed ranges and ayanamsa sensitivity where applicable. The default ayanamsa is Lahiri, the standard adopted by the Indian government and the Swiss Ephemeris default [10].
 
-Results form a continuum. Three aspect angles are universal, the node axis is geometry, and twelve houses hold at 83.0% agreement across five methods, forming the structural backbone. Dignity rules average 46.7% per chart in a smooth distribution with no family patterning. Timing shows 65.3% partial overlap but only 4.6% full three-system agreement once the generous element-to-planet mapping is accounted for. The node sign flips for 78.6% of people under ayanamsa shift. Family synastry is indistinguishable from random.
+Of the seventeen measurements, six are geometry checks — they confirm that angular distances are preserved under uniform coordinate shift, a property of subtraction rather than of astrology. Two measure the author's computational models rather than traditional practice. Two measure location effects. One is underpowered (N=26). Six remain as measurements of cross-tradition agreement.
 
-Beneath these is an older layer. Comparison of 27 Indian nakshatras and 28 Chinese xiu reveals 9 shared anchor stars. Under brightness-weighted null selection, the total overlap is expected (p = 0.38), but the faint-star composition is not: 6 of 9 are second magnitude or fainter, where the null expects 1.2 (p = 0.0003). An ecliptic position confound test finds the shared faint stars are directionally closer to the ecliptic but not significantly so (p = 0.19). A combined brightness-and-ecliptic null model raises the expected faint overlap to 1.9, and the observed 6 still yields p = 0.0031. The total overlap is consistent with independent selection. The composition is quantitative evidence for common origin.
+Among those six, the dignity result is the most informative — but not for the reason the aggregate 47.0% figure suggests. Per-state analysis reveals that domicile/swakshetra, exaltation/uchcha, and fall/neecha assignments are identical across Western and Vedic tables (100% agreement). The 47.0% aggregate rate is an artifact of mapping a four-state Western system onto a three-state Vedic system: Western detriment has no Vedic equivalent, and the ayanamsa shift moves planets across sign boundaries, converting agreements into disagreements. The dignity tables did not diverge — three of four states survived transmission intact. Detriment is a Western-only innovation. Primary directions show partial cross-system survival at 51.0% mean (range 49.8-52.5%; varies 50.6-53.3% across ayanamsas). Node sign survival is 21.8% (range 21.2-22.5%; varies 18.7-26.2% across ayanamsas) and is primarily a function of ayanamsa choice. Timing convergence under the author's element-to-planet mappings is consistent with random chance (2.14% mean vs. 2.31% null expectation). House convergence across 8 systems (including Regiomontanus, Alcabitius, and Campanus) is 88.7% at a 75% agreement threshold.
 
-The engine, data, baselines, and manuscript are open source. All phases cross-validated between Go and Python implementations.
+Beneath the planetary layers, comparison of 27 Indian nakshatras, 28 Chinese xiu, and 28 Arabic manazil al-qamar reveals a three-tier structure. The two-way nakshatra-xiu overlap is 9 shared stars — consistent with independent brightness-weighted selection (p = 0.38), with a threshold-dependent faint-star excess (6 faint at ≥ 2.5, p = 0.0003). The nakshatra-manazil overlap is 13 shared stars — well above the brightness-weighted null expectation of 8.2, confirming the historical derivation of Arabic mansions from Indian nakshatras. The three-way overlap is 6 shared stars — consistent with independent selection (null expects 5.7, p = 0.54), with a significant faint-star excess (3 faint, null expects 0.24, p = 0.0013). However, three-way mansion convergence per chart is zero: shared anchor stars do not produce shared mansion placements when the three systems define their sector boundaries differently. The faint-star signal in the two-way comparison is threshold-dependent and sensitive to the shared-pool assumption in the null models.
+
+The engine, data, baselines, and manuscript are open source. All numbers verified against live baseline output (June 2026).
 
 ## 1. Introduction
 
-I built a Go binary to answer a question I couldn't find a measurement for.
+Around 150 BCE, at the intersection of Babylonian astronomy, Egyptian timekeeping, and Greek geometry, Hellenistic Alexandria produced the first system that cast planetary positions into a framework of signs, houses, and aspects. The earliest surviving horoscope is Babylonian (410 BCE), but the systematic integration of these elements into a coherent astrological framework is generally placed in Alexandria [4, 5]. The system spread west into Rome and east into India, where it merged with the pre-existing nakshatra system around the first or second century CE. Elements reached Tang dynasty China by the seventh century, where Ba Zi integrated the planetary framework with indigenous five-element cosmology [1, 6]. The Indian nakshatra system was transmitted to the Islamic world by the eighth century, becoming the Arabic manazil al-qamar [4].
 
-Around 150 BCE, at the intersection of Babylonian astronomy, Egyptian timekeeping, and Greek geometry, someone in Alexandria created the first system that cast planetary positions into a human life. Ascendant on the eastern horizon. Twelve houses dividing the sky. Essential dignity rules assigning planets to signs. Aspect angles between them. The seven visible planets were mapped into this structure and it spread. West into Rome. East into India, where it merged with the pre-existing nakshatra system around the first or second century CE. Further east, elements reached Tang dynasty China by the seventh century, where Ba Zi integrated the planetary framework with indigenous five-element cosmology [1, 6].
+The traditions diverged. Western astrology assigns dignity by domicile, exaltation, detriment, and fall. Vedic astrology uses swakshetra, uchcha, and neecha. Similar concepts with different assignments. Chinese Ba Zi maps planets to elements through a framework that does not map cleanly to Western or Vedic equivalents [1, 6]. Three systems. One shared origin. Roughly 2,000 years of largely separate development, with some secondary contact via the Silk Road.
 
-The traditions diverged. Western astrology assigns dignity by domicile, exaltation, detriment, and fall. Vedic astrology uses swakshetra, uchcha, and neecha. Similar concepts with different assignments. Chinese Ba Zi maps planets to elements, five to seven, with a mapping generous enough to make overlap likely by chance. Three systems. One shared origin. Roughly 2,000 years of largely separate development, with some secondary contact via the Silk Road after the Indian branch had already diverged [1, 6].
+This paper measures the degree of structural agreement between Western and Vedic computational outputs. It does not measure "transmission fidelity" — there is no surviving Alexandrian horoscope to establish what the original actually was. Agreement between the two traditions could reflect preservation of a shared original, or independent convergence on the same solution, or later contact reintroducing shared elements. The engine cannot distinguish these. What it can do is quantify how much the two traditions agree, and compare that agreement to what chance would produce.
 
-The question is not whether astrology is true. It asks: what structural features of the original synthesis survived the transmission? The answer is not binary. Some features held. Some didn't. The results form a continuum. The question is computational and it can be answered with a measurement tool.
-
-The tool is a Go binary using the Swiss Ephemeris C library. The same JPL DE ephemeris data used for spacecraft navigation [3]. It computes six measurements: dignity rules, aspect angles, house division, timing systems, node axis preservation, and zodiac comparison. Each phase compares Western and Vedic traditions computationally. The Chinese tradition is included for aspects (Phase 2) and timing (Phase 4), where cross-system comparison is possible. Dignity and houses in the Chinese framework do not map cleanly to Western or Vedic equivalents [1, 6].
-
-Beneath the planetary layers is an older system. The lunar mansions. Twenty-seven Indian nakshatras, twenty-eight Chinese xiu. Both divide the ecliptic by the sidereal month, each anchored to a determinative star. Both are documented before 1200 BCE, at least a millennium older than horoscopic astrology [6, 7, 11]. Their determinative stars overlap. The overlap might be random or it might not. That question is in the Results.
-
-The engine measures structural convergence. It does not say whether astrology works.
+The question is computational and the answer is a set of numbers. The engine does not say whether astrology works.
 
 ## 2. Related Work
 
-No prior work measures cross-system astrological convergence computationally.
+No prior work measures cross-system astrological agreement computationally.
 
-Pingree documented the historical transmission of Hellenistic astrology to India and the synthesis with the nakshatra system [4, 5, 6]. Needham catalogued the arrival of planetary astrology in China and its integration with the indigenous five-element and stem-branch frameworks [1]. Both are historical, not computational. They trace the path of transmission. They do not quantify what survived it.
+Pingree documented the historical transmission of Hellenistic astrology to India and the synthesis with the nakshatra system [4, 5, 6]. Needham catalogued the arrival of planetary astrology in China [1]. Subbarayappa and Sarma documented the nakshatra system's determinative stars and sector divisions [7]. All are historical, not computational.
 
-The Babylonian precedents have been studied extensively. Hunger and Pingree catalogued the Enuma Anu Enlil omen series and the Mul.Apin star catalog, establishing that pre-Hellenistic Babylonian astronomy was mundane: state omens, not individual horoscopes [5]. The mathematical ephemerides of the fourth century BCE provided the computational precision that Alexandria later deployed for a different purpose.
+The lunar mansion comparison — cross-referencing nakshatra, xiu, and manazil determinants and testing the overlap against null models — does not appear in the prior literature.
 
-Subbarayappa and Sarma documented the nakshatra system's role in early Indian astronomy, including its determinative stars and sector divisions [7]. This is the source material for the lunar mansion comparison in section 4.7. The comparison itself, cross-referencing nakshatra and xiu determinants and testing the overlap against null models, does not appear in the prior literature.
-
-This paper occupies the empty space between the historical record and a computational measurement. Pingree and Needham tell us the system spread. The engine tells us what survived.
-
+Methodologically, this paper sits within the broader tradition of computational measurement of cultural artifacts. Moretti's "distant reading" applied quantitative methods to literary corpora, treating cultural features as measurable quantities rather than purely interpretive objects [12]. Michel et al.'s culturomics work demonstrated that large-scale computational analysis of cultural corpora could reveal patterns invisible to close reading [13]. In textual criticism, phylogenetic methods adapted from evolutionary biology have been applied to manuscript traditions to reconstruct transmission histories from patterns of agreement and divergence [14, 15]. This paper applies a similar logic to astrological techniques: treat the techniques as cultural artifacts, measure agreement between descendant traditions, and compare observed agreement to null models. The difference is that astrological techniques lack the manuscript variants that stemmatics relies on — there is no chain of dated horoscopes showing when each dignity assignment changed. The measurement is therefore limited to quantifying agreement at the endpoints of transmission, without reconstructing the path between them.
 
 ## 3. Methods
 
-### 3.1 Computational Phases
+### 3.1 What This Paper Measures
 
-**Phase 1: Dignity convergence.** Seven classical planets classified under Western rules (domicile, exaltation, detriment, fall) and Vedic rules (swakshetra, uchcha, neecha) [4, 5]. Agreement on shared categories constitutes signal. Western astrology recognizes four dignity states, Vedic three. Convergence assessed as agreement on domicile/swakshetra and exaltation/uchcha, with peregrine and detriment/neecha treated as a single non-dignified state. Different alignment choices would produce different numbers.
+This paper measures agreement between Western and Vedic computational outputs. It does not measure "what survived transmission." Agreement may arise from:
 
-**Phase 2: Aspect catalog.** Static comparison of seven major angles (0, 30, 60, 90, 120, 150, 180 degrees) across Western, Vedic, and Chinese traditions using the Brihat Parashara Hora Shastra, Ptolemy's Tetrabiblos, and the San Ming Tong Hui [2, 8, 9].
+1. **Shared inheritance**: both traditions preserved a feature of the original Hellenistic synthesis.
+2. **Independent discovery**: both traditions arrived at the same solution because it is encoded in astronomy or mathematics (e.g., conjunction and opposition are physically real alignments; twelve equal divisions of a circle are geometrically natural).
+3. **Later contact**: Silk Road exchange reintroduced shared elements after the Indian branch had already diverged.
 
-**Phase 3: House convergence.** Five methods. Whole sign, equal, Placidus, Porphyry, Koch. Applied to each of seven planets. A planet is unambiguous if four or more systems assign the same house number.
+The engine quantifies agreement. Distinguishing between these three mechanisms is beyond its scope. The paper reports convergence rates and, where possible, identifies which mechanisms are ruled out by the direction of the result.
 
-**Phase 4: Timing convergence.** Vimshottari dasha (Vedic), Ba Zi luck pillars (Chinese), and Hellenistic annual profections compared for a given target date. Each system maps its active period to a set of planets. A planet appearing in two or more systems is a convergence. The element-to-planet mapping follows a deliberately broad assignment: Metal to Saturn and Venus, Water to Moon and Mercury, Wood to Jupiter, Fire to Mars and Sun [1]. This is not the standard Ba Zi mapping, which assigns one planet per element. It is a generous interpretation chosen to avoid false negatives. The Hellenistic profection is the root system; Vimshottari and Ba Zi are divergent elaborations. Different mapping choices would move the baseline.
+### 3.2 Computational Phases
 
-**Phase 5: Node convergence.** Tropical and sidereal node positions compared using the Lahiri ayanamsa, the standard adopted by the Indian government and the Swiss Ephemeris default [10].
+**Phase 1: Dignity agreement.** Seven classical planets classified under Western rules (domicile, exaltation, detriment, fall) and Vedic rules (swakshetra, uchcha, neecha) [4, 5]. Western astrology recognizes four dignity states, Vedic three. The original analysis assessed agreement as: both domicile/swakshetra, both exaltation/uchcha, or both peregrine (non-dignified). Detriment and neecha were grouped with peregrine as a single non-dignified state. This mapping choice produced the 47.0% aggregate rate. A per-state analysis (section 4.1) reveals that domicile/swakshetra, exaltation/uchcha, and fall/neecha assignments are identical across the two tables (100% agreement). The aggregate rate is an artifact of two factors: Western detriment has no Vedic equivalent (12 of 84 planet-sign pairs are Western-only), and the ayanamsa shift moves planets across sign boundaries, converting per-state agreements into aggregate disagreements. The structural bias from mapping a 4-state system onto a 3-state system is quantified in section 4.1.
 
-**Phase 6: Zodiac comparison.** Dignity density under tropical and sidereal coordinates. A sanity check: the dignity table assigns domicile pairs to opposite signs, making it invariant under uniform sign shift. The computation confirms what you'd expect analytically.
+**Phase 2: Aspect catalog.** Static comparison of seven major angles (0, 30, 60, 90, 120, 150, 180 degrees) across Western, Vedic, and Chinese traditions using the Brihat Parashara Hora Shastra, Ptolemy's Tetrabiblos, and the San Ming Tong Hui [2, 8, 9]. The three universal angles (conjunction, opposition, trine) are physically real alignments or geometrically natural divisions — a geometry check.
 
-### 3.2 Random Baseline Generation
+**Phase 3: House convergence.** Eight methods: whole sign, equal, Placidus, Porphyry, Koch, Regiomontanus, Alcabitius, Campanus. Applied to each of seven classical planets. A planet is unambiguous if at least 75% of systems (6 of 8) assign the same house number. This measures agreement between house systems within a single computational framework, not cross-tradition agreement. It does not involve ayanamsa.
 
-Monte Carlo simulation with fixed seed 42. Random dates 1900-2030, latitudes -60 to 60, longitudes -180 to 180, timezone offsets -12 to +12 hours in 0.5 hour increments, local times 00:00-23:59. All baselines computed in Go using the `baseline` subcommand at `cmd/baseline/main.go`. Sample sizes: Phase 1: 10,000, Phases 3, 4, and 5: 5,000 each, Phase 6: 9,738 synthetic charts. Phase 4 additionally randomizes target dates from birth to birth plus 90 years. 95% CIs computed as mean plus or minus 1.96 standard errors.
+**Phase 4: Timing convergence.** Vimshottari dasha (Vedic), Ba Zi luck pillars (Chinese), and Hellenistic annual profections compared for a given target date. Each system maps its active period to a set of planets. A planet appearing in two or more systems is a convergence. The element-to-planet mapping is the author's construction, not a standard Ba Zi mapping. Two variants are tested: a "generous" mapping (Metal→Saturn+Venus, Water→Moon+Mercury, Wood→Jupiter, Fire→Mars+Sun) and a "tight" mapping (Metal=Venus, Water=Mercury, Wood=Jupiter, Fire=Mars, Earth=Saturn). Neither is the standard Ba Zi framework, which maps elements to heavenly stems and earthly branches, not directly to planets. The null expectation for three-system agreement is computed analytically from the known probability distributions of each system (section 4.4). Note: Venus is absent from Vimshottari dasha (the 120-year cycle assigns periods to Sun, Moon, Mars, Rahu, Jupiter, Saturn, Mercury, and Ketu; Rahu and Ketu are nodes, not classical planets, and Venus is not included).
 
-### 3.3 Cross-Validation
+**Phase 5: Node sign survival.** Tropical and sidereal node positions compared using the Lahiri ayanamsa [10]. Sensitivity to other ayanamsas (Raman, Krishnamurti, Fagan-Bradley) is reported.
 
-A Python reference implementation (pyswisseph 2.08) validates the Go engine against three reference charts. Go and Python produce identical scores for all phases. Transit and synastry computations validated similarly.
+**Phase 6: Zodiac comparison.** Dignity density under tropical and sidereal coordinates. A sanity check: the dignity table assigns domicile pairs to opposite signs, making it invariant under uniform sign shift.
 
-### 3.4 Family Dataset
+**Phase 7: Draconic transit behavior.** The draconic chart rotates the tropical zodiac so the North Node sits at 0° Aries. Natal draconic positions are zodiac-invariant (the ayanamsa cancels out in the rotation). Transiting positions are not. At a 3° orb with a ~24° ayanamsa, overlap is geometrically impossible — a geometry check.
 
-Seventeen people across three generations scored for individual chart analysis and synastry. Three couples, 14 parent-child pairs, 24 grandparent-grandchild pairs. Categories with single observations excluded. Age-matched random baseline of 5,000 pairs per category. Scores reported for illustration only. The sample is too small for population inference.
+**Phase 8: Lunar mansion convergence (two-way).** Each of the seven classical planets is assigned to its nakshatra (27 equal 13°20' sectors) and its Chinese xiu (28 unequal sectors). A planet converges if its nakshatra and xiu share the same determinative star — one of the 9 shared anchors identified in the static catalog comparison.
 
-### 3.5 Lunar Mansion Null Models
+**Phase 8b: Lunar mansion convergence (three-way).** Same as Phase 8, extended to include the 28 Arabic manazil al-qamar. A planet converges if its nakshatra, xiu, and manazil all share the same determinative star — one of the 6 three-way shared anchors. Sector boundaries are defined by midpoints between consecutive determinative stars for each system independently.
 
-Three null models test whether the 9 observed shared stars between 27 nakshatra and 28 xiu determinants exceed random expectation. All use 10,000 bootstrap iterations. The star pools are 27 nakshatra determinants and 28 xiu determinants, all with documented single-star anchors per Wikipedia. The combined pool contains 46 unique stars. Magnitudes are from the Swiss Ephemeris catalog.
+**Phase 9: Arabic Parts.** Thirteen Hellenistic Arabic Parts computed from the ascendant and planetary positions. Sign placement survival under ayanamsa shift is frame-dependent. Part-to-planet aspects are angular distances and therefore preserved under uniform coordinate shift — a geometry check. Eight of the 13 Parts are documented in both Western and Vedic traditions under identical formulas; this formula comparison is a legitimate historical finding.
 
-**Null 1 (Uniform):** Each system selects 27 stars uniformly from the combined pool of 46 stars, without replacement. Bootstrap mean: 16.4 (95% CI: 16.4-16.5). Observed 9 is well below expectation (p = 0.0000). Both cultures were selective, not random.
+**Phase 10: Relocation house shift.** Seven classical planets placed into Placidus houses at two random geographic locations. Measures how many planets change houses under relocation.
 
-**Null 2 (Brightness-weighted, combined pool):** Selection probability proportional to exp(-magnitude). Brighter stars are proportionally more likely to be selected. Bootstrap mean total: 8.1 (95% CI: 8.0-8.1). Observed 9 is consistent (p = 0.38). For faint stars (magnitude >= 2.5): null mean 1.2 (95% CI: 1.2-1.2). Observed 6 yields p = 0.0003.
+**Phase 11: Fixed star conjunctions.** 116-star catalog computed via swe.Fixstar. Star-to-planet conjunctions detected in both tropical and sidereal frames at 2° orb. Angular distances between stars and planets are preserved under uniform coordinate shift — a geometry check.
 
-**Null 3 (Brightness + ecliptic proximity weighted):** Selection probability proportional to exp(-magnitude) * exp(-|latitude|/10 deg). Stars near the ecliptic are more likely to be selected. Bootstrap mean total: 7.6 (95% CI: 7.6-7.7). Observed 9, p = 0.28. Faint stars: null mean 1.9 (95% CI: 1.9-1.9). Observed 6 yields p = 0.0031.
+**Phase 12: Progressed cross-system.** Secondary progressions (Naibod rate: one day per year). Progressed-to-natal aspects compared in tropical and sidereal frames. Angular distances are preserved under uniform coordinate shift — a geometry check.
 
-Null 2 is the primary model. Both cultures independently selected bright stars from available celestial candidates. The total overlap is unremarkable. The faint-star composition is not.
+**Phase 13: Primary directions.** Ptolemy's method: 1° of right ascension equals 1 year of life. ASC directed by oblique ascension (transcendental equation), MC directed by right ascension. Cross-system comparison at 3° orb. Unlike progressed cross-system, the OA-to-longitude conversion is nonlinear under ayanamsa shift, so this is not a geometry check — it is a genuine measurement.
 
-An ecliptic position confound test (100,000 permutations) compares the mean absolute ecliptic latitude of shared faint stars (14.8 deg) against non-shared faint stars (22.0 deg). The difference does not reach significance (p = 0.19). Shared faint stars are directionally closer to the ecliptic but not systematically enough to explain the overlap as celestial geography alone.
+**Phase 14: Relocation-dignity interaction.** Dignity scores computed at two random geographic locations and compared. Dignity is a function of ecliptic longitude, which is location-independent — a geometry check.
 
-All lunar mansion analysis is implemented in the Go binary at `internal/dignity/lunar_mansion.go` and reproducible via `empirical lunar-mansion`.
+**Phase 15: Electional cross-system.** The author's electional scoring model (Moon house placement, Mercury sign condition, good/bad aspects) run in tropical and sidereal frames over 7-day windows. This measures the author's model, not electional astrology as practiced in either tradition. Moon house depends on ASC sign, which shifts with ayanamsa.
 
-### 3.6 Limitations
+### 3.3 Random Baseline Generation
 
-The engine measures convergence between Western and Vedic traditions for Phases 1, 3, 5, and 6. Phase 4 compares all three traditions. Phase 2 is a static catalog. Chinese dignity and houses cannot be computed per chart.
+Monte Carlo simulation. Random dates 1900-2030, latitudes -60 to 60, longitudes -180 to 180, timezone offsets -12 to +12 hours in 0.5 hour increments, local times 00:00-23:59. The baseline tool uses 25 planets: the 7 classical planets plus Uranus, Neptune, Pluto, Node, Chiron, Lilith, Ceres, Pallas, Juno, Vesta, and 8 Uranian planets.
 
-Phase 4's 65.3% baseline is inflated by the generous element-to-planet mapping. This is acknowledged. A tighter mapping produces a lower baseline but risks false negatives.
+Sample sizes: Phase 1: 10,000, Phase 3: 5,000, Phase 4: 5,000, Phase 5: 5,000, Phase 6: 10,000, all others: 1,000. Phase 4 randomizes target dates from birth to birth plus 90 years. Phase 7 randomizes transit dates within ±5 years of birth. Phase 12 randomizes target dates within 0-90 years of birth. Phase 13 randomizes ages from 0-90 years. Phase 15 randomizes 7-day windows within 0-80 years of birth.
 
-The traditions were not fully independent. Silk Road contact occurred after the Indian branch diverged. Chinese-Vedic convergence may reflect later contact.
+All results reported with multi-seed ranges (seeds 42, 123, 456, 789) and ayanamsa sensitivity (Lahiri, Raman, Krishnamurti, Fagan-Bradley) where applicable. The Lahiri ayanamsa is the default; it is the standard adopted by the Indian government and the Swiss Ephemeris default [10]. The baseline tool explicitly sets `SetSidMode(SIDM_LAHIRI)` before all computations.
 
-Convergence may arise from astronomical data rather than cultural transmission. Conjunction and opposition are physically real alignments independent of culture. Twelve equal divisions of a circle are mathematically natural. The paper reports convergence. Distinguishing transmission from independent discovery is a separate problem and the engine cannot solve it.
+### 3.4 Code Validation
 
-Phase 1 maps a four-state system onto a three-state system. Phase 4 maps five elements onto seven planets. The reported rates are conditioned on those mapping choices.
+The Go engine's internal logic packages are tested with 281 test functions, all passing (`go test ./...` exit 0). The dignity, directions, astrocartography, progressed, and interpretation modules each have dedicated test suites verifying correctness against hand-computed reference values. The Swiss Ephemeris bindings are integration-tested against known planetary positions.
 
-The lunar mansion null models do not control for ecliptic position. Stars near the ecliptic are inherently more likely to anchor lunar mansions regardless of brightness. A direct test of this confound (section 3.5) found that shared faint stars are directionally closer to the ecliptic (mean |lat| 14.8 deg vs 22.0 deg for non-shared) but the difference does not reach significance (p = 0.19). A null model incorporating both brightness and ecliptic proximity weights (Null 3) raises the expected faint overlap from 1.2 to 1.9, and the observed 6 still yields p = 0.0031. The confound is real but does not nullify the result.
+No independent implementation exists to cross-validate these results. The numbers should be treated as single-implementation measurements until reproduced by an independent codebase.
 
-### 3.7 Code and Data Availability
+### 3.5 Family Dataset
 
-Open source under MIT license at github.com/aj-nt/empirical. Go source: 89 test functions, all passing. Python reference: 1,185 test functions. Baseline scripts included. Swiss Ephemeris via github.com/aloistr/swisseph (GPL). This paper is licensed under CC-BY 4.0.
+Seventeen people across three generations scored for individual chart analysis and synastry. Three couples, 14 parent-child pairs, 24 grandparent-grandchild pairs. Age-matched random baseline of 5,000 pairs per category. N=26 pairs total. The sample is too small for population inference. Results reported for illustration only.
+
+### 3.6 Lunar Mansion Null Models
+
+Three null models test whether the observed shared stars between mansion systems exceed random expectation. All use 10,000 bootstrap iterations. Star pools are from documented single-star anchors per Wikipedia. Magnitudes are from the Swiss Ephemeris catalog.
+
+**Two-way (nakshatra-xiu):** 27 nakshatra determinants, 28 xiu determinants. Combined pool: 46 unique stars.
+
+**Two-way (nakshatra-manazil):** 27 nakshatra determinants, 28 manazil determinants. Combined pool: 48 unique stars.
+
+**Three-way (nakshatra-xiu-manazil):** All three systems. Combined pool: 57 unique stars.
+
+**Null 1 (Uniform):** Each system selects stars uniformly from the combined pool, without replacement. Bootstrap mean for two-way: 16.4. Observed 9 is well below expectation (p = 0.0000). Both cultures were selective, not random.
+
+**Null 2 (Brightness-weighted, combined pool):** Selection probability proportional to exp(-magnitude). For nakshatra-xiu: bootstrap mean total 8.1 (95% CI: 8.0-8.1). Observed 9 is consistent (p = 0.38). For faint stars (magnitude ≥ 2.5): null mean 1.2 (95% CI: 1.2-1.2). Observed 6 yields p = 0.0003. For nakshatra-manazil: null mean 8.2. Observed 13 yields p = 0.0000 — well above expectation, confirming historical derivation. For three-way: null mean 5.7. Observed 6 is consistent (p = 0.54). Three-way faint: null mean 0.24, observed 3 yields p = 0.0013.
+
+**Null 3 (Brightness + ecliptic proximity weighted):** Selection probability proportional to exp(-magnitude) * exp(-|latitude|/10 deg). For nakshatra-xiu: bootstrap mean total 7.6 (95% CI: 7.6-7.7). Observed 9, p = 0.28. Faint stars: null mean 1.9 (95% CI: 1.9-1.9). Observed 6 yields p = 0.0031.
+
+**Threshold sensitivity:** The faint-star count depends on the magnitude cutoff. At ≥ 2.5: 6 faint stars. At ≥ 2.75: 5 faint stars (Sheratan at 2.65 and Zubenelgenubi at 2.75 flip to bright). At ≥ 3.0: 3 faint stars (Algenib at 2.84 also flips). At ≥ 3.5: 3 faint stars. At ≥ 4.0: 2 faint stars. The p = 0.0003 result is specific to the 2.5 threshold. The paper uses 2.5 as a round number near the median of the magnitude distribution; no optimization was performed, but the sensitivity is acknowledged.
+
+**Geographic visibility caveat:** The null models assume all cultures selected from the same combined pool. Nakshatra determinants were selected from stars visible from Indian latitudes (~8-35°N). Xiu determinants were selected from stars visible from Chinese latitudes (~18-54°N). Manazil determinants were selected from stars visible from Middle Eastern latitudes (~15-40°N). These are overlapping but not identical pools. The shared-pool assumption may inflate the expected overlap.
+
+### 3.7 Limitations
+
+The engine measures agreement between Western and Vedic traditions for Phases 1, 5, 6, 9, 10, 11, 12, 13, 14, and 15. Phase 3 measures within-tradition house system agreement, not cross-tradition. Phase 4 compares all three traditions using the author's element-to-planet mappings. Phase 2 is a static catalog. Chinese dignity and houses cannot be computed per chart.
+
+Six phases are geometry checks (Phases 2, 7, 9-aspects, 11, 12, 14): they confirm that angular distances are preserved under uniform coordinate shift. This is a property of subtraction (`(X - a) - (Y - a) = X - Y`), not a property of astrological techniques. They are included for completeness and as code validation, not as findings about transmission.
+
+The "invariant" techniques (Phases 9 aspects, 11, 12) are invariant only under the assumption that both traditions use identical computational pipelines — same star catalog, same Part formulas, same progression rate. In practice, Vedic astrologers may use different ayanamsas for different purposes, different Part formulas for some Lots, and different progression rates. The paper measures the computational pipeline, not the traditions as actually practiced.
+
+All cross-system numbers depend on the choice of ayanamsa. Different ayanamsas (Raman ~22.5°, Krishnamurti ~23.8°, Fagan-Bradley ~24.5°) produce different results for every frame-dependent phase. The paper reports Lahiri as the default and provides sensitivity ranges.
+
+Phase 1 maps a four-state Western system onto a three-state Vedic system. The original mapping grouped Western detriment and Vedic neecha with peregrine as a single non-dignified state. This mapping choice produced the 47.0% aggregate rate. Per-state analysis (section 4.1) shows that domicile/swakshetra, exaltation/uchcha, and fall/neecha assignments are identical across the two tables. The aggregate rate reflects the mapping asymmetry (Western detriment has no Vedic equivalent) and ayanamsa-driven sign-boundary crossings, not table divergence.
+
+Phase 4 uses element-to-planet mappings constructed by the author. Neither the "generous" nor "tight" mapping is the standard Ba Zi framework. The results describe the author's mappings, not the traditions.
+
+Phase 15 uses an electional scoring model constructed by the author. The results describe the author's model, not electional astrology as practiced.
+
+The lunar mansion null models assume a shared star pool and do not control for geographic visibility constraints. The faint-star result is threshold-dependent.
+
+No independent implementation exists. All results are single-implementation until reproduced.
+
+### 3.8 Code and Data Availability
+
+Open source under MIT license at github.com/aj-nt/empirical. Go source: 281 test functions, all passing. Swiss Ephemeris via github.com/aloistr/swisseph (GPL). This paper is licensed under CC-BY 4.0. All baseline results verified against live output (June 2026).
 
 ## 4. Results
 
-### 4.1 Phase 1: Dignity Convergence
+### 4.1 Phase 1: Dignity Agreement
 
-Random baseline (N=10,000): mean 3.27 of 7 planets agreeing (46.7%, 95% CI: 46.3-47.1, sample SD 1.52). Distribution: a smooth bell curve centered on 3. 29.0% of charts at exactly 3, 25.6% at 4, 19.8% at 2, 1.1% at 0, 0.3% at all 7.
+**Per-state analysis.** The Western and Vedic dignity tables are compared state-by-state for all 84 planet-sign pairs (7 planets × 12 signs):
 
-The 17-person family sample scored from 14.3% to 71.4%. Family members scatter across the full range with no clustering by generation, lineage, or biological relationship. The four charts at 1 of 7 (percentile 1.1-8.1) are the wife, her mother, the paternal grandmother, and the maternal grandmother. They span three lineages with no common descent. The two highest at 5 of 7 are from different generations and unrelated lineages. The reference male subject scores 4 of 7, indistinguishable from random.
+| Western State | Vedic Equivalent | Agreement | Pairs |
+|---|---|---|---|
+| Domicile | Swakshetra | **100%** (12/12) | Identical assignments |
+| Exaltation | Uchcha | **100%** (6/6) | Identical assignments |
+| Fall | Neecha | **100%** (6/6) | Identical assignments |
+| Detriment | — (no Vedic equivalent) | **0%** | 1 maps to neecha, 11 to peregrine |
+| Peregrine | Peregrine | **100%** (48/48) | Identical assignments |
 
-The dignity table survived partially. Not intact. Not random. A smooth continuum with individual scores spanning the full range.
+Domicile, exaltation, and fall assignments are identical across the two traditions. The dignity tables did not diverge — three of four states survived transmission intact. Detriment is a Western-only innovation: Vedic astrology never developed a detriment concept. Of the 12 Western detriment pairs, 11 map to Vedic peregrine and 1 (Sun in Aquarius) maps to neecha.
 
-![Figure 1: Phase 1 dignity convergence distribution across 10,000 random charts. Mean 3.27/7 (46.7%).](figures/phase1.png)
+**Aggregate rate.** The original analysis assessed agreement as: both domicile/swakshetra, both exaltation/uchcha, or both peregrine. Detriment and neecha were grouped with peregrine as a single non-dignified state. Under this mapping, the static table agreement is 72/84 = 85.7% (the 12 detriment pairs are counted as disagreements because Vedic has no equivalent category).
+
+Random baseline (N=10,000, seed 42, Lahiri): mean 3.29 of 7 planets agreeing (47.0%). Distribution:
+
+```
+0:  1.6%  ▏
+1:  8.2%  ▍
+2: 20.7%  ▋
+3: 29.5%  ▊
+4: 23.7%  ▋
+5: 12.6%  ▍
+6:  3.4%  ▏
+7:  0.3%  ▏
+```
+
+Multi-seed range (N=10,000): 46.7-47.0% (seeds 42, 123, 456, 789).
+
+Ayanamsa sensitivity (N=10,000, seed 42): Lahiri 47.0%, Raman 49.5%, Krishnamurti 47.2%, Fagan-Bradley 45.5%. The 4.0pp range across ayanamsas is larger than the 0.3pp range across seeds.
+
+**Why 47.0% when the tables are 85.7% identical?** The gap between the static table agreement (85.7%) and the observed per-chart rate (47.0%) is driven by the ayanamsa shift. The Lahiri ayanamsa (~24°) moves planets across sign boundaries in ~53% of cases. When a planet crosses a sign boundary, its Western and Vedic sign assignments differ, and the dignity comparison becomes a cross-sign comparison. A planet that would be domicile in both systems if it stayed in the same sign becomes domicile in one and peregrine in the other when the ayanamsa places it in different signs. The 47.0% rate measures the combined effect of the mapping asymmetry (detriment has no Vedic equivalent) and the ayanamsa-driven sign-boundary crossings. It does not measure table divergence — the tables are identical for the three states both traditions share.
+
+**Null expectation.** Under random sign assignment, the probability that a given planet's Western and Vedic dignity classifications agree (both domicile/swakshetra, both exaltation/uchcha, or both peregrine) can be computed analytically from the dignity tables. The mean per-planet probability is 78.6%. The expected mean converging planets per chart is 5.50 out of 7 (78.6%). The observed 3.29 (47.0%) is 31.6 percentage points below the null expectation.
+
+The null expectation of 78.6% reflects the structure of the tables: domicile pairs are opposite signs, exaltation signs are specific, and most signs are peregrine for most planets. Two independently constructed dignity tables would agree most of the time by chance. The observed rate is below chance not because the tables disagree but because the ayanamsa shift breaks the sign correspondence that the tables require. The tables agree on what dignity a planet has in a given sign. The ayanamsa determines whether the planet is in the same sign in both systems.
+
+The 17-person family sample scored from 14.3% to 71.4%. Family members scatter across the full range with no clustering by generation, lineage, or biological relationship. The reference male subject scores 4 of 7 (57.1%), above the population mean but within the normal range.
 
 ### 4.2 Phase 2: Aspect Catalog
 
-Three angles are universal: conjunction, opposition, trine. Square (90 degrees) is explicit in Western and Vedic, implicit in Chinese through the punishment relationship. Sextile (60 degrees) appears in Western and Vedic only. Semi-sextile and quincunx are Western/Vedic with partial Chinese equivalents.
+Three angles are universal across all three traditions: conjunction (0°), opposition (180°), trine (120°). Square (90°) is explicit in Western and Vedic, implicit in Chinese through the punishment relationship. Sextile (60°) appears in Western and Vedic only. Semi-sextile (30°) and quincunx (150°) are Western/Vedic with partial Chinese equivalents.
 
-These same three universal angles appear in the Babylonian Mul.Apin catalog, suggesting they predate the Hellenistic synthesis itself [5].
+These same three universal angles appear in the Babylonian Mul.Apin catalog, suggesting they predate the Hellenistic synthesis [5]. Conjunction and opposition are physically real alignments independent of culture. The trine divides the circle in three, a geometrically natural division. Agreement on these angles reflects astronomy and geometry, not cultural transmission. This phase is a geometry check.
 
 ### 4.3 Phase 3: House Convergence
 
-Random baseline (N=5,000): mean 5.81 of 7 unambiguous (83.0%, 95% CI: 81.8-84.2, sample SD 1.63). Right-skewed: 42.9% of charts have all seven unambiguous. Planets near cusp boundaries are the only source of disagreement between methods.
+Random baseline (N=5,000, seed 42, 8 systems, 75% threshold): mean 6.21 of 7 unambiguous (88.7%). Distribution: 0: 0.0%, 1: 0.3%, 2: 1.2%, 3: 2.5%, 4: 4.5%, 5: 10.6%, 6: 26.2%, 7: 54.6%.
 
-The concept of twelve houses survived. The specific method for computing them (Placidus vs. whole sign, Porphyry vs. Koch) matters only at the edges.
+With the original 5 systems at 80% threshold: 83.0% (range 82.5-83.0% across seeds). Adding Regiomontanus, Alcabitius, and Campanus raises convergence to 88.7% — the three Medieval quadrant systems largely agree with Placidus, Porphyry, and Koch on house placement.
 
-![Figure 2: House convergence across five methods (N=5,000). Mean 5.81/7 planets unambiguous (83.0%).](figures/phase3.png)
+This measures agreement between house systems within a single computational framework. It does not measure cross-tradition agreement and does not involve ayanamsa. The high convergence rate reflects the fact that all eight systems divide the same 360° circle into twelve sectors; planets far from cusp boundaries will land in the same house under any reasonable system.
 
 ### 4.4 Phase 4: Timing Convergence
 
-Random baseline (N=5,000): 65.3% of birth/target pairs produce at least one converging planet. Distribution: 56.1% exactly one, 34.7% zero, 9.1% two. None observed at three or more. The convergence count is structurally bounded by the seven classical planets. No computation errors occurred.
+Random baseline (N=5,000, seed 42, Lahiri): 33.1% of birth/target pairs produce at least one converging planet under the generous mapping. Distribution: 66.9% zero, 28.6% one, 4.4% two. None at three or more.
 
-Full three-system agreement, where Vimshottari dasha, Ba Zi luck pillars, and Hellenistic annual profections all activate the same planet for the same date, occurs in 4.6% of cases (232 of 5,000, 95% CI: 4.0-5.3%).
+Full three-system agreement (generous mapping): 2.18% (seed 42), multi-seed range 2.04-2.22% (mean 2.14%). Tight mapping: 1.76% (seed 42), multi-seed range 1.56-1.76% (mean 1.66%). Timing convergence is effectively ayanamsa-invariant (all four ayanamsas produce 2.16-2.18% generous, 1.76-1.78% tight at seed 42).
 
-The 65.3% partial overlap sounds like a strong signal but largely reflects the generous element-to-planet mapping. When Metal maps to both Saturn and Venus, and Water to both Moon and Mercury, overlap is likely by construction. The 4.6% full agreement is the cleaner number. Three independent timing systems converging on the same planet is genuinely rare.
+**Null expectation.** The three systems do not select planets uniformly. Vimshottari dasha assigns periods proportional to planetary periods: Sun 8.0%, Moon 13.3%, Mars 9.3%, Jupiter 21.3%, Saturn 25.3%, Mercury 22.7%. Venus is absent from Vimshottari dasha. Ba Zi luck pillars (generous mapping, renormalized to exclude the 20% Earth-element cases that map to no planet): Sun 12.5%, Moon 12.5%, Mercury 12.5%, Venus 12.5%, Mars 12.5%, Jupiter 25.0%, Saturn 12.5%. Hellenistic annual profections: Sun 8.3%, Moon 8.3%, Mercury 16.7%, Venus 16.7%, Mars 16.7%, Jupiter 16.7%, Saturn 16.7%. The probability that all three systems activate the same planet by chance is the sum over planets of the product of these three probabilities: 2.31% for the generous mapping, 2.62% for the tight mapping.
 
-![Figure 3: Timing convergence distribution (N=5,000). Most pairs overlap on exactly one planet; full three-system agreement occurs in 4.6% of cases.](figures/phase4.png)
+The observed mean of 2.14% (generous) is within 0.17pp of the 2.31% null expectation. The observed mean of 1.66% (tight) is 0.96pp below the 2.62% null expectation. Neither is strong evidence for or against transmission. The generous mapping result is consistent with random chance. The tight mapping result is directionally below chance but the effect is small relative to sampling variability.
 
-### 4.5 Phase 5: Node Convergence
+These results describe the author's element-to-planet mappings, not the Ba Zi tradition. The standard Ba Zi framework maps elements to heavenly stems and earthly branches, not directly to planets. Different mapping choices would produce different numbers.
 
-Random baseline (N=5,000): the node sign survives tropical-to-sidereal shift in 21.4% of charts (95% CI: 20.3-22.5). The Lahiri ayanamsa of approximately 24 degrees pushes the North Node across a sign boundary for the remaining 78.6%. The 180 degree opposition axis is preserved in every case. The node axis concept survived; the sign label on it did not.
+### 4.5 Phase 5: Node Sign Survival
+
+Random baseline (N=5,000, seed 42, Lahiri): 21.8% sign survival (1,089 of 5,000). Multi-seed range: 21.2-22.5%.
+
+Ayanamsa sensitivity (N=5,000, seed 42): Lahiri 21.8%, Raman 26.2%, Krishnamurti 22.1%, Fagan-Bradley 18.7%. The 7.5pp range across ayanamsas is the largest of any phase. The node sign survival rate is primarily a function of the ayanamsa value, not of the technique.
+
+The 180° opposition axis is preserved in every case regardless of ayanamsa. The node axis is orbital mechanics, not a cultural artifact.
 
 ### 4.6 Phase 6: Zodiac Comparison
 
-9,738 synthetic charts confirm symmetry. Neither tropical nor sidereal zodiac produces systematically more dignified placements. The analytical expectation, that a dignity table assigning domicile pairs to opposite signs is invariant under uniform sign shift, is confirmed computationally.
+Random baseline (N=10,000, seed 42, Lahiri): tropical produces more dignified placements in 37.2% of charts, sidereal in 38.0%, and 24.8% are ties. Multi-seed range: trop 37.2-38.0%, sid 38.0-38.9%, tie 23.6-24.8%.
 
-### 4.7 Lunar Mansions
+Neither zodiac produces systematically more dignified placements. The dignity table assigns domicile pairs to opposite signs, making it invariant under uniform sign shift. This is an analytical expectation confirmed computationally.
 
-Nine shared anchor stars between 27 nakshatras and 28 xiu, all with documented single-star determinants. The nine: Sheratan (Beta Arietis, 2.65 mag) anchors Ashwini and Lou (婁). 35 Arietis (4.60 mag) anchors Bharani and Wei (胃). Spica (Alpha Virginis, 0.97 mag) anchors Chitra and Jiao (角). Antares (Alpha Scorpii, 0.91 mag) anchors Jyeshtha and Xin (心). Markab (Alpha Pegasi, 2.48 mag) anchors Purva Bhadrapada and Shi (室). Algenib (Gamma Pegasi, 2.84 mag) anchors Uttara Bhadrapada and Bi (壁). Meissa (Lambda Orionis, 3.66 mag) anchors Mrigashira and Zi (觜). Zubenelgenubi (Alpha Librae, 2.75 mag) anchors Vishakha and Di (氐). Delta Hydrae (4.14 mag) anchors Ashlesha and Liu (柳). Magnitudes are from the Swiss Ephemeris catalog.
+### 4.7 Phase 8: Lunar Mansion Convergence (Two-Way)
 
-Krittika and Mao both point to the Pleiades cluster but to different specific stars: Alcyone (Eta Tauri, 2.87 mag) for the nakshatra, Electra (17 Tauri, 3.70 mag) for the xiu. Under strict star-by-star matching they are not shared. The paper previously treated the cluster as shared; the corrected analysis uses individual star identities throughout.
+Random baseline (N=1,000, seed 42, Lahiri): mean 0.15 converging planets per chart (2.2% of 7). Distribution: 86.8% zero, 11.6% one, 1.6% two. No chart at three or more. Multi-seed range: 0.14-0.17 (2.0-2.4%).
 
-Three are first magnitude or brighter: Spica, Antares, and Markab. Plausible as independent anchor choices by any culture tracking the sky. The remaining six (Sheratan, 35 Arietis, Meissa, Zubenelgenubi, Algenib, Delta Hydrae) are second magnitude or fainter. Under brightness-weighted null selection, the expected faint-star overlap is 1.2 (95% CI: 1.2-1.2). The observed 6 yields p = 0.0003.
+The convergence rate is the lowest of any phase. Nine shared anchor stars out of 55 mansion pairs means 16.4% of mansion pairs share a star, but planets must actually land in those pairs. The baseline confirms the rate is barely above zero.
 
-Under Null 2, the total overlap of 9 is unremarkable (null expectation 8.1, 95% CI: 8.0-8.1, p = 0.38). Two cultures independently selecting bright stars from available celestial candidates should end up with roughly this many matches. The composition of the overlap tells a different story. They should end up with roughly one faint star in common. They ended up with six. Something other than independent brightness-weighted selection is operating here.
+### 4.8 Phase 8b: Lunar Mansion Convergence (Three-Way)
 
-An additional null model weights by both brightness and ecliptic proximity (weight = exp(-mag) * exp(-|lat|/10 deg)). Under this model, the expected faint overlap rises to 1.9 (95% CI: 1.9-1.9) and the observed 6 yields p = 0.0031. The signal weakens but survives.
+Random baseline (N=1,000, seed 42, Lahiri): mean 0.00 converging planets per chart (0.0%). All 1,000 charts have zero three-way convergences.
 
-The ecliptic position confound was tested directly. Shared faint stars have a mean absolute ecliptic latitude of 14.8 degrees, compared to 22.0 degrees for non-shared faint stars. A permutation test (N = 100,000) gives p = 0.19 — the difference does not reach significance. Shared faint stars are directionally closer to the ecliptic, but not systematically enough to explain the overlap as celestial geography alone.
+This is a structural finding, not a bug. The three systems share 6 anchor stars (Sheratan, Meissa, Spica, Zubenelgenubi, Antares, Markab) but define their sector boundaries differently — midpoints between different neighboring stars. A planet in Sheratan's nakshatra sector can be outside Sheratan's xiu sector because the xiu boundaries are different. Shared stars do not produce shared mansion placements when the boundary definitions differ. The three-way convergence rate is zero because the probability of a planet landing in the intersection of three independently-defined sectors around the same star is negligible.
 
-All lunar mansion analysis is reproducible via `empirical lunar-mansion` in the Go binary. The null models, star data, and confound test are in `internal/dignity/lunar_mansion.go`.
+### 4.9 Phase 9: Arabic Parts
 
-![Figure 4: Lunar mansion null models (10,000 bootstrap iterations). Left: uniform null (mean 18.4, p=0). Center: brightness-weighted null (mean 8.5, p=0.75). Right: own-pool weighted null (mean 3.3, p=0.0000). Red vertical line marks observed value of 9 shared stars.](figures/lunar_nulls.png)
+Random baseline (N=1,000, seed 42, Lahiri): mean 2.85 of 13 Parts retain the same sign under ayanamsa shift (21.9%). Multi-seed range: 2.75-2.89 (21.1-22.2%).
 
-### 4.8 Family Synastry
+Part-to-planet aspects are angular distances and therefore preserved under uniform coordinate shift — a geometry check. Eight of the 13 Parts (Fortune, Spirit, Victory, Father, Mother, Children, Marriage, Death) are documented in both Western and Vedic traditions under identical formulas. This formula comparison is a legitimate historical finding: the formulas themselves survived transmission intact. The sign placements they produce are coordinate-dependent. The aspects they form to planets are invariant under coordinate shift, like all angular distances.
 
-Null result at 8 degree orb across all relationship categories. Couples: 35.8 aspects versus random mean 35.8 (sample SD 4.5). Parent-child: 37.9 vs. 35.3 (SD 4.5). Grandparent-grandchild: 37.1 vs. 37.0 (SD 4.7). No category deviates by more than 0.6 aspects from random expectation. Individual pairs scatter evenly across the random distribution.
+### 4.10 Phase 10: Relocation House Shift
 
-The aspect-density metric does not carry relationship information. This does not rule out synastry as a whole. Specific angles, tighter orbs, or planet-point combinations might carry a signal that a simple count cannot. But the broad-brush approach finds nothing.
+Random baseline (N=1,000, seed 42): mean 6.36 of 7 planets shift houses (90.9%). Distribution: 82.7% of charts shift all seven planets. Multi-seed range: 6.35-6.42 (90.7-91.7%).
+
+House placement is overwhelmingly location-dependent. The ascendant shifts with latitude and longitude, dragging all twelve cusps with it. Planet longitudes are invariant. The result is that most planets change houses under relocation.
+
+### 4.11 Phase 13: Primary Directions
+
+Random baseline (N=1,000, seed 42, 3° orb): mean 3.24 directed ASC aspects, 3.38 directed MC aspects per chart. 96.9% of charts have at least one ASC hit, 98.3% at least one MC hit. Multi-seed ranges: ASC 3.24-3.36, MC 3.25-3.38.
+
+Cross-system survival (N=1,000, seed 42, Lahiri, 3° orb): 51.6%. Multi-seed range: 49.8-52.5% (mean 51.0%).
+
+Ayanamsa sensitivity (seed 42): Lahiri 51.6%, Raman 53.3%, Krishnamurti 51.7%, Fagan-Bradley 50.6%. Range: 2.7pp.
+
+Unlike progressed cross-system (Phase 12), primary directions are not a geometry check. The OA-to-longitude conversion is transcendental (binary search to invert the OA formula) and does not preserve the uniform shift. The MC direction is RA-based but the RA-to-longitude conversion depends on obliquity, and RA itself shifts nonlinearly with longitude. The ~51% survival rate is a genuine measurement: the technique partially survives the zodiac shift, but the transcendental geometry prevents complete invariance.
+
+### 4.12 Phase 15: Electional Cross-System
+
+Random baseline (N=1,000, seed 42, Lahiri, 3° orb, 7-day windows): tropical and sidereal rankings agree on the best day 51.7% of the time. Multi-seed range: 47.2-51.7% (mean 48.8%).
+
+Ayanamsa sensitivity (seed 42): Lahiri 51.7%, Raman 42.5%, Krishnamurti 51.4%, Fagan-Bradley 57.1%. Range: 14.6pp — the largest ayanamsa sensitivity of any phase.
+
+This measures the author's electional scoring model, not electional astrology as practiced in either tradition. The model scores dates on Moon house placement, Mercury sign condition, and good/bad aspects. Moon house depends on ASC sign, which shifts with ayanamsa, making the result frame-dependent. Different scoring models would produce different numbers.
+
+### 4.13 Geometry Checks: Phases 7, 11, 12, 14
+
+Four phases confirm that angular distances are preserved under uniform coordinate shift. They are code validation, not findings about transmission.
+
+| Phase | Technique | Result |
+|-------|-----------|--------|
+| 7 | Draconic transit behavior | 0% cross-system survivors (geometrically impossible at 3° orb with ~24° ayanamsa) |
+| 11 | Fixed star conjunctions | 100% survival (mean 33.37 conjunctions per chart at 2° orb) |
+| 12 | Progressed cross-system | 100% survival (mean 96.0 aspects per chart at 3° orb) |
+| 14 | Relocation-dignity interaction | 100% identical dignity scores across random locations |
+
+In each case, both the target and reference positions shift by the same ayanamsa, so angular distances are unchanged. Phase 7 is the limit case: the ayanamsa (~24°) exceeds the orb (3°) by a factor of eight, making overlap impossible. The zero result confirms the orb filter works correctly. Phases 11, 12, and 14 confirm that the code correctly computes star positions, secondary progressions, and the separation of location-dependent from location-independent computation.
+
+### 4.14 Lunar Mansions: Star-Level Comparison
+
+**Two-way (nakshatra-xiu):** 9 shared anchor stars. The nine: Sheratan (Beta Arietis, 2.65), 35 Arietis (4.60), Spica (Alpha Virginis, 0.97), Antares (Alpha Scorpii, 0.91), Markab (Alpha Pegasi, 2.48), Algenib (Gamma Pegasi, 2.84), Meissa (Lambda Orionis, 3.66), Zubenelgenubi (Alpha Librae, 2.75), Delta Hydrae (4.14). Magnitudes from the Swiss Ephemeris catalog.
+
+Krittika and Mao both point to the Pleiades cluster but to different specific stars (Alcyone vs. Electra). Under strict star-by-star matching they are not shared.
+
+Three are first magnitude or brighter (Spica, Antares, Markab). The remaining six are magnitude ≥ 2.5. Under brightness-weighted null selection (Null 2), the expected faint-star overlap is 1.2. Observed 6 yields p = 0.0003.
+
+**Two-way (nakshatra-manazil):** 13 shared stars. The additional four beyond the nakshatra-xiu set: Aldebaran (Alpha Tauri, 0.86), Alcyone (Eta Tauri, 2.87), Castor (Alpha Geminorum, 1.58), Regulus (Alpha Leonis, 1.40). Under brightness-weighted null selection, the expected overlap is 8.2. Observed 13 yields p = 0.0000 — well above expectation. This confirms the historical derivation of Arabic manazil from Indian nakshatras: the overlap is substantially higher than independent selection would produce.
+
+**Three-way (nakshatra-xiu-manazil):** 6 shared stars: Sheratan, Meissa, Spica, Zubenelgenubi, Antares, Markab. Under brightness-weighted null selection, the expected three-way overlap is 5.7. Observed 6 is consistent (p = 0.54). Three-way faint stars: 3 (Sheratan 2.65, Meissa 3.66, Zubenelgenubi 2.75). Null expects 0.24. Observed 3 yields p = 0.0013 — the faint-star excess persists in the three-way comparison.
+
+**Threshold sensitivity.** The faint-star count depends on the magnitude cutoff:
+
+| Threshold | Faint stars (nak-xiu) | Stars that flip |
+|-----------|----------------------|-----------------|
+| ≥ 2.5 | 6 | — |
+| ≥ 2.75 | 5 | Sheratan (2.65), Zubenelgenubi (2.75) |
+| ≥ 3.0 | 3 | + Algenib (2.84) |
+| ≥ 3.5 | 3 | — |
+| ≥ 4.0 | 2 | + Meissa (3.66) |
+
+The p = 0.0003 result is specific to the 2.5 threshold. The threshold was chosen as a round number near the median of the magnitude distribution; no optimization was performed. The sensitivity is reported in full.
+
+Under Null 3 (brightness + ecliptic proximity), the expected faint overlap rises to 1.9 and observed 6 yields p = 0.0031. The signal weakens but survives at the 2.5 threshold.
+
+An ecliptic position confound test (100,000 permutations): shared faint stars have mean |lat| 14.8° vs. 22.0° for non-shared faint stars. The difference does not reach significance (p = 0.19).
+
+**Geographic visibility caveat.** The null models assume all cultures selected from the same combined pool. Nakshatra determinants were selected from stars visible from Indian latitudes (~8-35°N). Xiu determinants were selected from stars visible from Chinese latitudes (~18-54°N). Manazil determinants were selected from stars visible from Middle Eastern latitudes (~15-40°N). These are overlapping but not identical pools. The shared-pool assumption may inflate the expected overlap.
+
+The total nakshatra-xiu overlap of 9 is consistent with independent brightness-weighted selection (p = 0.38). The nakshatra-manazil overlap of 13 is well above expectation (p = 0.0000), confirming historical derivation. The three-way overlap of 6 is consistent with independent selection (p = 0.54). The faint-star composition is suggestive but threshold-dependent and sensitive to the shared-pool assumption.
+
+### 4.15 Family Synastry
+
+Five metrics at 3° orb, all null. Family sample of 26 pairs versus random baseline of 5,000 pairs (seed 42):
+
+| Metric | Family Mean | Random Mean | Random SD | z-score | p (approx) |
+|--------|------------|-------------|-----------|---------|------------|
+| Total aspects | 8.73 | 8.55 | 2.72 | 0.07 | 0.95 |
+| Conjunctions only | 1.00 | 1.07 | 1.11 | -0.07 | 0.95 |
+| Saturn contacts | 1.92 | 1.96 | 1.32 | -0.03 | 0.98 |
+| Node contacts | 2.04 | 1.98 | 1.31 | 0.04 | 0.97 |
+| Sun-Moon contacts | 0.42 | 0.26 | 0.49 | 0.33 | 0.74 |
+
+No metric deviates significantly from random expectation. N=26 pairs is underpowered for small effects. These results do not rule out synastry; they only fail to find a signal in aspect density with this sample size.
 
 ## 5. Discussion
 
-The results span a continuum. No single threshold separates the things that survived from the things that didn't.
+### 5.1 What Was Actually Measured
 
-Three aspect angles are universal and predate the Hellenistic synthesis. Twelve houses hold at 83.0%. The concept is intact, the edges blur. The node axis is geometry. Dignity is partially preserved at 46.7%, a smooth distribution with no relationship to blood or marriage. Timing converges fully for 4.6% of the population. The rest is noise amplified by generous mapping choices. The node sign is coordinate-dependent. Family synastry at the aspect-count level is null.
+The seventeen phases fall into five categories:
 
-The most charitable reading: the Hellenistic synthesis produced a system whose backbone (aspects, houses, geometry) transmitted cleanly for 2,000 years. The ornament, dignity assignments, timing methods, drifted but did not randomize completely.
+**Geometry checks (6 phases):** Phases 2, 7, 9 (aspects), 11, 12, 14. These confirm that angular distances are preserved under uniform coordinate shift. This is a property of subtraction, not of astrology. They are included for completeness and as code validation. They do not constitute findings about cultural transmission.
 
-The least charitable reading: the features that survived are the features encoded in the sky or in mathematics, not in the tradition. Conjunction and opposition are physically real alignments. Twelve equal divisions of a circle are geometrically natural. The 180 degree node opposition is orbital mechanics. These would re-emerge in any culture that tracked the planets carefully enough. The engine measures convergence but cannot distinguish transmission from independent discovery.
+**Cross-tradition measurements (6 phases):** Phases 1, 5, 8, 8b, 9 (signs), 13. These measure agreement between Western and Vedic computational outputs, or between mansion systems. The numbers are: dignity 47.0% (range 46.7-47.0% across seeds, 45.5-49.5% across ayanamsas), node sign 21.8% (range 21.2-22.5% across seeds, 18.7-26.2% across ayanamsas), two-way mansion convergence 2.2% (range 2.0-2.4%), three-way mansion convergence 0.0%, Arabic Part signs 21.9% (range 21.1-22.2%), primary directions 51.0% mean cross-system survival (range 49.8-52.5% across seeds, 50.6-53.3% across ayanamsas).
 
-Which reading you prefer depends on what you think dignity convergence means. At 46.7%, with a smooth distribution, the dignity table is clearly not random. It is also clearly not intact. Some assignments were preserved. Some were modified. The lack of family patterning suggests these modifications are cultural, not heritable. Two systems inherited the same table and each changed different cells. The result is a set of rules that agree about half the time.
+**Author's models (2 phases):** Phases 4, 15. These measure the author's element-to-planet mappings and electional scoring model, not traditional practice. Timing: 2.14% mean full agreement (consistent with 2.31% null). Electional: 48.8% mean best-day agreement (range 47.2-51.7% across seeds, 42.5-57.1% across ayanamsas).
 
-The lunar mansion result lands somewhere between these readings. It also predates the Hellenistic synthesis by a millennium: the best signal in this paper comes from before the thing the paper set out to measure. The total overlap does not distinguish signal from noise (p = 0.38). The faint-star composition does (p = 0.0003). Under the most reasonable null model, cultures independently selecting bright stars from a shared celestial pool would share roughly one faint star. The observed six is unlikely to the point of being informative. The obvious confound is ecliptic position. Faint stars near the ecliptic are inherently more likely to anchor lunar mansions, and the null models were tested for this. Shared faint stars are directionally closer to the ecliptic (mean |lat| 14.8 deg vs 22.0 deg) but the difference does not reach significance (p = 0.19). A null model incorporating both brightness and ecliptic proximity weights raises the expected faint overlap to 1.9, and the observed 6 still yields p = 0.0031. The confound is real but does not nullify the result.
+**Within-tradition measurement (1 phase):** Phase 3 (house convergence, 88.7% with 8 systems at 75% threshold; 83.0% with original 5 systems at 80% threshold). Measures agreement between house systems within a single computational framework. Does not involve ayanamsa or cross-tradition comparison.
 
-The null synastry result is the cleanest negative. Seventeen people, three generations, no detectable relationship signal in aspect density. This could mean planetary aspects do not encode biological relationship. It could mean they do, but not at 8 degree orb and not in raw count. Either way, the metric failed.
+**Location effects (2 phases):** Phase 10 (90.9% house shift) and Phase 14 (0% dignity shift).
+
+### 5.2 Ayanamsa Dependence
+
+Every frame-dependent number in this paper is a function of the chosen ayanamsa. The Lahiri ayanamsa (~24°) is the default because it is the Indian government standard and the Swiss Ephemeris default. But different ayanamsas exist and are used in practice.
+
+| Phase | Lahiri | Raman | Krishnamurti | Fagan-Bradley | Range |
+|-------|--------|-------|-------------|---------------|-------|
+| Dignity | 47.0% | 49.5% | 47.2% | 45.5% | 4.0pp |
+| Node sign | 21.8% | 26.2% | 22.1% | 18.7% | 7.5pp |
+| Primary directions | 51.6% | 53.3% | 51.7% | 50.6% | 2.7pp |
+| Electional | 51.7% | 42.5% | 51.4% | 57.1% | 14.6pp |
+
+These ranges are not error bars — they are the actual values different ayanamsas produce. A paper reporting a single ayanamsa's numbers as "the" convergence rate is reporting a conditional measurement. The condition is the choice of ayanamsa.
+
+### 5.3 The Dignity Result
+
+The dignity finding is the most informative in the paper — but the original interpretation was wrong.
+
+The original analysis reported 47.0% aggregate agreement and concluded that the dignity tables had diverged, ruling out simple preservation of a shared original. Per-state analysis reveals the opposite: domicile/swakshetra, exaltation/uchcha, and fall/neecha assignments are identical across the two traditions (100% agreement for all three states). The dignity tables did not diverge — three of four states survived transmission intact.
+
+The 47.0% aggregate rate is an artifact of two factors, neither of which reflects table divergence:
+
+1. **Mapping asymmetry.** Western astrology has four dignity states; Vedic has three. Western detriment has no Vedic equivalent. The original analysis grouped detriment with peregrine as "non-dignified," but Vedic peregrine is not a detriment equivalent — it is the absence of any special dignity. The 12 Western detriment pairs (14.3% of all planet-sign pairs) are counted as disagreements because Vedic has no matching category. This is a category mismatch, not a disagreement about what dignity a planet has in a given sign.
+
+2. **Ayanamsa-driven sign-boundary crossings.** The Lahiri ayanamsa (~24°) moves planets across sign boundaries in approximately half of all cases. When a planet crosses a sign boundary, its Western and Vedic sign assignments differ, and the dignity comparison becomes a cross-sign comparison. A planet that would be domicile in both systems if it stayed in the same sign becomes domicile in one and peregrine in the other when the ayanamsa places it in different signs. The tables agree on what dignity a planet has in a given sign. The ayanamsa determines whether the planet is in the same sign in both systems.
+
+The static table agreement is 85.7% (72/84 pairs). The observed per-chart rate of 47.0% reflects the combined effect of the mapping asymmetry and the ayanamsa shift. Neither factor indicates that the traditions modified the dignity assignments. The assignments are identical for the three states both traditions share.
+
+This finding has implications beyond the paper. A synthesis system built from the paper's findings should use domicile, exaltation, and fall — the three states that survived transmission intact — and should exclude detriment, which is a Western-only innovation with zero cross-traditional signal. The Koiné astrology system (github.com/aj-nt/koine) implements this three-state model.
+
+### 5.4 The Timing Result
+
+The observed 2.14% mean full three-system agreement is within 0.17pp of the 2.31% null expectation — consistent with random chance under the author's element-to-planet mappings. This does not mean the timing systems are random. It means the author's mappings, combined with the known probability distributions of Vimshottari dasha and annual profections, produce a three-system agreement rate indistinguishable from chance. Different mappings would produce different numbers. The standard Ba Zi framework does not map elements directly to planets, so these results describe the author's mapping choices, not the tradition.
+
+### 5.5 The Lunar Mansion Results
+
+The lunar mansion analysis is the most methodologically novel part of the paper and the most caveated.
+
+**Star-level overlap.** The two-way nakshatra-xiu total overlap of 9 is consistent with independent brightness-weighted selection (p = 0.38). The nakshatra-manazil overlap of 13 is well above expectation (p = 0.0000), confirming the historical derivation of Arabic mansions from Indian nakshatras. The three-way overlap of 6 is consistent with independent selection (p = 0.54).
+
+**Faint-star composition.** At the ≥ 2.5 threshold, 6 of 9 nakshatra-xiu shared stars are faint, where the null expects 1.2 (p = 0.0003). The three-way comparison shows 3 faint stars where the null expects 0.24 (p = 0.0013). The faint-star excess persists across both comparisons. But the result is threshold-dependent: at ≥ 2.75 the count drops to 5, at ≥ 3.0 to 3. The threshold was chosen as a round number, not optimized, but the sensitivity is real.
+
+**Chart-level convergence.** The two-way mansion convergence rate is 2.2% — barely above zero. The three-way convergence rate is 0.0%. Shared anchor stars do not produce shared mansion placements when the three systems define their sector boundaries differently. The star-level overlap is a catalog comparison; the chart-level convergence is a geometric consequence of boundary definitions.
+
+**Caveats.** The shared-pool assumption is significant. If the three cultures selected from different visibility-constrained pools, the expected overlap under independence would be lower. The faint-star result is threshold-dependent. The most conservative reading: the total overlap is unremarkable, the faint-star composition is suggestive but threshold-dependent, and the shared-pool assumption may inflate the null. The least conservative reading: the faint-star excess survives the most obvious confounds (ecliptic proximity, combined null model, three-way comparison) and is unlikely under independent selection. The truth is somewhere between, and the paper provides the data for the reader to decide.
+
+### 5.6 Interpreting Agreement
+
+Not all measurements bear equally on the question of transmission. The phases can be sorted by what they tell us:
+
+**Results that constrain interpretation:**
+
+The dignity result, correctly analyzed, is the paper's strongest finding — but in the opposite direction from the original interpretation. Per-state analysis shows that domicile/swakshetra, exaltation/uchcha, and fall/neecha assignments are identical across the two traditions (100% agreement). Three of four dignity states survived transmission intact. The 47.0% aggregate rate is an artifact of mapping asymmetry (Western detriment has no Vedic equivalent) and ayanamsa-driven sign-boundary crossings. The dignity tables did not diverge. This is the paper's most important correction.
+
+The nakshatra-manazil overlap (13 vs. 8.2 null, p = 0.0000) confirms the historical derivation of Arabic mansions from Indian nakshatras. This is not a discovery — historians already knew this — but it validates the null model framework: when transmission is known to have occurred, the engine detects it.
+
+**Results that are genuinely ambiguous:**
+
+Primary directions (~51% cross-system survival) occupy a middle ground. The transcendental OA-to-longitude conversion prevents the uniform shift from canceling out, so the result is not a geometry check. But the ~51% rate is not clearly above or below any meaningful baseline. Partial transmission is a plausible interpretation; independent convergence on similar mathematical methods (Ptolemy's algorithm is the natural solution to the problem of directing the ascendant) is equally plausible. The measurement cannot distinguish them.
+
+**Results that are primarily functions of the coordinate system:**
+
+Node sign survival (21.8%) varies by 7.5pp across ayanamsas — more than any other phase except electional. The node axis is orbital mechanics. The sign the node occupies is a function of where you draw the sign boundaries, which is what the ayanamsa controls. This result tells us about coordinate systems, not about cultural transmission.
+
+**Results that are consistent with independent selection:**
+
+The nakshatra-xiu total overlap (9 stars, p = 0.38) is what you would expect if two cultures independently picked bright stars near the ecliptic as calendar anchors. The faint-star excess is the only part of the mansion result that resists the null, and it is threshold-dependent. The most parsimonious reading is that the total overlap reflects independent selection and the faint-star composition is suggestive but not conclusive.
+
+**Results that do not constrain anything:**
+
+The timing result is consistent with chance under the author's mappings. The family synastry result is null in an underpowered sample. The geometry checks confirm properties of subtraction. The author's electional model describes the author's model. The house convergence and relocation results describe geometry, not transmission.
+
+The paper's contribution is not seventeen findings about transmission. It is one finding that constrains interpretation (dignity: three of four states survived transmission intact, the 47.0% aggregate rate is a mapping artifact), one that validates the framework against known history (nakshatra-manazil: above chance), one that is genuinely ambiguous (primary directions), one that is suggestive but caveated (lunar mansions: faint-star excess), and a measurement framework that can be applied to any pair of astrological techniques with a shared origin. The framework is the contribution. The numbers are the first application of it.
+
+### 5.7 What This Paper Does Not Show
+
+This paper does not show that astrology "works." It does not show that any astrological technique has predictive validity. It does not show that the Hellenistic synthesis was historically real (though the historical consensus supports it). It does not show that agreement between traditions implies preservation of an original — the agreement could reflect independent discovery or later contact.
+
+What it does show: the degree of structural agreement between Western and Vedic computational outputs, quantified against random baselines, with multi-seed ranges and ayanamsa sensitivity. Per-state dignity analysis reveals that domicile/swakshetra, exaltation/uchcha, and fall/neecha assignments are identical across the two traditions (100% agreement). Three of four dignity states survived transmission intact. The 47.0% aggregate rate is an artifact of mapping asymmetry and ayanamsa-driven sign-boundary crossings. The nakshatra-manazil overlap confirms known historical transmission. The timing systems agree at chance levels under the author's mappings. The node sign is overwhelmingly ayanamsa-dependent. Houses are overwhelmingly location-dependent. The nakshatra-xiu overlap is consistent with independent selection, with a threshold-dependent faint-star excess. The three-way mansion convergence is zero — shared stars don't produce shared placements when boundaries differ. Primary directions show partial cross-system survival that is genuinely ambiguous. Family synastry shows no signal in aspect density (N=26, underpowered).
 
 ## 6. Conclusion
 
-A single Go binary ran six measurements against a question from 150 BCE.
+A single Go binary ran seventeen measurements comparing Western, Vedic, and Arabic astrological frameworks.
 
-The backbone held and the ornament drifted. Beneath both is a lunar layer: nine shared stars whose faint-star concentration (p = 0.0003) suggests a common origin predating everything the Hellenistic fusion produced. The ecliptic position confound was tested and does not nullify the result (p = 0.19 for the latitude difference; p = 0.0031 under a combined brightness-and-ecliptic null model). The faint-star signal survived its most obvious challenge.
+Six of the seventeen are geometry checks — they confirm that subtraction works. Two measure the author's models, not traditional practice. Two measure location effects. One is underpowered. Six remain as measurements of cross-tradition agreement.
 
-What comes next: a nakshatra-xiu computational comparison that measures sector boundary alignment per chart, a tighter element-to-planet mapping for the timing baseline, and a better synastry metric.
+Of those six, the dignity result is the most informative — but in the opposite direction from the original interpretation. Per-state analysis reveals that domicile/swakshetra, exaltation/uchcha, and fall/neecha assignments are identical across the two traditions (100% agreement). Three of four dignity states survived transmission intact. The 47.0% aggregate rate is an artifact of mapping asymmetry (Western detriment has no Vedic equivalent) and ayanamsa-driven sign-boundary crossings. The dignity tables did not diverge. The nakshatra-manazil overlap (13 stars, p = 0.0000) confirms known historical transmission and validates the null model framework. Primary directions show partial cross-system survival (~51%) — a genuinely ambiguous result. Node sign survival (21.8%) is primarily a function of ayanamsa choice. Two-way mansion convergence (2.2%) is consistent with independent selection, with a threshold-dependent faint-star excess (p = 0.0003 at ≥ 2.5, weakening at higher thresholds). Three-way mansion convergence is zero — shared stars don't produce shared placements when the three systems define their sector boundaries differently. The shared-pool assumption in the null models is a significant caveat.
 
-The code is at github.com/aj-nt/empirical. The baselines are reproducible, the measurements falsifiable. The lunar mansion analysis is a single command: `empirical lunar-mansion`.
+The measurement framework — cross-tradition comparison against computed null expectations, with multi-seed ranges and ayanamsa sensitivity — is the paper's primary contribution. The numbers are the first application of it. All phases are reproducible from the current baseline tool. No independent implementation exists.
+
+The code is at github.com/aj-nt/empirical. The baselines are reproducible, the measurements falsifiable. The full system includes 35 API endpoints, a web dashboard, and a comprehensive manual at MANUAL.md.
 
 ## References
 
@@ -222,3 +458,11 @@ The code is at github.com/aj-nt/empirical. The baselines are reproducible, the m
 [10] Lahiri, N.C. (1985). Lahiri's Indian Ephemeris of Planets' Positions. Astro-Research Bureau.
 
 [11] Pingree, D. (1981). Jyotihsastra: Astral and Mathematical Literature. Otto Harrassowitz.
+
+[12] Moretti, F. (2005). Graphs, Maps, Trees: Abstract Models for a Literary History. Verso.
+
+[13] Michel, J.-B. et al. (2011). Quantitative Analysis of Culture Using Millions of Digitized Books. Science, 331(6014), 176-182.
+
+[14] Spencer, M. et al. (2004). Phylogenetics and the Cohesion of the Canterbury Tales Manuscript Tradition. Literary and Linguistic Computing, 19(3), 331-348.
+
+[15] Roos, T. and Heikkilä, T. (2009). Evaluating Methods for Computer-Assisted Stemmatology Using Artificial Benchmark Data Sets. Literary and Linguistic Computing, 24(4), 417-433.
