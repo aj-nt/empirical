@@ -2,6 +2,7 @@ package server
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/fs"
 	"net/http"
@@ -158,6 +159,38 @@ type ServerConfig struct {
 	Firdaria              FirdariaFunc
 }
 
+// ErrNotAvailable is returned by handler functions when an endpoint is not configured.
+var ErrNotAvailable = errors.New("not available")
+
+// handleJSON returns an http.HandlerFunc that decodes a JSON body of type T,
+// calls fn with the decoded request, and writes the JSON result with CORS headers.
+// If fn returns ErrNotAvailable, the handler responds with 501 Not Implemented.
+func handleJSON[T any](fn func(T) ([]byte, error)) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			http.Error(w, "POST only", http.StatusMethodNotAllowed)
+			return
+		}
+		var req T
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			http.Error(w, "invalid JSON: "+err.Error(), http.StatusBadRequest)
+			return
+		}
+		result, err := fn(req)
+		if err != nil {
+			if errors.Is(err, ErrNotAvailable) {
+				http.Error(w, "not available", http.StatusNotImplemented)
+			} else {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+			}
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Write(result)
+	}
+}
+
 // NewMux builds the HTTP mux with all handlers wired to the provided functions.
 // Exported so tests can exercise the real handlers with mock functions.
 func NewMux(cfg ServerConfig) *http.ServeMux {
@@ -167,25 +200,9 @@ func NewMux(cfg ServerConfig) *http.ServeMux {
 		mux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.FS(cfg.StaticFS))))
 	}
 
-	mux.HandleFunc("/api/recover", func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodPost {
-			http.Error(w, "POST only", http.StatusMethodNotAllowed)
-			return
-		}
-		var req ChartRequest
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			http.Error(w, "invalid JSON: "+err.Error(), http.StatusBadRequest)
-			return
-		}
-		result, err := cfg.Compute(req.Name, req.Year, req.Month, req.Day, req.Hour, req.Minute, req.TzOffset, req.Lat, req.Lng)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-		w.Header().Set("Content-Type", "application/json")
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Write(result)
-	})
+	mux.HandleFunc("/api/recover", handleJSON(func(req ChartRequest) ([]byte, error) {
+		return cfg.Compute(req.Name, req.Year, req.Month, req.Day, req.Hour, req.Minute, req.TzOffset, req.Lat, req.Lng)
+	}))
 
 	mux.HandleFunc("/api/aspect-catalog", func(w http.ResponseWriter, r *http.Request) {
 		if cfg.Aspects == nil {
@@ -202,111 +219,43 @@ func NewMux(cfg ServerConfig) *http.ServeMux {
 		w.Write(result)
 	})
 
-	mux.HandleFunc("/api/timing-convergence", func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodPost {
-			http.Error(w, "POST only", http.StatusMethodNotAllowed)
-			return
-		}
-		var req TimingRequest
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			http.Error(w, "invalid JSON: "+err.Error(), http.StatusBadRequest)
-			return
-		}
+	mux.HandleFunc("/api/timing-convergence", handleJSON(func(req TimingRequest) ([]byte, error) {
 		if cfg.Timing == nil {
-			http.Error(w, "not available", http.StatusNotImplemented)
-			return
+			return nil, ErrNotAvailable
 		}
-		result, err := cfg.Timing(req.Name, req.Year, req.Month, req.Day, req.Hour, req.Minute, req.TzOffset, req.Lat, req.Lng, req.TargetDate)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-		w.Header().Set("Content-Type", "application/json")
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Write(result)
-	})
+		return cfg.Timing(req.Name, req.Year, req.Month, req.Day, req.Hour, req.Minute, req.TzOffset, req.Lat, req.Lng, req.TargetDate)
+	}))
 
-	mux.HandleFunc("/api/transits", func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodPost {
-			http.Error(w, "POST only", http.StatusMethodNotAllowed)
-			return
-		}
-		var req TransitRequest
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			http.Error(w, "invalid JSON: "+err.Error(), http.StatusBadRequest)
-			return
-		}
+	mux.HandleFunc("/api/transits", handleJSON(func(req TransitRequest) ([]byte, error) {
 		if cfg.Transits == nil {
-			http.Error(w, "not available", http.StatusNotImplemented)
-			return
+			return nil, ErrNotAvailable
 		}
 		orb := req.Orb
 		if orb <= 0 {
 			orb = 3.0
 		}
-		result, err := cfg.Transits(req.Name, req.Year, req.Month, req.Day, req.Hour, req.Minute, req.TzOffset, req.Lat, req.Lng, req.StartDate, req.EndDate, orb, req.Sidereal)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-		w.Header().Set("Content-Type", "application/json")
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Write(result)
-	})
+		return cfg.Transits(req.Name, req.Year, req.Month, req.Day, req.Hour, req.Minute, req.TzOffset, req.Lat, req.Lng, req.StartDate, req.EndDate, orb, req.Sidereal)
+	}))
 
-	mux.HandleFunc("/api/synastry", func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodPost {
-			http.Error(w, "POST only", http.StatusMethodNotAllowed)
-			return
-		}
-		var req SynastryRequest
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			http.Error(w, "invalid JSON: "+err.Error(), http.StatusBadRequest)
-			return
-		}
+	mux.HandleFunc("/api/synastry", handleJSON(func(req SynastryRequest) ([]byte, error) {
 		if cfg.Synastry == nil {
-			http.Error(w, "not available", http.StatusNotImplemented)
-			return
+			return nil, ErrNotAvailable
 		}
 		orb := req.Orb
 		if orb <= 0 {
 			orb = 5.0
 		}
-		result, err := cfg.Synastry(req.Name1, req.Year1, req.Month1, req.Day1, req.Hour1, req.Min1, req.Tz1, req.Lat1, req.Lng1,
+		return cfg.Synastry(req.Name1, req.Year1, req.Month1, req.Day1, req.Hour1, req.Min1, req.Tz1, req.Lat1, req.Lng1,
 			req.Name2, req.Year2, req.Month2, req.Day2, req.Hour2, req.Min2, req.Tz2, req.Lat2, req.Lng2, orb)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-		w.Header().Set("Content-Type", "application/json")
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Write(result)
-	})
+	}))
 
-	mux.HandleFunc("/api/relocation-compare", func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodPost {
-			http.Error(w, "POST only", http.StatusMethodNotAllowed)
-			return
-		}
-		var req RelocationRequest
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			http.Error(w, "invalid JSON: "+err.Error(), http.StatusBadRequest)
-			return
-		}
+	mux.HandleFunc("/api/relocation-compare", handleJSON(func(req RelocationRequest) ([]byte, error) {
 		if cfg.Relocation == nil {
-			http.Error(w, "not available", http.StatusNotImplemented)
-			return
+			return nil, ErrNotAvailable
 		}
-		result, err := cfg.Relocation(req.Name, req.Year, req.Month, req.Day, req.Hour, req.Minute, req.TzOffset, req.Lat, req.Lng,
+		return cfg.Relocation(req.Name, req.Year, req.Month, req.Day, req.Hour, req.Minute, req.TzOffset, req.Lat, req.Lng,
 			req.LocationA, req.LocationB, req.TargetDate)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-		w.Header().Set("Content-Type", "application/json")
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Write(result)
-	})
+	}))
 
 	mux.HandleFunc("/api/chart", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
@@ -336,415 +285,163 @@ func NewMux(cfg ServerConfig) *http.ServeMux {
 		w.Write([]byte(result))
 	})
 
-	mux.HandleFunc("/api/patterns", func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodPost {
-			http.Error(w, "POST only", http.StatusMethodNotAllowed)
-			return
-		}
-		var req ChartRequest
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			http.Error(w, "invalid JSON: "+err.Error(), http.StatusBadRequest)
-			return
-		}
+	mux.HandleFunc("/api/patterns", handleJSON(func(req ChartRequest) ([]byte, error) {
 		if cfg.Patterns == nil {
-			http.Error(w, "not available", http.StatusNotImplemented)
-			return
+			return nil, ErrNotAvailable
 		}
 		orb := req.Orb
 		if orb <= 0 {
 			orb = 5.0
 		}
-		result, err := cfg.Patterns(req.Name, req.Year, req.Month, req.Day, req.Hour, req.Minute, req.TzOffset, req.Lat, req.Lng, orb)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-		w.Header().Set("Content-Type", "application/json")
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Write(result)
-	})
+		return cfg.Patterns(req.Name, req.Year, req.Month, req.Day, req.Hour, req.Minute, req.TzOffset, req.Lat, req.Lng, orb)
+	}))
 
-	mux.HandleFunc("/api/draconic", func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodPost {
-			http.Error(w, "POST only", http.StatusMethodNotAllowed)
-			return
-		}
-		var req ChartRequest
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			http.Error(w, "invalid JSON: "+err.Error(), http.StatusBadRequest)
-			return
-		}
+	mux.HandleFunc("/api/draconic", handleJSON(func(req ChartRequest) ([]byte, error) {
 		if cfg.Draconic == nil {
-			http.Error(w, "not available", http.StatusNotImplemented)
-			return
+			return nil, ErrNotAvailable
 		}
 		orb := req.Orb
 		if orb <= 0 {
 			orb = 3.0
 		}
-		result, err := cfg.Draconic(req.Name, req.Year, req.Month, req.Day, req.Hour, req.Minute, req.TzOffset, req.Lat, req.Lng, orb)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-		w.Header().Set("Content-Type", "application/json")
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Write(result)
-	})
+		return cfg.Draconic(req.Name, req.Year, req.Month, req.Day, req.Hour, req.Minute, req.TzOffset, req.Lat, req.Lng, orb)
+	}))
 
-	mux.HandleFunc("/api/draconic-synastry", func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodPost {
-			http.Error(w, "POST only", http.StatusMethodNotAllowed)
-			return
-		}
-		var req SynastryRequest
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			http.Error(w, "invalid JSON: "+err.Error(), http.StatusBadRequest)
-			return
-		}
+	mux.HandleFunc("/api/draconic-synastry", handleJSON(func(req SynastryRequest) ([]byte, error) {
 		if cfg.DraconicSynastry == nil {
-			http.Error(w, "not available", http.StatusNotImplemented)
-			return
+			return nil, ErrNotAvailable
 		}
 		orb := req.Orb
 		if orb <= 0 {
 			orb = 3.0
 		}
-		result, err := cfg.DraconicSynastry(req.Name1, req.Year1, req.Month1, req.Day1, req.Hour1, req.Min1, req.Tz1, req.Lat1, req.Lng1,
+		return cfg.DraconicSynastry(req.Name1, req.Year1, req.Month1, req.Day1, req.Hour1, req.Min1, req.Tz1, req.Lat1, req.Lng1,
 			req.Name2, req.Year2, req.Month2, req.Day2, req.Hour2, req.Min2, req.Tz2, req.Lat2, req.Lng2, orb)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-		w.Header().Set("Content-Type", "application/json")
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Write(result)
-	})
+	}))
 
-	mux.HandleFunc("/api/draconic-synastry-full", func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodPost {
-			http.Error(w, "POST only", http.StatusMethodNotAllowed)
-			return
-		}
-		var req SynastryRequest
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			http.Error(w, "invalid JSON: "+err.Error(), http.StatusBadRequest)
-			return
-		}
+	mux.HandleFunc("/api/draconic-synastry-full", handleJSON(func(req SynastryRequest) ([]byte, error) {
 		if cfg.DraconicSynastryFull == nil {
-			http.Error(w, "not available", http.StatusNotImplemented)
-			return
+			return nil, ErrNotAvailable
 		}
 		orb := req.Orb
 		if orb <= 0 {
 			orb = 3.0
 		}
-		result, err := cfg.DraconicSynastryFull(req.Name1, req.Year1, req.Month1, req.Day1, req.Hour1, req.Min1, req.Tz1, req.Lat1, req.Lng1,
+		return cfg.DraconicSynastryFull(req.Name1, req.Year1, req.Month1, req.Day1, req.Hour1, req.Min1, req.Tz1, req.Lat1, req.Lng1,
 			req.Name2, req.Year2, req.Month2, req.Day2, req.Hour2, req.Min2, req.Tz2, req.Lat2, req.Lng2, orb)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-		w.Header().Set("Content-Type", "application/json")
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Write(result)
-	})
+	}))
 
-	mux.HandleFunc("/api/draconic-transits", func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodPost {
-			http.Error(w, "POST only", http.StatusMethodNotAllowed)
-			return
-		}
-		var req TransitRequest
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			http.Error(w, "invalid JSON: "+err.Error(), http.StatusBadRequest)
-			return
-		}
+	mux.HandleFunc("/api/draconic-transits", handleJSON(func(req TransitRequest) ([]byte, error) {
 		if cfg.DraconicTransits == nil {
-			http.Error(w, "not available", http.StatusNotImplemented)
-			return
+			return nil, ErrNotAvailable
 		}
 		orb := req.Orb
 		if orb <= 0 {
 			orb = 3.0
 		}
-		result, err := cfg.DraconicTransits(req.Name, req.Year, req.Month, req.Day, req.Hour, req.Minute, req.TzOffset, req.Lat, req.Lng, req.StartDate, req.EndDate, orb)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-		w.Header().Set("Content-Type", "application/json")
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Write(result)
-	})
+		return cfg.DraconicTransits(req.Name, req.Year, req.Month, req.Day, req.Hour, req.Minute, req.TzOffset, req.Lat, req.Lng, req.StartDate, req.EndDate, orb)
+	}))
 
-	mux.HandleFunc("/api/progressed-draconic", func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodPost {
-			http.Error(w, "POST only", http.StatusMethodNotAllowed)
-			return
-		}
-		var req TimingRequest
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			http.Error(w, "invalid JSON: "+err.Error(), http.StatusBadRequest)
-			return
-		}
+	mux.HandleFunc("/api/progressed-draconic", handleJSON(func(req TimingRequest) ([]byte, error) {
 		if cfg.ProgressedDraconic == nil {
-			http.Error(w, "not available", http.StatusNotImplemented)
-			return
+			return nil, ErrNotAvailable
 		}
-		result, err := cfg.ProgressedDraconic(req.Name, req.Year, req.Month, req.Day, req.Hour, req.Minute, req.TzOffset, req.Lat, req.Lng, req.TargetDate)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-		w.Header().Set("Content-Type", "application/json")
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Write(result)
-	})
+		return cfg.ProgressedDraconic(req.Name, req.Year, req.Month, req.Day, req.Hour, req.Minute, req.TzOffset, req.Lat, req.Lng, req.TargetDate)
+	}))
 
-	mux.HandleFunc("/api/draconic-solar-return", func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodPost {
-			http.Error(w, "POST only", http.StatusMethodNotAllowed)
-			return
-		}
-		var req struct {
-			ChartRequest
-			TargetYear int `json:"target_year"`
-		}
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			http.Error(w, "invalid JSON: "+err.Error(), http.StatusBadRequest)
-			return
-		}
+	mux.HandleFunc("/api/draconic-solar-return", handleJSON(func(req struct {
+		ChartRequest
+		TargetYear int `json:"target_year"`
+	}) ([]byte, error) {
 		if cfg.DraconicSolarReturn == nil {
-			http.Error(w, "not available", http.StatusNotImplemented)
-			return
+			return nil, ErrNotAvailable
 		}
-		result, err := cfg.DraconicSolarReturn(req.Name, req.Year, req.Month, req.Day, req.Hour, req.Minute, req.TzOffset, req.Lat, req.Lng, req.TargetYear)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-		w.Header().Set("Content-Type", "application/json")
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Write(result)
-	})
+		return cfg.DraconicSolarReturn(req.Name, req.Year, req.Month, req.Day, req.Hour, req.Minute, req.TzOffset, req.Lat, req.Lng, req.TargetYear)
+	}))
 
-	mux.HandleFunc("/api/stars", func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodPost {
-			http.Error(w, "POST only", http.StatusMethodNotAllowed)
-			return
-		}
-		var req ChartRequest
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			http.Error(w, "invalid JSON: "+err.Error(), http.StatusBadRequest)
-			return
-		}
+	mux.HandleFunc("/api/stars", handleJSON(func(req ChartRequest) ([]byte, error) {
 		if cfg.Stars == nil {
-			http.Error(w, "not available", http.StatusNotImplemented)
-			return
+			return nil, ErrNotAvailable
 		}
 		orb := req.Orb
 		if orb <= 0 {
 			orb = 2.0
 		}
-		result, err := cfg.Stars(req.Name, req.Year, req.Month, req.Day, req.Hour, req.Minute, req.TzOffset, req.Lat, req.Lng, orb)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-		w.Header().Set("Content-Type", "application/json")
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Write(result)
-	})
+		return cfg.Stars(req.Name, req.Year, req.Month, req.Day, req.Hour, req.Minute, req.TzOffset, req.Lat, req.Lng, orb)
+	}))
 
-	mux.HandleFunc("/api/draconic-transits-cross", func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodPost {
-			http.Error(w, "POST only", http.StatusMethodNotAllowed)
-			return
-		}
-		var req struct {
-			ChartRequest
-			StartDate string  `json:"start_date"`
-			EndDate   string  `json:"end_date"`
-			Orb       float64 `json:"orb"`
-		}
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			http.Error(w, "invalid JSON: "+err.Error(), http.StatusBadRequest)
-			return
-		}
+	mux.HandleFunc("/api/draconic-transits-cross", handleJSON(func(req TransitRequest) ([]byte, error) {
 		if cfg.DraconicTransitsCross == nil {
-			http.Error(w, "not available", http.StatusNotImplemented)
-			return
+			return nil, ErrNotAvailable
 		}
 		orb := req.Orb
 		if orb <= 0 {
 			orb = 3.0
 		}
-		result, err := cfg.DraconicTransitsCross(req.Name, req.Year, req.Month, req.Day, req.Hour, req.Minute, req.TzOffset, req.Lat, req.Lng, req.StartDate, req.EndDate, orb)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-		w.Header().Set("Content-Type", "application/json")
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Write(result)
-	})
+		return cfg.DraconicTransitsCross(req.Name, req.Year, req.Month, req.Day, req.Hour, req.Minute, req.TzOffset, req.Lat, req.Lng, req.StartDate, req.EndDate, orb)
+	}))
 
-	mux.HandleFunc("/api/progressed-cross", func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodPost {
-			http.Error(w, "POST only", http.StatusMethodNotAllowed)
-			return
-		}
-		var req struct {
-			ChartRequest
-			TargetDate string  `json:"target_date"`
-			Orb        float64 `json:"orb"`
-		}
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			http.Error(w, "invalid JSON: "+err.Error(), http.StatusBadRequest)
-			return
-		}
+	mux.HandleFunc("/api/progressed-cross", handleJSON(func(req TimingRequest) ([]byte, error) {
 		if cfg.ProgressedCross == nil {
-			http.Error(w, "not available", http.StatusNotImplemented)
-			return
+			return nil, ErrNotAvailable
 		}
 		orb := req.Orb
 		if orb <= 0 {
 			orb = 3.0
 		}
-		result, err := cfg.ProgressedCross(req.Name, req.Year, req.Month, req.Day, req.Hour, req.Minute, req.TzOffset, req.Lat, req.Lng, req.TargetDate, orb)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-		w.Header().Set("Content-Type", "application/json")
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Write(result)
-	})
+		return cfg.ProgressedCross(req.Name, req.Year, req.Month, req.Day, req.Hour, req.Minute, req.TzOffset, req.Lat, req.Lng, req.TargetDate, orb)
+	}))
 
-	mux.HandleFunc("/api/directions", func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodPost {
-			http.Error(w, "POST only", http.StatusMethodNotAllowed)
-			return
-		}
-		var req struct {
-			ChartRequest
-			Age float64 `json:"age"`
-			Orb float64 `json:"orb"`
-		}
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			http.Error(w, "invalid JSON: "+err.Error(), http.StatusBadRequest)
-			return
-		}
+	mux.HandleFunc("/api/directions", handleJSON(func(req struct {
+		ChartRequest
+		Age float64 `json:"age"`
+		Orb float64 `json:"orb"`
+	}) ([]byte, error) {
 		if cfg.Directions == nil {
-			http.Error(w, "not available", http.StatusNotImplemented)
-			return
+			return nil, ErrNotAvailable
 		}
 		orb := req.Orb
 		if orb <= 0 {
-			orb = 3.0
+			orb = 1.0
 		}
-		result, err := cfg.Directions(req.Name, req.Year, req.Month, req.Day, req.Hour, req.Minute, req.TzOffset, req.Lat, req.Lng, req.Age, orb)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-		w.Header().Set("Content-Type", "application/json")
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Write(result)
-	})
+		return cfg.Directions(req.Name, req.Year, req.Month, req.Day, req.Hour, req.Minute, req.TzOffset, req.Lat, req.Lng, req.Age, orb)
+	}))
 
-	mux.HandleFunc("/api/interpretation", func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodPost {
-			http.Error(w, "POST only", http.StatusMethodNotAllowed)
-			return
-		}
-		var req struct {
-			ChartRequest
-			HouseSystem string  `json:"house_system"`
-			Orb         float64 `json:"orb"`
-		}
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			http.Error(w, "invalid JSON: "+err.Error(), http.StatusBadRequest)
-			return
-		}
+	mux.HandleFunc("/api/interpretation", handleJSON(func(req ChartRequest) ([]byte, error) {
 		if cfg.Interpretation == nil {
-			http.Error(w, "not available", http.StatusNotImplemented)
-			return
+			return nil, ErrNotAvailable
 		}
 		orb := req.Orb
 		if orb <= 0 {
 			orb = 3.0
 		}
-		hs := req.HouseSystem
-		if hs == "" {
-			hs = "P"
-		}
-		result, err := cfg.Interpretation(req.Name, req.Year, req.Month, req.Day, req.Hour, req.Minute, req.TzOffset, req.Lat, req.Lng, hs, orb)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-		w.Header().Set("Content-Type", "application/json")
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Write(result)
-	})
+		return cfg.Interpretation(req.Name, req.Year, req.Month, req.Day, req.Hour, req.Minute, req.TzOffset, req.Lat, req.Lng, req.HouseSystem, orb)
+	}))
 
-	mux.HandleFunc("/api/astrocartography", func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodPost {
-			http.Error(w, "POST only", http.StatusMethodNotAllowed)
-			return
-		}
-		var req struct {
-			ChartRequest
-			LatStep float64 `json:"lat_step"`
-			Frame   string  `json:"frame"`
-		}
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			http.Error(w, "invalid JSON: "+err.Error(), http.StatusBadRequest)
-			return
-		}
+	mux.HandleFunc("/api/astrocartography", handleJSON(func(req struct {
+		ChartRequest
+		LatStep float64 `json:"lat_step"`
+		Frame   string  `json:"frame"`
+	}) ([]byte, error) {
 		if cfg.AstroCartography == nil {
-			http.Error(w, "not available", http.StatusNotImplemented)
-			return
+			return nil, ErrNotAvailable
 		}
 		ls := req.LatStep
 		if ls <= 0 {
 			ls = 2.0
 		}
-		frame := req.Frame
-		if frame == "" {
-			frame = "tropical"
-		}
-		result, err := cfg.AstroCartography(req.Name, req.Year, req.Month, req.Day, req.Hour, req.Minute, req.TzOffset, req.Lat, req.Lng, ls, frame)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-		w.Header().Set("Content-Type", "application/json")
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Write(result)
-	})
+		return cfg.AstroCartography(req.Name, req.Year, req.Month, req.Day, req.Hour, req.Minute, req.TzOffset, req.Lat, req.Lng, ls, req.Frame)
+	}))
 
-	mux.HandleFunc("/api/astrocartography-compare", func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodPost {
-			http.Error(w, "POST only", http.StatusMethodNotAllowed)
-			return
-		}
-		var req struct {
-			ChartRequest
-			LatStep   float64 `json:"lat_step"`
-			TargetLat float64 `json:"target_lat"`
-			TargetLng float64 `json:"target_lng"`
-			Orb       float64 `json:"orb"`
-		}
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			http.Error(w, "invalid JSON: "+err.Error(), http.StatusBadRequest)
-			return
-		}
+	mux.HandleFunc("/api/astrocartography-compare", handleJSON(func(req struct {
+		ChartRequest
+		LatStep   float64 `json:"lat_step"`
+		TargetLat float64 `json:"target_lat"`
+		TargetLng float64 `json:"target_lng"`
+		Orb       float64 `json:"orb"`
+	}) ([]byte, error) {
 		if cfg.AstroCartographyCompare == nil {
-			http.Error(w, "not available", http.StatusNotImplemented)
-			return
+			return nil, ErrNotAvailable
 		}
 		ls := req.LatStep
 		if ls <= 0 {
@@ -754,278 +451,125 @@ func NewMux(cfg ServerConfig) *http.ServeMux {
 		if orb <= 0 {
 			orb = 3.0
 		}
-		result, err := cfg.AstroCartographyCompare(req.Name, req.Year, req.Month, req.Day, req.Hour, req.Minute, req.TzOffset, req.Lat, req.Lng, ls, req.TargetLat, req.TargetLng, orb)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-		w.Header().Set("Content-Type", "application/json")
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Write(result)
-	})
+		return cfg.AstroCartographyCompare(req.Name, req.Year, req.Month, req.Day, req.Hour, req.Minute, req.TzOffset, req.Lat, req.Lng, ls, req.TargetLat, req.TargetLng, orb)
+	}))
 
-	mux.HandleFunc("/api/electional", func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodPost {
-			http.Error(w, "POST only", http.StatusMethodNotAllowed)
-			return
-		}
-		var req struct {
-			ChartRequest
-			StartDate string  `json:"start_date"`
-			EndDate   string  `json:"end_date"`
-			Orb       float64 `json:"orb"`
-		}
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			http.Error(w, "invalid JSON: "+err.Error(), http.StatusBadRequest)
-			return
-		}
+	mux.HandleFunc("/api/electional", handleJSON(func(req struct {
+		ChartRequest
+		StartDate string  `json:"start_date"`
+		EndDate   string  `json:"end_date"`
+		Orb       float64 `json:"orb"`
+	}) ([]byte, error) {
 		if cfg.Electional == nil {
-			http.Error(w, "not available", http.StatusNotImplemented)
-			return
+			return nil, ErrNotAvailable
 		}
 		orb := req.Orb
 		if orb <= 0 {
 			orb = 3.0
 		}
-		result, err := cfg.Electional(req.Name, req.Year, req.Month, req.Day, req.Hour, req.Minute, req.TzOffset, req.Lat, req.Lng, req.StartDate, req.EndDate, orb)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-		w.Header().Set("Content-Type", "application/json")
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Write(result)
-	})
+		return cfg.Electional(req.Name, req.Year, req.Month, req.Day, req.Hour, req.Minute, req.TzOffset, req.Lat, req.Lng, req.StartDate, req.EndDate, orb)
+	}))
 
-	mux.HandleFunc("/api/mansion-convergence", func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodPost {
-			http.Error(w, "POST only", http.StatusMethodNotAllowed)
-			return
-		}
-		var req ChartRequest
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			http.Error(w, "invalid JSON: "+err.Error(), http.StatusBadRequest)
-			return
-		}
+	mux.HandleFunc("/api/mansion-convergence", handleJSON(func(req ChartRequest) ([]byte, error) {
 		if cfg.MansionConvergence == nil {
-			http.Error(w, "not available", http.StatusNotImplemented)
-			return
+			return nil, ErrNotAvailable
 		}
-		result, err := cfg.MansionConvergence(req.Name, req.Year, req.Month, req.Day, req.Hour, req.Minute, req.TzOffset, req.Lat, req.Lng)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-		w.Header().Set("Content-Type", "application/json")
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Write(result)
-	})
+		return cfg.MansionConvergence(req.Name, req.Year, req.Month, req.Day, req.Hour, req.Minute, req.TzOffset, req.Lat, req.Lng)
+	}))
 
-	mux.HandleFunc("/api/arabic-parts", func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodPost {
-			http.Error(w, "POST only", http.StatusMethodNotAllowed)
-			return
-		}
-		var req struct {
-			ChartRequest
-			Orb float64 `json:"orb"`
-		}
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			http.Error(w, "invalid JSON: "+err.Error(), http.StatusBadRequest)
-			return
-		}
+	mux.HandleFunc("/api/arabic-parts", handleJSON(func(req struct {
+		ChartRequest
+		Orb float64 `json:"orb"`
+	}) ([]byte, error) {
 		if cfg.ArabicParts == nil {
-			http.Error(w, "not available", http.StatusNotImplemented)
-			return
+			return nil, ErrNotAvailable
 		}
 		orb := req.Orb
 		if orb <= 0 {
 			orb = 3.0
 		}
-		result, err := cfg.ArabicParts(req.Name, req.Year, req.Month, req.Day, req.Hour, req.Minute, req.TzOffset, req.Lat, req.Lng, orb)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-		w.Header().Set("Content-Type", "application/json")
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Write(result)
-	})
+		return cfg.ArabicParts(req.Name, req.Year, req.Month, req.Day, req.Hour, req.Minute, req.TzOffset, req.Lat, req.Lng, orb)
+	}))
 
-	mux.HandleFunc("/api/solar-return", func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodPost {
-			http.Error(w, "POST only", http.StatusMethodNotAllowed)
-			return
-		}
-		var req struct {
-			ChartRequest
-			TargetYear int `json:"target_year"`
-		}
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			http.Error(w, "invalid JSON: "+err.Error(), http.StatusBadRequest)
-			return
-		}
+	mux.HandleFunc("/api/solar-return", handleJSON(func(req struct {
+		ChartRequest
+		TargetYear int `json:"target_year"`
+	}) ([]byte, error) {
 		if cfg.SolarReturn == nil {
-			http.Error(w, "not available", http.StatusNotImplemented)
-			return
+			return nil, ErrNotAvailable
 		}
 		if req.TargetYear == 0 {
 			req.TargetYear = req.Year + 1
 		}
-		result, err := cfg.SolarReturn(req.Name, req.Year, req.Month, req.Day, req.Hour, req.Minute, req.TzOffset, req.Lat, req.Lng, req.TargetYear)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-		w.Header().Set("Content-Type", "application/json")
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Write(result)
-	})
+		return cfg.SolarReturn(req.Name, req.Year, req.Month, req.Day, req.Hour, req.Minute, req.TzOffset, req.Lat, req.Lng, req.TargetYear)
+	}))
 
-	mux.HandleFunc("/api/composite", func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodPost {
-			http.Error(w, "POST only", http.StatusMethodNotAllowed)
-			return
-		}
-		var req struct {
-			Name1  string  `json:"name1"`
-			Year1  int     `json:"year1"`
-			Month1 int     `json:"month1"`
-			Day1   int     `json:"day1"`
-			Hour1  int     `json:"hour1"`
-			Min1   int     `json:"min1"`
-			Tz1    float64 `json:"tz1"`
-			Lat1   float64 `json:"lat1"`
-			Lng1   float64 `json:"lng1"`
-			Name2  string  `json:"name2"`
-			Year2  int     `json:"year2"`
-			Month2 int     `json:"month2"`
-			Day2   int     `json:"day2"`
-			Hour2  int     `json:"hour2"`
-			Min2   int     `json:"min2"`
-			Tz2    float64 `json:"tz2"`
-			Lat2   float64 `json:"lat2"`
-			Lng2   float64 `json:"lng2"`
-			Orb    float64 `json:"orb"`
-		}
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			http.Error(w, "invalid JSON: "+err.Error(), http.StatusBadRequest)
-			return
-		}
+	mux.HandleFunc("/api/composite", handleJSON(func(req struct {
+		Name1  string  `json:"name1"`
+		Year1  int     `json:"year1"`
+		Month1 int     `json:"month1"`
+		Day1   int     `json:"day1"`
+		Hour1  int     `json:"hour1"`
+		Min1   int     `json:"min1"`
+		Tz1    float64 `json:"tz1"`
+		Lat1   float64 `json:"lat1"`
+		Lng1   float64 `json:"lng1"`
+		Name2  string  `json:"name2"`
+		Year2  int     `json:"year2"`
+		Month2 int     `json:"month2"`
+		Day2   int     `json:"day2"`
+		Hour2  int     `json:"hour2"`
+		Min2   int     `json:"min2"`
+		Tz2    float64 `json:"tz2"`
+		Lat2   float64 `json:"lat2"`
+		Lng2   float64 `json:"lng2"`
+		Orb    float64 `json:"orb"`
+	}) ([]byte, error) {
 		if cfg.Composite == nil {
-			http.Error(w, "not available", http.StatusNotImplemented)
-			return
+			return nil, ErrNotAvailable
 		}
 		orb := req.Orb
 		if orb <= 0 {
 			orb = 3.0
 		}
-		result, err := cfg.Composite(req.Name1, req.Year1, req.Month1, req.Day1, req.Hour1, req.Min1, req.Tz1, req.Lat1, req.Lng1, req.Name2, req.Year2, req.Month2, req.Day2, req.Hour2, req.Min2, req.Tz2, req.Lat2, req.Lng2, orb)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-		w.Header().Set("Content-Type", "application/json")
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Write(result)
-	})
+		return cfg.Composite(req.Name1, req.Year1, req.Month1, req.Day1, req.Hour1, req.Min1, req.Tz1, req.Lat1, req.Lng1, req.Name2, req.Year2, req.Month2, req.Day2, req.Hour2, req.Min2, req.Tz2, req.Lat2, req.Lng2, orb)
+	}))
 
-	mux.HandleFunc("/api/stars-cross", func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodPost {
-			http.Error(w, "POST only", http.StatusMethodNotAllowed)
-			return
-		}
-		var req struct {
-			ChartRequest
-			Orb float64 `json:"orb"`
-		}
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			http.Error(w, "invalid JSON: "+err.Error(), http.StatusBadRequest)
-			return
-		}
+	mux.HandleFunc("/api/stars-cross", handleJSON(func(req struct {
+		ChartRequest
+		Orb float64 `json:"orb"`
+	}) ([]byte, error) {
 		if cfg.StarsCross == nil {
-			http.Error(w, "not available", http.StatusNotImplemented)
-			return
+			return nil, ErrNotAvailable
 		}
 		orb := req.Orb
 		if orb <= 0 {
 			orb = 2.0
 		}
-		result, err := cfg.StarsCross(req.Name, req.Year, req.Month, req.Day, req.Hour, req.Minute, req.TzOffset, req.Lat, req.Lng, orb)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-		w.Header().Set("Content-Type", "application/json")
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Write(result)
-	})
+		return cfg.StarsCross(req.Name, req.Year, req.Month, req.Day, req.Hour, req.Minute, req.TzOffset, req.Lat, req.Lng, orb)
+	}))
 
-	mux.HandleFunc("/api/traditional", func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodPost {
-			http.Error(w, "POST only", http.StatusMethodNotAllowed)
-			return
-		}
+	mux.HandleFunc("/api/traditional", handleJSON(func(req ChartRequest) ([]byte, error) {
 		if cfg.Traditional == nil {
-			http.Error(w, "not available", http.StatusNotImplemented)
-			return
+			return nil, ErrNotAvailable
 		}
-		var req ChartRequest
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			http.Error(w, "invalid JSON: "+err.Error(), http.StatusBadRequest)
-			return
-		}
-		result, err := cfg.Traditional(req.Name, req.Year, req.Month, req.Day, req.Hour, req.Minute, req.TzOffset, req.Lat, req.Lng)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-		w.Header().Set("Content-Type", "application/json")
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Write(result)
-	})
+		return cfg.Traditional(req.Name, req.Year, req.Month, req.Day, req.Hour, req.Minute, req.TzOffset, req.Lat, req.Lng)
+	}))
 
-	mux.HandleFunc("/api/uranian", func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodPost {
-			http.Error(w, "POST only", http.StatusMethodNotAllowed)
-			return
-		}
+	mux.HandleFunc("/api/uranian", handleJSON(func(req ChartRequest) ([]byte, error) {
 		if cfg.Uranian == nil {
-			http.Error(w, "not available", http.StatusNotImplemented)
-			return
+			return nil, ErrNotAvailable
 		}
-		var req ChartRequest
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			http.Error(w, "invalid JSON: "+err.Error(), http.StatusBadRequest)
-			return
-		}
-		result, err := cfg.Uranian(req.Name, req.Year, req.Month, req.Day, req.Hour, req.Minute, req.TzOffset, req.Lat, req.Lng)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-		w.Header().Set("Content-Type", "application/json")
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Write(result)
-	})
+		return cfg.Uranian(req.Name, req.Year, req.Month, req.Day, req.Hour, req.Minute, req.TzOffset, req.Lat, req.Lng)
+	}))
 
-	mux.HandleFunc("/api/harmonic", func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodPost {
-			http.Error(w, "POST only", http.StatusMethodNotAllowed)
-			return
-		}
+	mux.HandleFunc("/api/harmonic", handleJSON(func(req struct {
+		ChartRequest
+		Harmonics []int   `json:"harmonics"`
+		Orb       float64 `json:"orb"`
+	}) ([]byte, error) {
 		if cfg.Harmonic == nil {
-			http.Error(w, "not available", http.StatusNotImplemented)
-			return
-		}
-		var req struct {
-			ChartRequest
-			Harmonics []int   `json:"harmonics"`
-			Orb       float64 `json:"orb"`
-		}
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			http.Error(w, "invalid JSON: "+err.Error(), http.StatusBadRequest)
-			return
+			return nil, ErrNotAvailable
 		}
 		if len(req.Harmonics) == 0 {
 			req.Harmonics = []int{4, 5, 7, 9}
@@ -1034,119 +578,44 @@ func NewMux(cfg ServerConfig) *http.ServeMux {
 		if orb <= 0 {
 			orb = 2.0
 		}
-		result, err := cfg.Harmonic(req.Name, req.Year, req.Month, req.Day, req.Hour, req.Minute, req.TzOffset, req.Lat, req.Lng, req.Harmonics, orb)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-		w.Header().Set("Content-Type", "application/json")
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Write(result)
-	})
+		return cfg.Harmonic(req.Name, req.Year, req.Month, req.Day, req.Hour, req.Minute, req.TzOffset, req.Lat, req.Lng, req.Harmonics, orb)
+	}))
 
-	mux.HandleFunc("/api/divisional", func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodPost {
-			http.Error(w, "POST only", http.StatusMethodNotAllowed)
-			return
-		}
+	mux.HandleFunc("/api/divisional", handleJSON(func(req ChartRequest) ([]byte, error) {
 		if cfg.Divisional == nil {
-			http.Error(w, "not available", http.StatusNotImplemented)
-			return
+			return nil, ErrNotAvailable
 		}
-		var req ChartRequest
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			http.Error(w, "invalid JSON: "+err.Error(), http.StatusBadRequest)
-			return
-		}
-		result, err := cfg.Divisional(req.Name, req.Year, req.Month, req.Day, req.Hour, req.Minute, req.TzOffset, req.Lat, req.Lng)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-		w.Header().Set("Content-Type", "application/json")
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Write(result)
-	})
+		return cfg.Divisional(req.Name, req.Year, req.Month, req.Day, req.Hour, req.Minute, req.TzOffset, req.Lat, req.Lng)
+	}))
 
-	mux.HandleFunc("/api/parans", func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodPost {
-			http.Error(w, "POST only", http.StatusMethodNotAllowed)
-			return
-		}
+	mux.HandleFunc("/api/parans", handleJSON(func(req ChartRequest) ([]byte, error) {
 		if cfg.Parans == nil {
-			http.Error(w, "not available", http.StatusNotImplemented)
-			return
-		}
-		var req ChartRequest
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			http.Error(w, "invalid JSON: "+err.Error(), http.StatusBadRequest)
-			return
+			return nil, ErrNotAvailable
 		}
 		orb := req.Orb
 		if orb <= 0 {
 			orb = 2.0
 		}
-		result, err := cfg.Parans(req.Name, req.Year, req.Month, req.Day, req.Hour, req.Minute, req.TzOffset, req.Lat, req.Lng, orb)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-		w.Header().Set("Content-Type", "application/json")
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Write(result)
-	})
+		return cfg.Parans(req.Name, req.Year, req.Month, req.Day, req.Hour, req.Minute, req.TzOffset, req.Lat, req.Lng, orb)
+	}))
 
-	mux.HandleFunc("/api/declination", func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodPost {
-			http.Error(w, "POST only", http.StatusMethodNotAllowed)
-			return
-		}
+	mux.HandleFunc("/api/declination", handleJSON(func(req ChartRequest) ([]byte, error) {
 		if cfg.Declination == nil {
-			http.Error(w, "not available", http.StatusNotImplemented)
-			return
-		}
-		var req ChartRequest
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			http.Error(w, "invalid JSON: "+err.Error(), http.StatusBadRequest)
-			return
+			return nil, ErrNotAvailable
 		}
 		orb := req.Orb
 		if orb <= 0 {
 			orb = 1.0
 		}
-		result, err := cfg.Declination(req.Name, req.Year, req.Month, req.Day, req.Hour, req.Minute, req.TzOffset, req.Lat, req.Lng, orb)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-		w.Header().Set("Content-Type", "application/json")
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Write(result)
-	})
+		return cfg.Declination(req.Name, req.Year, req.Month, req.Day, req.Hour, req.Minute, req.TzOffset, req.Lat, req.Lng, orb)
+	}))
 
-	mux.HandleFunc("/api/firdaria", func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodPost {
-			http.Error(w, "POST only", http.StatusMethodNotAllowed)
-			return
-		}
+	mux.HandleFunc("/api/firdaria", handleJSON(func(req ChartRequest) ([]byte, error) {
 		if cfg.Firdaria == nil {
-			http.Error(w, "not available", http.StatusNotImplemented)
-			return
+			return nil, ErrNotAvailable
 		}
-		var req ChartRequest
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			http.Error(w, "invalid JSON: "+err.Error(), http.StatusBadRequest)
-			return
-		}
-		result, err := cfg.Firdaria(req.Name, req.Year, req.Month, req.Day, req.Hour, req.Minute, req.TzOffset, req.Lat, req.Lng)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-		w.Header().Set("Content-Type", "application/json")
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Write(result)
-	})
+		return cfg.Firdaria(req.Name, req.Year, req.Month, req.Day, req.Hour, req.Minute, req.TzOffset, req.Lat, req.Lng)
+	}))
 
 	mux.HandleFunc("/api/", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodOptions {
