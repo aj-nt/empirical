@@ -29,6 +29,15 @@ var AllPlanets []PlanetID
 // ElectionalPlanets is BasicPlanets plus Chiron and Lilith (14 bodies).
 var ElectionalPlanets []PlanetID
 
+// AllPlanetNames is the name list for AllPlanets (24 bodies including TNPs).
+var AllPlanetNames []string
+
+// NonTNPPlanetNames is AllPlanets minus TNPs (18 bodies: Sun-Pluto+Node+asteroids+Chiron+Lilith).
+var NonTNPPlanetNames []string
+
+// NonTNPNoNodePlanetNames is NonTNPPlanetNames minus Node (17 bodies).
+var NonTNPNoNodePlanetNames []string
+
 func init() {
 	AllPlanets = make([]PlanetID, 0, 24)
 	AllPlanets = append(AllPlanets, BasicPlanets...)
@@ -55,4 +64,23 @@ func init() {
 		PlanetID{"Chiron", swe.CHIRON},
 		PlanetID{"Lilith", swe.MEAN_APOG},
 	)
+
+	AllPlanetNames = planetNames(AllPlanets)
+	NonTNPPlanetNames = planetNames(AllPlanets[:18])
+
+	NonTNPNoNodePlanetNames = make([]string, 0, 17)
+	for _, p := range AllPlanets[:18] {
+		if p.Name != "Node" {
+			NonTNPNoNodePlanetNames = append(NonTNPNoNodePlanetNames, p.Name)
+		}
+	}
+}
+
+// planetNames extracts the Name field from a PlanetID slice.
+func planetNames(planets []PlanetID) []string {
+	names := make([]string, len(planets))
+	for i, p := range planets {
+		names[i] = p.Name
+	}
+	return names
 }

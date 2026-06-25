@@ -409,7 +409,7 @@ func main() {
 		}
 
 		cacheDir := ""
-		natalPlanets := []string{"Sun", "Moon", "Mercury", "Venus", "Mars", "Jupiter", "Saturn", "Uranus", "Neptune", "Pluto", "Ceres", "Pallas", "Juno", "Vesta", "Lilith", "Chiron", "Cupido", "Hades", "Zeus", "Kronos", "Apollon", "Admetos", "Poseidon", "Vulkanus"}
+		natalPlanets := dignity.AllPlanetNames
 		synastryAspects := []dignity.AspectDef{
 			{0, "conjunction"}, {60, "sextile"}, {90, "square"}, {120, "trine"}, {180, "opposition"},
 		}
@@ -655,7 +655,7 @@ func computeTransits(name string, year, month, day, hour, minute int, tzOff, lat
 		natalLongs[k] = v
 	}
 
-	natalPlanets := []string{"Sun", "Moon", "Mercury", "Venus", "Mars", "Jupiter", "Saturn", "Uranus", "Neptune", "Pluto", "Ceres", "Pallas", "Juno", "Vesta", "Lilith", "Chiron", "Cupido", "Hades", "Zeus", "Kronos", "Apollon", "Admetos", "Poseidon", "Vulkanus"}
+	natalPlanets := dignity.AllPlanetNames
 
 	// Build compute function — sidereal subtracts ayanamsa from tropical positions
 	compute := func(year, month, day int, hour float64, planetID int) (float64, float64, float64, float64) {
@@ -758,7 +758,7 @@ func computeSynastry(name1 string, y1, mo1, d1, h1, mi1 int, tz1, la1, lo1 float
 		chart2[k] = v
 	}
 
-	planets := []string{"Sun", "Moon", "Mercury", "Venus", "Mars", "Jupiter", "Saturn", "Uranus", "Neptune", "Pluto", "Ceres", "Pallas", "Juno", "Vesta", "Lilith", "Chiron", "Cupido", "Hades", "Zeus", "Kronos", "Apollon", "Admetos", "Poseidon", "Vulkanus"}
+	planets := dignity.AllPlanetNames
 	aspects := []dignity.AspectDef{
 		{0, "conjunction"}, {60, "sextile"}, {90, "square"}, {120, "trine"}, {180, "opposition"},
 	}
@@ -924,7 +924,7 @@ func computeDraconic(name string, cd *chartData, orbDeg float64) ([]byte, error)
 	shifts := dignity.ComputeDraconicSignShifts(tropical, cd.nn)
 
 	// Compute bridges (all planets except TNPs)
-	allPlanets := []string{"Sun", "Moon", "Mercury", "Venus", "Mars", "Jupiter", "Saturn", "Uranus", "Neptune", "Pluto", "Ceres", "Pallas", "Juno", "Vesta", "Lilith", "Chiron"}
+	allPlanets := dignity.NonTNPNoNodePlanetNames
 	bridges := dignity.ComputeDraconicBridges(tropical, cd.nn, allPlanets, dignity.DefaultAspects(), orbDeg)
 
 	// Build shift list
@@ -966,7 +966,7 @@ func computeDraconicSynastry(name1 string, cd1 *chartData, name2 string, cd2 *ch
 		tropical2[k] = v
 	}
 
-	allPlanets := []string{"Sun", "Moon", "Mercury", "Venus", "Mars", "Jupiter", "Saturn", "Uranus", "Neptune", "Pluto", "Ceres", "Pallas", "Juno", "Vesta", "Lilith", "Chiron"}
+	allPlanets := dignity.NonTNPNoNodePlanetNames
 	hits := dignity.ComputeDraconicSynastry(tropical1, cd1.nn, tropical2, cd2.nn, allPlanets, dignity.DefaultAspects(), orbDeg)
 
 	response := struct {
@@ -993,7 +993,7 @@ func computeDraconicSynastryFull(name1 string, cd1 *chartData, name2 string, cd2
 		tropical2[k] = v
 	}
 
-	allPlanets := []string{"Sun", "Moon", "Mercury", "Venus", "Mars", "Jupiter", "Saturn", "Uranus", "Neptune", "Pluto", "Ceres", "Pallas", "Juno", "Vesta", "Lilith", "Chiron"}
+	allPlanets := dignity.NonTNPNoNodePlanetNames
 	result := dignity.ComputeDraconicSynastryFull(tropical1, cd1.nn, tropical2, cd2.nn, allPlanets, dignity.DefaultAspects(), orbDeg)
 
 	response := struct {
@@ -1034,7 +1034,7 @@ func computeDraconicTransits(name string, cd *chartData, startDate, endDate stri
 	}
 
 	// Scan transits against draconic positions
-	transitPlanets := []string{"Sun", "Moon", "Mercury", "Venus", "Mars", "Jupiter", "Saturn", "Uranus", "Neptune", "Pluto", "Ceres", "Pallas", "Juno", "Vesta", "Lilith", "Chiron", "Cupido", "Hades", "Zeus", "Kronos", "Apollon", "Admetos", "Poseidon", "Vulkanus"}
+	transitPlanets := dignity.AllPlanetNames
 	hits, err := dignity.ScanTransits(drac.Planets, transitPlanets, startDate, endDate, dignity.DefaultAspects(), orbDeg, compute)
 	if err != nil {
 		return nil, err
@@ -2097,7 +2097,7 @@ func computeTropicalSolarReturn(name string, cd *chartData, targetYear int, cach
 	}
 
 	// Pattern detection on SR chart (non-TNP bodies only)
-	nonTNP := []string{"Sun", "Moon", "Mercury", "Venus", "Mars", "Jupiter", "Saturn", "Uranus", "Neptune", "Pluto", "Node", "Ceres", "Pallas", "Juno", "Vesta", "Lilith", "Chiron"}
+	nonTNP := dignity.NonTNPPlanetNames
 	srNonTNP := make(map[string]float64)
 	for _, name := range nonTNP {
 		if lon, ok := srPositions[name]; ok {
