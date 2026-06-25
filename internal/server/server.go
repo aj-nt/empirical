@@ -8,6 +8,14 @@ import (
 	"net/http"
 )
 
+// Default orb values for endpoints that accept an optional orb parameter.
+const (
+	OrbTight    = 1.0 // directions, declination
+	OrbNarrow   = 2.0 // stars, harmonic, parans
+	OrbStandard = 3.0 // transits, draconic, interpretation, electional, composite, arabic-parts, progressed-cross
+	OrbWide     = 5.0 // synastry, patterns
+)
+
 // ComputeFunc computes a full multi-phase recovery report for birth data
 // and returns the result as JSON bytes.
 type ComputeFunc func(name string, year, month, day, hour, minute int, tzOffset, lat, lng float64) ([]byte, error)
@@ -232,7 +240,7 @@ func NewMux(cfg ServerConfig) *http.ServeMux {
 		}
 		orb := req.Orb
 		if orb <= 0 {
-			orb = 3.0
+			orb = OrbStandard
 		}
 		return cfg.Transits(req.Name, req.Year, req.Month, req.Day, req.Hour, req.Minute, req.TzOffset, req.Lat, req.Lng, req.StartDate, req.EndDate, orb, req.Sidereal)
 	}))
@@ -243,7 +251,7 @@ func NewMux(cfg ServerConfig) *http.ServeMux {
 		}
 		orb := req.Orb
 		if orb <= 0 {
-			orb = 5.0
+			orb = OrbWide
 		}
 		return cfg.Synastry(req.Name1, req.Year1, req.Month1, req.Day1, req.Hour1, req.Min1, req.Tz1, req.Lat1, req.Lng1,
 			req.Name2, req.Year2, req.Month2, req.Day2, req.Hour2, req.Min2, req.Tz2, req.Lat2, req.Lng2, orb)
@@ -291,7 +299,7 @@ func NewMux(cfg ServerConfig) *http.ServeMux {
 		}
 		orb := req.Orb
 		if orb <= 0 {
-			orb = 5.0
+			orb = OrbWide
 		}
 		return cfg.Patterns(req.Name, req.Year, req.Month, req.Day, req.Hour, req.Minute, req.TzOffset, req.Lat, req.Lng, orb)
 	}))
@@ -302,7 +310,7 @@ func NewMux(cfg ServerConfig) *http.ServeMux {
 		}
 		orb := req.Orb
 		if orb <= 0 {
-			orb = 3.0
+			orb = OrbStandard
 		}
 		return cfg.Draconic(req.Name, req.Year, req.Month, req.Day, req.Hour, req.Minute, req.TzOffset, req.Lat, req.Lng, orb)
 	}))
@@ -313,7 +321,7 @@ func NewMux(cfg ServerConfig) *http.ServeMux {
 		}
 		orb := req.Orb
 		if orb <= 0 {
-			orb = 3.0
+			orb = OrbStandard
 		}
 		return cfg.DraconicSynastry(req.Name1, req.Year1, req.Month1, req.Day1, req.Hour1, req.Min1, req.Tz1, req.Lat1, req.Lng1,
 			req.Name2, req.Year2, req.Month2, req.Day2, req.Hour2, req.Min2, req.Tz2, req.Lat2, req.Lng2, orb)
@@ -325,7 +333,7 @@ func NewMux(cfg ServerConfig) *http.ServeMux {
 		}
 		orb := req.Orb
 		if orb <= 0 {
-			orb = 3.0
+			orb = OrbStandard
 		}
 		return cfg.DraconicSynastryFull(req.Name1, req.Year1, req.Month1, req.Day1, req.Hour1, req.Min1, req.Tz1, req.Lat1, req.Lng1,
 			req.Name2, req.Year2, req.Month2, req.Day2, req.Hour2, req.Min2, req.Tz2, req.Lat2, req.Lng2, orb)
@@ -337,7 +345,7 @@ func NewMux(cfg ServerConfig) *http.ServeMux {
 		}
 		orb := req.Orb
 		if orb <= 0 {
-			orb = 3.0
+			orb = OrbStandard
 		}
 		return cfg.DraconicTransits(req.Name, req.Year, req.Month, req.Day, req.Hour, req.Minute, req.TzOffset, req.Lat, req.Lng, req.StartDate, req.EndDate, orb)
 	}))
@@ -365,7 +373,7 @@ func NewMux(cfg ServerConfig) *http.ServeMux {
 		}
 		orb := req.Orb
 		if orb <= 0 {
-			orb = 2.0
+			orb = OrbNarrow
 		}
 		return cfg.Stars(req.Name, req.Year, req.Month, req.Day, req.Hour, req.Minute, req.TzOffset, req.Lat, req.Lng, orb)
 	}))
@@ -376,7 +384,7 @@ func NewMux(cfg ServerConfig) *http.ServeMux {
 		}
 		orb := req.Orb
 		if orb <= 0 {
-			orb = 3.0
+			orb = OrbStandard
 		}
 		return cfg.DraconicTransitsCross(req.Name, req.Year, req.Month, req.Day, req.Hour, req.Minute, req.TzOffset, req.Lat, req.Lng, req.StartDate, req.EndDate, orb)
 	}))
@@ -387,7 +395,7 @@ func NewMux(cfg ServerConfig) *http.ServeMux {
 		}
 		orb := req.Orb
 		if orb <= 0 {
-			orb = 3.0
+			orb = OrbStandard
 		}
 		return cfg.ProgressedCross(req.Name, req.Year, req.Month, req.Day, req.Hour, req.Minute, req.TzOffset, req.Lat, req.Lng, req.TargetDate, orb)
 	}))
@@ -402,7 +410,7 @@ func NewMux(cfg ServerConfig) *http.ServeMux {
 		}
 		orb := req.Orb
 		if orb <= 0 {
-			orb = 1.0
+			orb = OrbTight
 		}
 		return cfg.Directions(req.Name, req.Year, req.Month, req.Day, req.Hour, req.Minute, req.TzOffset, req.Lat, req.Lng, req.Age, orb)
 	}))
@@ -413,7 +421,7 @@ func NewMux(cfg ServerConfig) *http.ServeMux {
 		}
 		orb := req.Orb
 		if orb <= 0 {
-			orb = 3.0
+			orb = OrbStandard
 		}
 		return cfg.Interpretation(req.Name, req.Year, req.Month, req.Day, req.Hour, req.Minute, req.TzOffset, req.Lat, req.Lng, req.HouseSystem, orb)
 	}))
@@ -449,7 +457,7 @@ func NewMux(cfg ServerConfig) *http.ServeMux {
 		}
 		orb := req.Orb
 		if orb <= 0 {
-			orb = 3.0
+			orb = OrbStandard
 		}
 		return cfg.AstroCartographyCompare(req.Name, req.Year, req.Month, req.Day, req.Hour, req.Minute, req.TzOffset, req.Lat, req.Lng, ls, req.TargetLat, req.TargetLng, orb)
 	}))
@@ -465,7 +473,7 @@ func NewMux(cfg ServerConfig) *http.ServeMux {
 		}
 		orb := req.Orb
 		if orb <= 0 {
-			orb = 3.0
+			orb = OrbStandard
 		}
 		return cfg.Electional(req.Name, req.Year, req.Month, req.Day, req.Hour, req.Minute, req.TzOffset, req.Lat, req.Lng, req.StartDate, req.EndDate, orb)
 	}))
@@ -486,7 +494,7 @@ func NewMux(cfg ServerConfig) *http.ServeMux {
 		}
 		orb := req.Orb
 		if orb <= 0 {
-			orb = 3.0
+			orb = OrbStandard
 		}
 		return cfg.ArabicParts(req.Name, req.Year, req.Month, req.Day, req.Hour, req.Minute, req.TzOffset, req.Lat, req.Lng, orb)
 	}))
@@ -530,7 +538,7 @@ func NewMux(cfg ServerConfig) *http.ServeMux {
 		}
 		orb := req.Orb
 		if orb <= 0 {
-			orb = 3.0
+			orb = OrbStandard
 		}
 		return cfg.Composite(req.Name1, req.Year1, req.Month1, req.Day1, req.Hour1, req.Min1, req.Tz1, req.Lat1, req.Lng1, req.Name2, req.Year2, req.Month2, req.Day2, req.Hour2, req.Min2, req.Tz2, req.Lat2, req.Lng2, orb)
 	}))
@@ -544,7 +552,7 @@ func NewMux(cfg ServerConfig) *http.ServeMux {
 		}
 		orb := req.Orb
 		if orb <= 0 {
-			orb = 2.0
+			orb = OrbNarrow
 		}
 		return cfg.StarsCross(req.Name, req.Year, req.Month, req.Day, req.Hour, req.Minute, req.TzOffset, req.Lat, req.Lng, orb)
 	}))
@@ -576,7 +584,7 @@ func NewMux(cfg ServerConfig) *http.ServeMux {
 		}
 		orb := req.Orb
 		if orb <= 0 {
-			orb = 2.0
+			orb = OrbNarrow
 		}
 		return cfg.Harmonic(req.Name, req.Year, req.Month, req.Day, req.Hour, req.Minute, req.TzOffset, req.Lat, req.Lng, req.Harmonics, orb)
 	}))
@@ -594,7 +602,7 @@ func NewMux(cfg ServerConfig) *http.ServeMux {
 		}
 		orb := req.Orb
 		if orb <= 0 {
-			orb = 2.0
+			orb = OrbNarrow
 		}
 		return cfg.Parans(req.Name, req.Year, req.Month, req.Day, req.Hour, req.Minute, req.TzOffset, req.Lat, req.Lng, orb)
 	}))
@@ -605,7 +613,7 @@ func NewMux(cfg ServerConfig) *http.ServeMux {
 		}
 		orb := req.Orb
 		if orb <= 0 {
-			orb = 1.0
+			orb = OrbTight
 		}
 		return cfg.Declination(req.Name, req.Year, req.Month, req.Day, req.Hour, req.Minute, req.TzOffset, req.Lat, req.Lng, orb)
 	}))
