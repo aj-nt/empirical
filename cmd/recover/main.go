@@ -238,7 +238,43 @@ func main() {
 			os.Exit(1)
 		}
 
-		if err := server.Run(port, staticFS, compute, aspects, timing, transits, synastry, relocation, chart, patterns, draconic, draconicSynastry, draconicSynastryFull, draconicTransits, progressedDraconic, draconicSolarReturn, stars, draconicTransitsCross, progressedCross, directions, interpretation, astroCartography, astroCartographyCompare, electional, mansionConvergence, arabicParts, solarReturn, composite, starsCross, traditional, uranian, harmonic, divisional, parans, declination, firdaria); err != nil {
+		if err := server.Run(port, server.ServerConfig{
+			StaticFS:              staticFS,
+			Compute:               compute,
+			Aspects:               aspects,
+			Timing:                timing,
+			Transits:              transits,
+			Synastry:              synastry,
+			Relocation:            relocation,
+			Chart:                 chart,
+			Patterns:              patterns,
+			Draconic:              draconic,
+			DraconicSynastry:      draconicSynastry,
+			DraconicSynastryFull:  draconicSynastryFull,
+			DraconicTransits:      draconicTransits,
+			ProgressedDraconic:    progressedDraconic,
+			DraconicSolarReturn:   draconicSolarReturn,
+			Stars:                 stars,
+			DraconicTransitsCross: draconicTransitsCross,
+			ProgressedCross:       progressedCross,
+			Directions:            directions,
+			Interpretation:        interpretation,
+			AstroCartography:      astroCartography,
+			AstroCartographyCompare: astroCartographyCompare,
+			Electional:            electional,
+			MansionConvergence:    mansionConvergence,
+			ArabicParts:           arabicParts,
+			SolarReturn:           solarReturn,
+			Composite:             composite,
+			StarsCross:            starsCross,
+			Traditional:           traditional,
+			Uranian:               uranian,
+			Harmonic:              harmonic,
+			Divisional:            divisional,
+			Parans:                parans,
+			Declination:           declination,
+			Firdaria:              firdaria,
+		}); err != nil {
 			fmt.Fprintf(os.Stderr, "Server error: %v\n", err)
 			os.Exit(1)
 		}
