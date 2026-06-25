@@ -29,6 +29,275 @@ type chartData struct {
 	jd      float64
 }
 
+// ── Response types ──────────────────────────────────────────────────────────
+
+// TransitHitJSON is a single transit hit in JSON output.
+type TransitHitJSON struct {
+	TransitPlanet string  `json:"transit_planet"`
+	NatalPlanet   string  `json:"natal_planet"`
+	Aspect        string  `json:"aspect"`
+	Orb           float64 `json:"orb"`
+	StartDate     string  `json:"start_date"`
+	EndDate       string  `json:"end_date"`
+}
+
+// TransitsResponse is the JSON response for /api/transits.
+type TransitsResponse struct {
+	Name       string          `json:"name"`
+	Sidereal   bool            `json:"sidereal"`
+	Transits   []TransitHitJSON `json:"transits"`
+	SkyWeather []TransitHitJSON `json:"sky_weather"`
+}
+
+// SynastryResponse is the JSON response for /api/synastry.
+type SynastryResponse struct {
+	Name1   string                `json:"name1"`
+	Name2   string                `json:"name2"`
+	Aspects []dignity.SynastryHit `json:"aspects"`
+}
+
+// RelocationResponse is the JSON response for /api/relocation-compare.
+type RelocationResponse struct {
+	Name               string              `json:"name"`
+	LocationA          server.LatLng       `json:"location_a"`
+	LocationB          server.LatLng       `json:"location_b"`
+	TargetDate         string              `json:"target_date"`
+	HouseConvergenceA  RelocConvergence    `json:"house_convergence_a"`
+	HouseConvergenceB  RelocConvergence    `json:"house_convergence_b"`
+	ASCA               []RelocASCEntry     `json:"asc_a"`
+	ASCB               []RelocASCEntry     `json:"asc_b"`
+	TimingConvergenceA RelocTimingSummary  `json:"timing_convergence_a"`
+	TimingConvergenceB RelocTimingSummary  `json:"timing_convergence_b"`
+	Shifts             []RelocShiftEntry   `json:"shifts"`
+}
+
+// RelocConvergence holds house convergence stats for one location.
+type RelocConvergence struct {
+	UnambiguousCount int     `json:"unambiguous_count"`
+	ConvergenceRate  float64 `json:"convergence_rate"`
+}
+
+// RelocASCEntry holds ASC data for one house system.
+type RelocASCEntry struct {
+	System string  `json:"system"`
+	Sign   string  `json:"sign"`
+	Degree float64 `json:"degree"`
+}
+
+// RelocTimingSummary holds timing convergence summary.
+type RelocTimingSummary struct {
+	HasConvergence bool     `json:"has_convergence"`
+	Planets        []string `json:"planets"`
+}
+
+// RelocShiftEntry holds a house shift comparison between two locations.
+type RelocShiftEntry struct {
+	Planet        string `json:"planet"`
+	TropicalSign  string `json:"tropical_sign"`
+	HouseA        int    `json:"house_a"`
+	HouseB        int    `json:"house_b"`
+	AgreementA    int    `json:"agreement_a"`
+	AgreementB    int    `json:"agreement_b"`
+	StableA       bool   `json:"stable_a"`
+	StableB       bool   `json:"stable_b"`
+	ShiftReliable bool   `json:"shift_reliable"`
+}
+
+// DraconicShiftJSON is a single draconic sign shift entry.
+type DraconicShiftJSON struct {
+	Planet   string `json:"planet"`
+	TropSign string `json:"tropical_sign"`
+	DracSign string `json:"draconic_sign"`
+}
+
+// DraconicResponse is the JSON response for /api/draconic.
+type DraconicResponse struct {
+	Name    string                `json:"name"`
+	Offset  float64               `json:"offset"`
+	Planets map[string]float64    `json:"planets"`
+	Shifts  []DraconicShiftJSON   `json:"sign_shifts"`
+	Bridges []dignity.SynastryHit `json:"bridges"`
+}
+
+// DraconicSynastryResponse is the JSON response for /api/draconic-synastry.
+type DraconicSynastryResponse struct {
+	Name1 string                `json:"name1"`
+	Name2 string                `json:"name2"`
+	Hits  []dignity.SynastryHit `json:"hits"`
+}
+
+// DraconicSynastryFullResponse is the JSON response for /api/draconic-synastry-full.
+type DraconicSynastryFullResponse struct {
+	Name1        string                `json:"name1"`
+	Name2        string                `json:"name2"`
+	DracToDrac   []dignity.SynastryHit `json:"drac_to_drac"`
+	TropAToDracB []dignity.SynastryHit `json:"trop_a_to_drac_b"`
+	TropBToDracA []dignity.SynastryHit `json:"trop_b_to_drac_a"`
+}
+
+// DraconicTransitsResponse is the JSON response for /api/draconic-transits.
+type DraconicTransitsResponse struct {
+	Name     string          `json:"name"`
+	Offset   float64         `json:"offset"`
+	Transits []TransitHitJSON `json:"transits"`
+}
+
+// ProgressedDraconicResponse is the JSON response for /api/progressed-draconic.
+type ProgressedDraconicResponse struct {
+	Name          string             `json:"name"`
+	Date          string             `json:"date"`
+	NatalNN       float64            `json:"natal_nn"`
+	CurrentNN     float64            `json:"current_nn"`
+	NNShift       float64            `json:"nn_shift"`
+	NatalDraconic map[string]float64 `json:"natal_draconic"`
+	ProgDraconic  map[string]float64 `json:"progressed_draconic"`
+	SignShifts    []DraconicShiftJSON `json:"sign_shifts"`
+}
+
+// DraconicSolarReturnResponse is the JSON response for /api/draconic-solar-return.
+type DraconicSolarReturnResponse struct {
+	Name              string             `json:"name"`
+	TargetYear        int                `json:"target_year"`
+	JD                float64            `json:"jd"`
+	DateTime          string             `json:"datetime"`
+	Tropical          map[string]float64 `json:"tropical"`
+	Draconic          map[string]float64 `json:"draconic"`
+	DraconicByNatalNN map[string]float64 `json:"draconic_by_natal_nn"`
+}
+
+// CrossHitJSON is a single cross-system comparison hit.
+type CrossHitJSON struct {
+	TransitPlanet string  `json:"transit_planet"`
+	NatalPlanet   string  `json:"natal_planet"`
+	Aspect        string  `json:"aspect"`
+	Orb           float64 `json:"orb"`
+}
+
+// DraconicTransitsCrossResponse is the JSON response for /api/draconic-transits-cross.
+type DraconicTransitsCrossResponse struct {
+	Name         string        `json:"name"`
+	Offset       float64       `json:"offset"`
+	Ayanamsa     float64       `json:"ayanamsa"`
+	Orb          float64       `json:"orb"`
+	MidDate      string        `json:"mid_date"`
+	Survivors    []CrossHitJSON `json:"survivors"`
+	TropicalOnly []CrossHitJSON `json:"tropical_only"`
+	SiderealOnly []CrossHitJSON `json:"sidereal_only"`
+}
+
+// ProgressedCrossHitJSON is a single progressed cross-system hit.
+type ProgressedCrossHitJSON struct {
+	ProgressedPlanet string  `json:"progressed_planet"`
+	NatalPlanet      string  `json:"natal_planet"`
+	Aspect           string  `json:"aspect"`
+	Orb              float64 `json:"orb"`
+}
+
+// ProgressedCrossResponse is the JSON response for /api/progressed-cross.
+type ProgressedCrossResponse struct {
+	Name         string                   `json:"name"`
+	TargetDate   string                   `json:"target_date"`
+	Age          float64                  `json:"age_years"`
+	Ayanamsa     float64                  `json:"ayanamsa"`
+	Orb          float64                  `json:"orb"`
+	Survivors    []ProgressedCrossHitJSON `json:"survivors"`
+	TropicalOnly []ProgressedCrossHitJSON `json:"tropical_only"`
+	SiderealOnly []ProgressedCrossHitJSON `json:"sidereal_only"`
+}
+
+// DirectionHitJSON is a single primary direction hit.
+type DirectionHitJSON struct {
+	DirectedPoint string  `json:"directed_point"`
+	NatalPlanet   string  `json:"natal_planet"`
+	Aspect        string  `json:"aspect"`
+	Orb           float64 `json:"orb"`
+}
+
+// DirectionsResponse is the JSON response for /api/directions.
+type DirectionsResponse struct {
+	Name        string             `json:"name"`
+	Age         float64            `json:"age_years"`
+	DirectedASC float64            `json:"directed_asc"`
+	DirectedMC  float64            `json:"directed_mc"`
+	Orb         float64            `json:"orb"`
+	ASCAspects  []DirectionHitJSON `json:"asc_aspects"`
+	MCAspects   []DirectionHitJSON `json:"mc_aspects"`
+}
+
+// AstroCartographyLineJSON is a single planetary line in astrocartography output.
+type AstroCartographyLineJSON struct {
+	Planet string            `json:"planet"`
+	Angle  string            `json:"angle"`
+	Points []dignity.GeoPoint `json:"points"`
+}
+
+// AstroCartographyResponse is the JSON response for /api/astrocartography.
+type AstroCartographyResponse struct {
+	Name  string                     `json:"name"`
+	JD    float64                    `json:"jd"`
+	GMST  float64                    `json:"gmst"`
+	Frame string                     `json:"frame"`
+	Lines []AstroCartographyLineJSON `json:"lines"`
+}
+
+// AstroCartographyCompareResponse is the JSON response for /api/astrocartography-compare.
+type AstroCartographyCompareResponse struct {
+	Name      string                `json:"name"`
+	TargetLat float64               `json:"target_lat"`
+	TargetLng float64               `json:"target_lng"`
+	Orb       float64               `json:"orb"`
+	Hits      []dignity.ThreeWayHit `json:"hits"`
+}
+
+// ElectionalDayScore is a single day's score in electional output.
+type ElectionalDayScore struct {
+	Date      string   `json:"date"`
+	Day       string   `json:"day"`
+	Score     int      `json:"score"`
+	MoonHouse int      `json:"moon_house"`
+	MoonSign  string   `json:"moon_sign"`
+	MercSign  string   `json:"merc_sign"`
+	Good      []string `json:"good"`
+	Bad       []string `json:"bad"`
+}
+
+// ElectionalResponse is the JSON response for /api/electional.
+type ElectionalResponse struct {
+	Name    string               `json:"name"`
+	Start   string               `json:"start_date"`
+	End     string               `json:"end_date"`
+	Orb     float64              `json:"orb"`
+	Results []ElectionalDayScore `json:"results"`
+}
+
+// StarConjJSON is a single star conjunction in JSON output.
+type StarConjJSON struct {
+	Star      string  `json:"star"`
+	StarLon   float64 `json:"star_lon"`
+	Planet    string  `json:"planet"`
+	PlanetLon float64 `json:"planet_lon"`
+	Orb       float64 `json:"orb"`
+	Meaning   string  `json:"meaning"`
+}
+
+// StarsResponse is the JSON response for /api/stars.
+type StarsResponse struct {
+	Name         string        `json:"name"`
+	Orb          float64       `json:"orb"`
+	Conjunctions []StarConjJSON `json:"conjunctions"`
+}
+
+// SolarReturnResponse is the JSON response for /api/solar-return.
+type SolarReturnResponse struct {
+	Name       string                `json:"name"`
+	TargetYear int                   `json:"target_year"`
+	JD         float64               `json:"jd"`
+	DateTime   string                `json:"datetime"`
+	Positions  map[string]float64    `json:"positions"`
+	Aspects    []dignity.SynastryHit `json:"aspects"`
+	Patterns   []dignity.Pattern     `json:"patterns"`
+}
+
 // computePositions calculates planet longitudes, ayanamsa, ASC, and NN.
 func computePositions(year, month, day, hour, minute int, tzOff, lat, lng float64, cacheDir string) *chartData {
 	if cacheDir == "" {
@@ -79,7 +348,7 @@ func computeAll(name string, year, month, day, hour, minute, second int, tzOff, 
 
 // computeTransits runs the transit engine and returns compact JSON results.
 // When sidereal is true, uses sidereal (Lahiri) positions for both natal and transiting planets.
-func computeTransits(name string, year, month, day, hour, minute int, tzOff, lat, lng float64, startDate, endDate string, orbDeg float64, sidereal bool, cacheDir string) ([]byte, error) {
+func computeTransits(name string, year, month, day, hour, minute int, tzOff, lat, lng float64, startDate, endDate string, orbDeg float64, sidereal bool, cacheDir string) (*TransitsResponse, error) {
 	cd := computePositions(year, month, day, hour, minute, tzOff, lat, lng, cacheDir)
 
 	// Build planet positions — all bodies already in cd.planets
@@ -135,25 +404,12 @@ func computeTransits(name string, year, month, day, hour, minute int, tzOff, lat
 	ttCompact := dignity.CompactTransitsWithRange(ttHits)
 
 	// Build JSON response
-	type hitJSON struct {
-		TransitPlanet string  `json:"transit_planet"`
-		NatalPlanet   string  `json:"natal_planet"`
-		Aspect        string  `json:"aspect"`
-		Orb           float64 `json:"orb"`
-		StartDate     string  `json:"start_date"`
-		EndDate       string  `json:"end_date"`
-	}
-	response := struct {
-		Name       string    `json:"name"`
-		Sidereal   bool      `json:"sidereal"`
-		Transits   []hitJSON `json:"transits"`
-		SkyWeather []hitJSON `json:"sky_weather"`
-	}{
+	response := &TransitsResponse{
 		Name:     name,
 		Sidereal: sidereal,
 	}
 	for _, c := range compact {
-		response.Transits = append(response.Transits, hitJSON{
+		response.Transits = append(response.Transits, TransitHitJSON{
 			TransitPlanet: c.TransitPlanet,
 			NatalPlanet:   c.NatalPlanet,
 			Aspect:        c.Aspect,
@@ -163,7 +419,7 @@ func computeTransits(name string, year, month, day, hour, minute int, tzOff, lat
 		})
 	}
 	for _, c := range ttCompact {
-		response.SkyWeather = append(response.SkyWeather, hitJSON{
+		response.SkyWeather = append(response.SkyWeather, TransitHitJSON{
 			TransitPlanet: c.TransitPlanet,
 			NatalPlanet:   c.NatalPlanet,
 			Aspect:        c.Aspect,
@@ -173,11 +429,11 @@ func computeTransits(name string, year, month, day, hour, minute int, tzOff, lat
 		})
 	}
 
-	return json.Marshal(response)
+	return response, nil
 }
 
 // computeSynastry computes inter-aspects between two natal charts.
-func computeSynastry(name1 string, y1, mo1, d1, h1, mi1 int, tz1, la1, lo1 float64, name2 string, y2, mo2, d2, h2, mi2 int, tz2, la2, lo2 float64, orbDeg float64, cacheDir string) ([]byte, error) {
+func computeSynastry(name1 string, y1, mo1, d1, h1, mi1 int, tz1, la1, lo1 float64, name2 string, y2, mo2, d2, h2, mi2 int, tz2, la2, lo2 float64, orbDeg float64, cacheDir string) (*SynastryResponse, error) {
 	cd1 := computePositions(y1, mo1, d1, h1, mi1, tz1, la1, lo1, cacheDir)
 	cd2 := computePositions(y2, mo2, d2, h2, mi2, tz2, la2, lo2, cacheDir)
 
@@ -198,23 +454,17 @@ func computeSynastry(name1 string, y1, mo1, d1, h1, mi1 int, tz1, la1, lo1 float
 
 	hits := dignity.ComputeSynastry(chart1, chart2, planets, aspects, orbDeg)
 
-	response := struct {
-		Name1 string             `json:"name1"`
-		Name2 string             `json:"name2"`
-		Aspects []dignity.SynastryHit `json:"aspects"`
-	}{
-		Name1: name1,
-		Name2: name2,
+	return &SynastryResponse{
+		Name1:   name1,
+		Name2:   name2,
 		Aspects: hits,
-	}
-
-	return json.Marshal(response)
+	}, nil
 }
 
 // computeRelocation compares two locations for a single person using cross-validated
 // house convergence and timing convergence. Returns which house shifts are reliable
 // (unanimous at both locations) vs system-dependent.
-func computeRelocation(name string, year, month, day, hour, minute int, tzOff, lat, lng float64, locA server.LatLng, locB server.LatLng, targetDate string, cacheDir string) ([]byte, error) {
+func computeRelocation(name string, year, month, day, hour, minute int, tzOff, lat, lng float64, locA server.LatLng, locB server.LatLng, targetDate string, cacheDir string) (*RelocationResponse, error) {
 	// Compute positions at both locations (natal planets are location-invariant, houses differ)
 	cdA := computePositions(year, month, day, hour, minute, tzOff, locA.Lat, locA.Lng, cacheDir)
 	cdB := computePositions(year, month, day, hour, minute, tzOff, locB.Lat, locB.Lng, cacheDir)
@@ -228,12 +478,7 @@ func computeRelocation(name string, year, month, day, hour, minute int, tzOff, l
 	trB := dignity.ComputeTimingReport(name, year, month, day, hour, minute, tzOff, locB.Lat, locB.Lng, targetDate, cdB.planets, cdB.ayan, cdB.asc)
 
 	// Build ASC comparison across 5 systems
-	type ascEntry struct {
-		System string `json:"system"`
-		Sign   string `json:"sign"`
-		Degree float64 `json:"degree"`
-	}
-	var ascA, ascB []ascEntry
+	var ascA, ascB []RelocASCEntry
 	for _, sys := range dignity.CompareHouseSystems {
 		code, ok := swephCode[sys]
 		if !ok {
@@ -241,29 +486,17 @@ func computeRelocation(name string, year, month, day, hour, minute int, tzOff, l
 		}
 		_, ascmcA := swe.Houses(cdA.jd, locA.Lat, locA.Lng, code)
 		_, ascmcB := swe.Houses(cdB.jd, locB.Lat, locB.Lng, code)
-		ascA = append(ascA, ascEntry{System: sys, Sign: dignity.SignForLongitude(ascmcA[0]), Degree: ascmcA[0]})
-		ascB = append(ascB, ascEntry{System: sys, Sign: dignity.SignForLongitude(ascmcB[0]), Degree: ascmcB[0]})
+		ascA = append(ascA, RelocASCEntry{System: sys, Sign: dignity.SignForLongitude(ascmcA[0]), Degree: ascmcA[0]})
+		ascB = append(ascB, RelocASCEntry{System: sys, Sign: dignity.SignForLongitude(ascmcB[0]), Degree: ascmcB[0]})
 	}
 
 	// Build house shift comparison
-	type shiftEntry struct {
-		Planet       string `json:"planet"`
-		TropicalSign string `json:"tropical_sign"`
-		HouseA       int    `json:"house_a"`
-		HouseB       int    `json:"house_b"`
-		AgreementA   int    `json:"agreement_a"` // how many systems agree at location A
-		AgreementB   int    `json:"agreement_b"` // how many systems agree at location B
-		StableA      bool   `json:"stable_a"`    // >=4/5 agree at A
-		StableB      bool   `json:"stable_b"`    // >=4/5 agree at B
-		ShiftReliable bool  `json:"shift_reliable"` // stable at BOTH locations
-	}
-
-	var shifts []shiftEntry
+	var shifts []RelocShiftEntry
 	for _, pA := range hcA.Planets {
 		// Find matching planet in hcB
 		for _, pB := range hcB.Planets {
 			if pA.Planet == pB.Planet {
-				shifts = append(shifts, shiftEntry{
+				shifts = append(shifts, RelocShiftEntry{
 					Planet:        pA.Planet,
 					TropicalSign:  pA.TropicalSign,
 					HouseA:        pA.ConsensusHouse(),
@@ -280,57 +513,31 @@ func computeRelocation(name string, year, month, day, hour, minute int, tzOff, l
 	}
 
 	// Build response
-	response := struct {
-		Name              string       `json:"name"`
-		LocationA         server.LatLng `json:"location_a"`
-		LocationB         server.LatLng `json:"location_b"`
-		TargetDate        string       `json:"target_date"`
-		HouseConvergenceA struct {
-			UnambiguousCount int     `json:"unambiguous_count"`
-			ConvergenceRate  float64 `json:"convergence_rate"`
-		} `json:"house_convergence_a"`
-		HouseConvergenceB struct {
-			UnambiguousCount int     `json:"unambiguous_count"`
-			ConvergenceRate  float64 `json:"convergence_rate"`
-		} `json:"house_convergence_b"`
-		ASCA []ascEntry `json:"asc_a"`
-		ASCB []ascEntry `json:"asc_b"`
-		TimingConvergenceA struct {
-			HasConvergence bool     `json:"has_convergence"`
-			Planets        []string `json:"planets"`
-		} `json:"timing_convergence_a"`
-		TimingConvergenceB struct {
-			HasConvergence bool     `json:"has_convergence"`
-			Planets        []string `json:"planets"`
-		} `json:"timing_convergence_b"`
-		Shifts []shiftEntry `json:"shifts"`
-	}{
+	return &RelocationResponse{
 		Name:       name,
 		LocationA:  locA,
 		LocationB:  locB,
 		TargetDate: targetDate,
-		HouseConvergenceA: struct {
-			UnambiguousCount int     `json:"unambiguous_count"`
-			ConvergenceRate  float64 `json:"convergence_rate"`
-		}{hcA.UnambiguousCount(), hcA.ConvergenceRate()},
-		HouseConvergenceB: struct {
-			UnambiguousCount int     `json:"unambiguous_count"`
-			ConvergenceRate  float64 `json:"convergence_rate"`
-		}{hcB.UnambiguousCount(), hcB.ConvergenceRate()},
+		HouseConvergenceA: RelocConvergence{
+			UnambiguousCount: hcA.UnambiguousCount(),
+			ConvergenceRate:  hcA.ConvergenceRate(),
+		},
+		HouseConvergenceB: RelocConvergence{
+			UnambiguousCount: hcB.UnambiguousCount(),
+			ConvergenceRate:  hcB.ConvergenceRate(),
+		},
 		ASCA: ascA,
 		ASCB: ascB,
-		TimingConvergenceA: struct {
-			HasConvergence bool     `json:"has_convergence"`
-			Planets        []string `json:"planets"`
-		}{trA.TimingConvergence.HasConvergence, trA.TimingConvergence.PlanetConvergences},
-		TimingConvergenceB: struct {
-			HasConvergence bool     `json:"has_convergence"`
-			Planets        []string `json:"planets"`
-		}{trB.TimingConvergence.HasConvergence, trB.TimingConvergence.PlanetConvergences},
+		TimingConvergenceA: RelocTimingSummary{
+			HasConvergence: trA.TimingConvergence.HasConvergence,
+			Planets:        trA.TimingConvergence.PlanetConvergences,
+		},
+		TimingConvergenceB: RelocTimingSummary{
+			HasConvergence: trB.TimingConvergence.HasConvergence,
+			Planets:        trB.TimingConvergence.PlanetConvergences,
+		},
 		Shifts: shifts,
-	}
-
-	return json.Marshal(response)
+	}, nil
 }
 
 // swephCode maps house system names to Swiss Ephemeris codes.
@@ -343,7 +550,7 @@ var swephCode = map[string]byte{
 }
 
 // computeDraconic builds the draconic chart JSON response.
-func computeDraconic(name string, cd *chartData, orbDeg float64) ([]byte, error) {
+func computeDraconic(name string, cd *chartData, orbDeg float64) (*DraconicResponse, error) {
 	// Build tropical planet map from all computed positions
 	tropical := cd.planets
 
@@ -358,35 +565,22 @@ func computeDraconic(name string, cd *chartData, orbDeg float64) ([]byte, error)
 	bridges := dignity.ComputeDraconicBridges(tropical, cd.nn, allPlanets, dignity.DefaultAspects(), orbDeg)
 
 	// Build shift list
-	type shiftJSON struct {
-		Planet   string `json:"planet"`
-		TropSign string `json:"tropical_sign"`
-		DracSign string `json:"draconic_sign"`
-	}
-	var shiftList []shiftJSON
+	var shiftList []DraconicShiftJSON
 	for _, s := range shifts {
-		shiftList = append(shiftList, shiftJSON{s.Planet, s.TropSign, s.DracSign})
+		shiftList = append(shiftList, DraconicShiftJSON{s.Planet, s.TropSign, s.DracSign})
 	}
 
-	response := struct {
-		Name    string              `json:"name"`
-		Offset  float64             `json:"offset"`
-		Planets map[string]float64  `json:"planets"`
-		Shifts  []shiftJSON         `json:"sign_shifts"`
-		Bridges []dignity.SynastryHit `json:"bridges"`
-	}{
+	return &DraconicResponse{
 		Name:    name,
 		Offset:  drac.Offset,
 		Planets: drac.Planets,
 		Shifts:  shiftList,
 		Bridges: bridges,
-	}
-
-	return json.Marshal(response)
+	}, nil
 }
 
 // computeDraconicSynastry builds the draconic synastry JSON response.
-func computeDraconicSynastry(name1 string, cd1 *chartData, name2 string, cd2 *chartData, orbDeg float64) ([]byte, error) {
+func computeDraconicSynastry(name1 string, cd1 *chartData, name2 string, cd2 *chartData, orbDeg float64) (*DraconicSynastryResponse, error) {
 	tropical1 := make(map[string]float64)
 	for k, v := range cd1.planets {
 		tropical1[k] = v
@@ -399,21 +593,15 @@ func computeDraconicSynastry(name1 string, cd1 *chartData, name2 string, cd2 *ch
 	allPlanets := dignity.NonTNPNoNodePlanetNames
 	hits := dignity.ComputeDraconicSynastry(tropical1, cd1.nn, tropical2, cd2.nn, allPlanets, dignity.DefaultAspects(), orbDeg)
 
-	response := struct {
-		Name1 string              `json:"name1"`
-		Name2 string              `json:"name2"`
-		Hits  []dignity.SynastryHit `json:"hits"`
-	}{
+	return &DraconicSynastryResponse{
 		Name1: name1,
 		Name2: name2,
 		Hits:  hits,
-	}
-
-	return json.Marshal(response)
+	}, nil
 }
 
 // computeDraconicSynastryFull builds the full three-layer draconic synastry JSON.
-func computeDraconicSynastryFull(name1 string, cd1 *chartData, name2 string, cd2 *chartData, orbDeg float64) ([]byte, error) {
+func computeDraconicSynastryFull(name1 string, cd1 *chartData, name2 string, cd2 *chartData, orbDeg float64) (*DraconicSynastryFullResponse, error) {
 	tropical1 := make(map[string]float64)
 	for k, v := range cd1.planets {
 		tropical1[k] = v
@@ -426,25 +614,17 @@ func computeDraconicSynastryFull(name1 string, cd1 *chartData, name2 string, cd2
 	allPlanets := dignity.NonTNPNoNodePlanetNames
 	result := dignity.ComputeDraconicSynastryFull(tropical1, cd1.nn, tropical2, cd2.nn, allPlanets, dignity.DefaultAspects(), orbDeg)
 
-	response := struct {
-		Name1        string              `json:"name1"`
-		Name2        string              `json:"name2"`
-		DracToDrac   []dignity.SynastryHit `json:"drac_to_drac"`
-		TropAToDracB []dignity.SynastryHit `json:"trop_a_to_drac_b"`
-		TropBToDracA []dignity.SynastryHit `json:"trop_b_to_drac_a"`
-	}{
+	return &DraconicSynastryFullResponse{
 		Name1:        name1,
 		Name2:        name2,
 		DracToDrac:   result.DracToDrac,
 		TropAToDracB: result.TropAToDracB,
 		TropBToDracA: result.TropBToDracA,
-	}
-
-	return json.Marshal(response)
+	}, nil
 }
 
 // computeDraconicTransits computes transiting planets hitting the draconic chart.
-func computeDraconicTransits(name string, cd *chartData, startDate, endDate string, orbDeg float64, cacheDir string) ([]byte, error) {
+func computeDraconicTransits(name string, cd *chartData, startDate, endDate string, orbDeg float64, cacheDir string) (*DraconicTransitsResponse, error) {
 	// Build tropical planet map
 	tropical := cd.planets
 
@@ -469,24 +649,12 @@ func computeDraconicTransits(name string, cd *chartData, startDate, endDate stri
 
 	compact := dignity.CompactTransitsWithRange(hits)
 
-	type hitJSON struct {
-		TransitPlanet string  `json:"transit_planet"`
-		NatalPlanet   string  `json:"natal_planet"`
-		Aspect        string  `json:"aspect"`
-		Orb           float64 `json:"orb"`
-		StartDate     string  `json:"start_date"`
-		EndDate       string  `json:"end_date"`
-	}
-	response := struct {
-		Name     string    `json:"name"`
-		Offset   float64   `json:"offset"`
-		Transits []hitJSON `json:"transits"`
-	}{
+	response := &DraconicTransitsResponse{
 		Name:   name,
 		Offset: drac.Offset,
 	}
 	for _, c := range compact {
-		response.Transits = append(response.Transits, hitJSON{
+		response.Transits = append(response.Transits, TransitHitJSON{
 			TransitPlanet: c.TransitPlanet,
 			NatalPlanet:   c.NatalPlanet,
 			Aspect:        c.Aspect,
@@ -496,12 +664,12 @@ func computeDraconicTransits(name string, cd *chartData, startDate, endDate stri
 		})
 	}
 
-	return json.Marshal(response)
+	return response, nil
 }
 
 // computeProgressedDraconic computes the progressed draconic chart using the
 // current transiting North Node as the zero-point.
-func computeProgressedDraconic(name string, cd *chartData, targetDate string, cacheDir string) ([]byte, error) {
+func computeProgressedDraconic(name string, cd *chartData, targetDate string, cacheDir string) (*ProgressedDraconicResponse, error) {
 	// Parse target date
 	var y, m, d int
 	fmt.Sscanf(targetDate, "%d-%d-%d", &y, &m, &d)
@@ -526,26 +694,12 @@ func computeProgressedDraconic(name string, cd *chartData, targetDate string, ca
 	yr, mo, dy, hr := swe.Revjul(jd)
 	dtStr := fmt.Sprintf("%d-%02d-%02d %02d:%02d UT", yr, mo, dy, int(hr), int((hr-float64(int(hr)))*60))
 
-	type shiftJSON struct {
-		Planet   string `json:"planet"`
-		TropSign string `json:"tropical_sign"`
-		DracSign string `json:"draconic_sign"`
-	}
-	var shiftList []shiftJSON
+	var shiftList []DraconicShiftJSON
 	for _, s := range shifts {
-		shiftList = append(shiftList, shiftJSON{s.Planet, s.TropSign, s.DracSign})
+		shiftList = append(shiftList, DraconicShiftJSON{s.Planet, s.TropSign, s.DracSign})
 	}
 
-	response := struct {
-		Name          string             `json:"name"`
-		Date          string             `json:"date"`
-		NatalNN       float64            `json:"natal_nn"`
-		CurrentNN     float64            `json:"current_nn"`
-		NNShift       float64            `json:"nn_shift"`
-		NatalDraconic map[string]float64 `json:"natal_draconic"`
-		ProgDraconic  map[string]float64 `json:"progressed_draconic"`
-		SignShifts    []shiftJSON        `json:"sign_shifts"`
-	}{
+	return &ProgressedDraconicResponse{
 		Name:          name,
 		Date:          dtStr,
 		NatalNN:       cd.nn,
@@ -554,13 +708,11 @@ func computeProgressedDraconic(name string, cd *chartData, targetDate string, ca
 		NatalDraconic: natalDrac.Planets,
 		ProgDraconic:  progDrac.Planets,
 		SignShifts:    shiftList,
-	}
-
-	return json.Marshal(response)
+	}, nil
 }
 
 // computeDraconicSolarReturn computes the draconic solar return for a target year.
-func computeDraconicSolarReturn(name string, cd *chartData, targetYear int, cacheDir string) ([]byte, error) {
+func computeDraconicSolarReturn(name string, cd *chartData, targetYear int, cacheDir string) (*DraconicSolarReturnResponse, error) {
 	// Get natal Sun longitude
 	natalSun := cd.planets["Sun"]
 
@@ -602,25 +754,15 @@ func computeDraconicSolarReturn(name string, cd *chartData, targetYear int, cach
 	yr, mo, dy, hr := swe.Revjul(jdSR)
 	dtStr := fmt.Sprintf("%d-%02d-%02d %02d:%02d UT", yr, mo, dy, int(hr), int((hr-float64(int(hr)))*60))
 
-	response := struct {
-		Name             string             `json:"name"`
-		TargetYear       int                `json:"target_year"`
-		JD               float64            `json:"jd"`
-		DateTime         string             `json:"datetime"`
-		Tropical         map[string]float64 `json:"tropical"`
-		Draconic         map[string]float64 `json:"draconic"`
-		DraconicByNatalNN map[string]float64 `json:"draconic_by_natal_nn"`
-	}{
-		Name:             name,
-		TargetYear:       targetYear,
-		JD:               jdSR,
-		DateTime:         dtStr,
-		Tropical:         tropical,
-		Draconic:         draconic,
+	return &DraconicSolarReturnResponse{
+		Name:              name,
+		TargetYear:        targetYear,
+		JD:                jdSR,
+		DateTime:          dtStr,
+		Tropical:          tropical,
+		Draconic:          draconic,
 		DraconicByNatalNN: draconicByNatal,
-	}
-
-	return json.Marshal(response)
+	}, nil
 }
 
 // findSolarReturnJD finds the exact Julian Day when the Sun returns to natalSun longitude
@@ -665,7 +807,7 @@ func findSolarReturnJD(natalSun float64, targetYear int, natalJD float64) float6
 // computeDraconicTransitsCross compares draconic transits in tropical vs sidereal.
 // Natal draconic positions are zodiac-invariant. Transiting positions differ by
 // the Lahiri ayanamsa (~24°). Returns which aspects survive the zodiac shift.
-func computeDraconicTransitsCross(name string, cd *chartData, startDate, endDate string, orbDeg float64, cacheDir string) ([]byte, error) {
+func computeDraconicTransitsCross(name string, cd *chartData, startDate, endDate string, orbDeg float64, cacheDir string) (*DraconicTransitsCrossResponse, error) {
 	// Build tropical planet map
 	tropical := cd.planets
 
@@ -696,50 +838,35 @@ func computeDraconicTransitsCross(name string, cd *chartData, startDate, endDate
 	result := dignity.CompareCrossSystemTransits(drac.Planets, tropTransits, sidTransits, aspects, orbDeg)
 
 	// Build JSON response
-	type hitJSON struct {
-		TransitPlanet string  `json:"transit_planet"`
-		NatalPlanet   string  `json:"natal_planet"`
-		Aspect        string  `json:"aspect"`
-		Orb           float64 `json:"orb"`
-	}
-	response := struct {
-		Name          string    `json:"name"`
-		Offset        float64   `json:"offset"`
-		Ayanamsa      float64   `json:"ayanamsa"`
-		Orb           float64   `json:"orb"`
-		MidDate       string    `json:"mid_date"`
-		Survivors     []hitJSON `json:"survivors"`
-		TropicalOnly  []hitJSON `json:"tropical_only"`
-		SiderealOnly  []hitJSON `json:"sidereal_only"`
-	}{
+	response := &DraconicTransitsCrossResponse{
 		Name:         name,
 		Offset:       drac.Offset,
 		Ayanamsa:     ayan,
 		Orb:          orbDeg,
-		Survivors:    make([]hitJSON, 0),
-		TropicalOnly: make([]hitJSON, 0),
-		SiderealOnly: make([]hitJSON, 0),
+		Survivors:    make([]CrossHitJSON, 0),
+		TropicalOnly: make([]CrossHitJSON, 0),
+		SiderealOnly: make([]CrossHitJSON, 0),
 	}
 	yr, mo, dy, hr := swe.Revjul(midJD)
 	response.MidDate = fmt.Sprintf("%d-%02d-%02d %02d:%02d UT", yr, mo, dy, int(hr), int((hr-float64(int(hr)))*60))
 
 	for _, h := range result.Survivors {
-		response.Survivors = append(response.Survivors, hitJSON{h.TransitPlanet, h.NatalPlanet, h.Aspect, h.Orb})
+		response.Survivors = append(response.Survivors, CrossHitJSON{h.TransitPlanet, h.NatalPlanet, h.Aspect, h.Orb})
 	}
 	for _, h := range result.TropicalOnly {
-		response.TropicalOnly = append(response.TropicalOnly, hitJSON{h.TransitPlanet, h.NatalPlanet, h.Aspect, h.Orb})
+		response.TropicalOnly = append(response.TropicalOnly, CrossHitJSON{h.TransitPlanet, h.NatalPlanet, h.Aspect, h.Orb})
 	}
 	for _, h := range result.SiderealOnly {
-		response.SiderealOnly = append(response.SiderealOnly, hitJSON{h.TransitPlanet, h.NatalPlanet, h.Aspect, h.Orb})
+		response.SiderealOnly = append(response.SiderealOnly, CrossHitJSON{h.TransitPlanet, h.NatalPlanet, h.Aspect, h.Orb})
 	}
 
-	return json.Marshal(response)
+	return response, nil
 }
 
 // computeProgressedCross compares progressed-to-natal aspects in tropical vs sidereal.
 // Both natal and progressed positions shift by the same ayanamsa, so angular
 // distances are preserved. Near-100% survival expected (Phase 13).
-func computeProgressedCross(name string, cd *chartData, targetDate string, orbDeg float64, cacheDir string) ([]byte, error) {
+func computeProgressedCross(name string, cd *chartData, targetDate string, orbDeg float64, cacheDir string) (*ProgressedCrossResponse, error) {
 	// Parse target date
 	var y, m, d int
 	fmt.Sscanf(targetDate, "%d-%d-%d", &y, &m, &d)
@@ -776,48 +903,33 @@ func computeProgressedCross(name string, cd *chartData, targetDate string, orbDe
 	result := dignity.CompareCrossSystemProgressed(natal, prog, ayan, aspects, orbDeg)
 
 	// Build JSON response
-	type hitJSON struct {
-		ProgressedPlanet string  `json:"progressed_planet"`
-		NatalPlanet      string  `json:"natal_planet"`
-		Aspect           string  `json:"aspect"`
-		Orb              float64 `json:"orb"`
-	}
-	response := struct {
-		Name          string    `json:"name"`
-		TargetDate    string    `json:"target_date"`
-		Age           float64   `json:"age_years"`
-		Ayanamsa      float64   `json:"ayanamsa"`
-		Orb           float64   `json:"orb"`
-		Survivors     []hitJSON `json:"survivors"`
-		TropicalOnly  []hitJSON `json:"tropical_only"`
-		SiderealOnly  []hitJSON `json:"sidereal_only"`
-	}{
+	response := &ProgressedCrossResponse{
 		Name:         name,
 		TargetDate:   targetDate,
 		Age:          math.Round(age*100) / 100,
 		Ayanamsa:     ayan,
 		Orb:          orbDeg,
-		Survivors:    make([]hitJSON, 0),
-		TropicalOnly: make([]hitJSON, 0),
-		SiderealOnly: make([]hitJSON, 0),
+		Survivors:    make([]ProgressedCrossHitJSON, 0),
+		TropicalOnly: make([]ProgressedCrossHitJSON, 0),
+		SiderealOnly: make([]ProgressedCrossHitJSON, 0),
 	}
 
 	for _, h := range result.Survivors {
-		response.Survivors = append(response.Survivors, hitJSON{h.ProgressedPlanet, h.NatalPlanet, h.Aspect, h.Orb})
+		response.Survivors = append(response.Survivors, ProgressedCrossHitJSON{h.ProgressedPlanet, h.NatalPlanet, h.Aspect, h.Orb})
 	}
 	for _, h := range result.TropicalOnly {
-		response.TropicalOnly = append(response.TropicalOnly, hitJSON{h.ProgressedPlanet, h.NatalPlanet, h.Aspect, h.Orb})
+		response.TropicalOnly = append(response.TropicalOnly, ProgressedCrossHitJSON{h.ProgressedPlanet, h.NatalPlanet, h.Aspect, h.Orb})
 	}
 	for _, h := range result.SiderealOnly {
-		response.SiderealOnly = append(response.SiderealOnly, hitJSON{h.ProgressedPlanet, h.NatalPlanet, h.Aspect, h.Orb})
+		response.SiderealOnly = append(response.SiderealOnly, ProgressedCrossHitJSON{h.ProgressedPlanet, h.NatalPlanet, h.Aspect, h.Orb})
 	}
 
-	return json.Marshal(response)
+	return response, nil
 }
 
 // computeDirections computes primary directions (Ptolemy) for a given age.
 // Directs ASC by oblique ascension and MC by right ascension.
-func computeDirections(name string, cd *chartData, lat, lng, age float64, orbDeg float64, cacheDir string) ([]byte, error) {
+func computeDirections(name string, cd *chartData, lat, lng, age float64, orbDeg float64, cacheDir string) (*DirectionsResponse, error) {
 	// Natal positions
 	natal := cd.planets
 
@@ -830,38 +942,24 @@ func computeDirections(name string, cd *chartData, lat, lng, age float64, orbDeg
 	result := dignity.ComputePrimaryDirections(natal, ascLon, mcLon, lat, age, aspects, orbDeg)
 
 	// Build JSON response
-	type hitJSON struct {
-		DirectedPoint string  `json:"directed_point"`
-		NatalPlanet   string  `json:"natal_planet"`
-		Aspect        string  `json:"aspect"`
-		Orb           float64 `json:"orb"`
-	}
-	response := struct {
-		Name         string    `json:"name"`
-		Age          float64   `json:"age_years"`
-		DirectedASC  float64   `json:"directed_asc"`
-		DirectedMC   float64   `json:"directed_mc"`
-		Orb          float64   `json:"orb"`
-		ASCAspects   []hitJSON `json:"asc_aspects"`
-		MCAspects    []hitJSON `json:"mc_aspects"`
-	}{
+	response := &DirectionsResponse{
 		Name:        name,
 		Age:         age,
 		DirectedASC: result.DirectedASC,
 		DirectedMC:  result.DirectedMC,
 		Orb:         orbDeg,
-		ASCAspects:  make([]hitJSON, 0),
-		MCAspects:   make([]hitJSON, 0),
+		ASCAspects:  make([]DirectionHitJSON, 0),
+		MCAspects:   make([]DirectionHitJSON, 0),
 	}
 
 	for _, h := range result.ASCAspects {
-		response.ASCAspects = append(response.ASCAspects, hitJSON{h.DirectedPoint, h.NatalPlanet, h.Aspect, h.Orb})
+		response.ASCAspects = append(response.ASCAspects, DirectionHitJSON{h.DirectedPoint, h.NatalPlanet, h.Aspect, h.Orb})
 	}
 	for _, h := range result.MCAspects {
-		response.MCAspects = append(response.MCAspects, hitJSON{h.DirectedPoint, h.NatalPlanet, h.Aspect, h.Orb})
+		response.MCAspects = append(response.MCAspects, DirectionHitJSON{h.DirectedPoint, h.NatalPlanet, h.Aspect, h.Orb})
 	}
 
-	return json.Marshal(response)
+	return response, nil
 }
 
 // computeInterpretation produces a natural-language chart interpretation.
@@ -911,14 +1009,8 @@ func computeInterpretation(name string, cd *chartData, lat, lng float64, houseSy
 
 // computeAstroCartography computes planetary lines for a world map.
 // frame: "tropical", "draconic", or "cross".
-func computeAstroCartography(name string, cd *chartData, latStep float64, frame string, cacheDir string) ([]byte, error) {
+func computeAstroCartography(name string, cd *chartData, latStep float64, frame string, cacheDir string) (*AstroCartographyResponse, error) {
 	gmst := dignity.ComputeGMST(cd.jd)
-
-	type lineJSON struct {
-		Planet string            `json:"planet"`
-		Angle  string            `json:"angle"`
-		Points []dignity.GeoPoint `json:"points"`
-	}
 
 	// Determine planet positions based on frame
 	positions := cd.planets
@@ -934,7 +1026,7 @@ func computeAstroCartography(name string, cd *chartData, latStep float64, frame 
 		// We handle this per-planet below
 	}
 
-	var lines []lineJSON
+	var lines []AstroCartographyLineJSON
 	for planet, lon := range cd.planets {
 		tropRA := dignity.LonToRA(lon, dignity.ObliquityDeg)
 
@@ -954,12 +1046,12 @@ func computeAstroCartography(name string, cd *chartData, latStep float64, frame 
 			ascLon = lon
 		}
 
-		lines = append(lines, lineJSON{
+		lines = append(lines, AstroCartographyLineJSON{
 			Planet: planet,
 			Angle:  "MC",
 			Points: dignity.ComputeMCLine(ra, gmst, latStep),
 		})
-		lines = append(lines, lineJSON{
+		lines = append(lines, AstroCartographyLineJSON{
 			Planet: planet,
 			Angle:  "IC",
 			Points: dignity.ComputeICLine(ra, gmst, latStep),
@@ -967,7 +1059,7 @@ func computeAstroCartography(name string, cd *chartData, latStep float64, frame 
 
 		// ASC and DSC lines
 		ascPoints := computeASCLineSWE(ascLon, cd.jd, latStep)
-		lines = append(lines, lineJSON{
+		lines = append(lines, AstroCartographyLineJSON{
 			Planet: planet,
 			Angle:  "ASC",
 			Points: ascPoints,
@@ -976,48 +1068,28 @@ func computeAstroCartography(name string, cd *chartData, latStep float64, frame 
 		for i, p := range ascPoints {
 			dscPoints[i] = dignity.GeoPoint{Lat: p.Lat, Lon: dignity.NormalizeGeo(p.Lon + 180)}
 		}
-		lines = append(lines, lineJSON{
+		lines = append(lines, AstroCartographyLineJSON{
 			Planet: planet,
 			Angle:  "DSC",
 			Points: dscPoints,
 		})
 	}
 
-	response := struct {
-		Name  string     `json:"name"`
-		JD    float64    `json:"jd"`
-		GMST  float64    `json:"gmst"`
-		Frame string     `json:"frame"`
-		Lines []lineJSON `json:"lines"`
-	}{
+	return &AstroCartographyResponse{
 		Name:  name,
 		JD:    cd.jd,
 		GMST:  gmst,
 		Frame: frame,
 		Lines: lines,
-	}
-
-	return json.Marshal(response)
+	}, nil
 }
 
 // computeAstroCartographyCompare returns all three frames plus LinesNear at a target location.
-func computeAstroCartographyCompare(name string, cd *chartData, latStep float64, targetLat, targetLng, orb float64, cacheDir string) ([]byte, error) {
+func computeAstroCartographyCompare(name string, cd *chartData, latStep float64, targetLat, targetLng, orb float64, cacheDir string) (*AstroCartographyCompareResponse, error) {
 	// Compute all three frames
-	tropJSON, _ := computeAstroCartography(name, cd, latStep, "tropical", cacheDir)
-	dracJSON, _ := computeAstroCartography(name, cd, latStep, "draconic", cacheDir)
-	crossJSON, _ := computeAstroCartography(name, cd, latStep, "cross", cacheDir)
-
-	// Parse back to get lines
-	var tropResp, dracResp, crossResp struct {
-		Lines []struct {
-			Planet string            `json:"planet"`
-			Angle  string            `json:"angle"`
-			Points []dignity.GeoPoint `json:"points"`
-		} `json:"lines"`
-	}
-	json.Unmarshal(tropJSON, &tropResp)
-	json.Unmarshal(dracJSON, &dracResp)
-	json.Unmarshal(crossJSON, &crossResp)
+	tropResp, _ := computeAstroCartography(name, cd, latStep, "tropical", cacheDir)
+	dracResp, _ := computeAstroCartography(name, cd, latStep, "draconic", cacheDir)
+	crossResp, _ := computeAstroCartography(name, cd, latStep, "cross", cacheDir)
 
 	// Convert to AstroLine slices
 	tropLines := make([]dignity.AstroLine, len(tropResp.Lines))
@@ -1035,21 +1107,13 @@ func computeAstroCartographyCompare(name string, cd *chartData, latStep float64,
 
 	hits := dignity.CompareLinesNear(targetLat, targetLng, tropLines, dracLines, crossLines, orb)
 
-	response := struct {
-		Name       string                 `json:"name"`
-		TargetLat  float64                `json:"target_lat"`
-		TargetLng  float64                `json:"target_lng"`
-		Orb        float64                `json:"orb"`
-		Hits       []dignity.ThreeWayHit  `json:"hits"`
-	}{
+	return &AstroCartographyCompareResponse{
 		Name:      name,
 		TargetLat: targetLat,
 		TargetLng: targetLng,
 		Orb:       orb,
 		Hits:      hits,
-	}
-
-	return json.Marshal(response)
+	}, nil
 }
 
 // computeASCLineSWE finds the ASC line using SWE houses for accurate ASC computation.
@@ -1108,7 +1172,7 @@ func findASCLonSWE(planetLon, jd, lat float64) *float64 {
 }
 
 // computeElectional scores dates in a range for launch/event timing.
-func computeElectional(name string, cd *chartData, lat, lng float64, startDate, endDate string, orbDeg float64, cacheDir string) ([]byte, error) {
+func computeElectional(name string, cd *chartData, lat, lng float64, startDate, endDate string, orbDeg float64, cacheDir string) (*ElectionalResponse, error) {
 	// Parse dates
 	var sy, sm, sd, ey, em, ed int
 	fmt.Sscanf(startDate, "%d-%d-%d", &sy, &sm, &sd)
@@ -1124,18 +1188,7 @@ func computeElectional(name string, cd *chartData, lat, lng float64, startDate, 
 	// Natal planet positions
 	natal := cd.planets
 
-	type dayScore struct {
-		Date      string   `json:"date"`
-		Day       string   `json:"day"`
-		Score     int      `json:"score"`
-		MoonHouse int      `json:"moon_house"`
-		MoonSign  string   `json:"moon_sign"`
-		MercSign  string   `json:"merc_sign"`
-		Good      []string `json:"good"`
-		Bad       []string `json:"bad"`
-	}
-
-	var results []dayScore
+	var results []ElectionalDayScore
 
 	for jd := startJD; jd <= endJD; jd++ {
 		// Transit positions at noon UT
@@ -1229,7 +1282,7 @@ func computeElectional(name string, cd *chartData, lat, lng float64, startDate, 
 			dow += 7
 		}
 
-		results = append(results, dayScore{
+		results = append(results, ElectionalDayScore{
 			Date:      fmt.Sprintf("%04d-%02d-%02d", y, m, d),
 			Day:       dayNames[dow],
 			Score:     score,
@@ -1250,25 +1303,17 @@ func computeElectional(name string, cd *chartData, lat, lng float64, startDate, 
 		}
 	}
 
-	response := struct {
-		Name    string     `json:"name"`
-		Start   string     `json:"start_date"`
-		End     string     `json:"end_date"`
-		Orb     float64    `json:"orb"`
-		Results []dayScore `json:"results"`
-	}{
+	return &ElectionalResponse{
 		Name:    name,
 		Start:   startDate,
 		End:     endDate,
 		Orb:     orbDeg,
 		Results: results,
-	}
-
-	return json.Marshal(response)
+	}, nil
 }
 
 // computeStars computes fixed star conjunctions for a natal chart.
-func computeStars(name string, cd *chartData, orbDeg float64, cacheDir string) ([]byte, error) {
+func computeStars(name string, cd *chartData, orbDeg float64, cacheDir string) (*StarsResponse, error) {
 	// Compute star positions at birth JD
 	starPositions := make(map[string]float64)
 	for _, starName := range dignity.StarNames {
@@ -1287,24 +1332,12 @@ func computeStars(name string, cd *chartData, orbDeg float64, cacheDir string) (
 	conjunctions := dignity.FindStarConjunctions(starPositions, planetPositions, orbDeg)
 
 	// Build JSON response
-	type conjJSON struct {
-		Star      string  `json:"star"`
-		StarLon   float64 `json:"star_lon"`
-		Planet    string  `json:"planet"`
-		PlanetLon float64 `json:"planet_lon"`
-		Orb       float64 `json:"orb"`
-		Meaning   string  `json:"meaning"`
-	}
-	response := struct {
-		Name         string     `json:"name"`
-		Orb          float64    `json:"orb"`
-		Conjunctions []conjJSON `json:"conjunctions"`
-	}{
+	response := &StarsResponse{
 		Name: name,
 		Orb:  orbDeg,
 	}
 	for _, c := range conjunctions {
-		response.Conjunctions = append(response.Conjunctions, conjJSON{
+		response.Conjunctions = append(response.Conjunctions, StarConjJSON{
 			Star:      c.Star,
 			StarLon:   c.StarLon,
 			Planet:    c.Planet,
@@ -1314,11 +1347,11 @@ func computeStars(name string, cd *chartData, orbDeg float64, cacheDir string) (
 		})
 	}
 
-	return json.Marshal(response)
+	return response, nil
 }
 
 // computeStarsCross compares star conjunctions in tropical vs sidereal frames.
-func computeStarsCross(name string, cd *chartData, orbDeg float64, cacheDir string) ([]byte, error) {
+func computeStarsCross(name string, cd *chartData, orbDeg float64, cacheDir string) (*dignity.StarCrossSystem, error) {
 	// Compute star positions at birth JD (tropical)
 	starPositions := make(map[string]float64)
 	for _, starName := range dignity.StarNames {
@@ -1335,7 +1368,7 @@ func computeStarsCross(name string, cd *chartData, orbDeg float64, cacheDir stri
 	}
 
 	result := dignity.CompareStarConjunctionsCrossSystem(name, starPositions, planetPositions, cd.ayan, orbDeg)
-	return json.Marshal(result)
+	return result, nil
 }
 
 // normalizeLon normalizes a longitude to [0, 360).
@@ -1382,17 +1415,17 @@ func printReport(fr *dignity.FullReport) {
 }
 
 // computeMansionConvergence computes nakshatra/xiu mansion placements for a chart.
-func computeMansionConvergence(name string, cd *chartData, cacheDir string) ([]byte, error) {
+func computeMansionConvergence(name string, cd *chartData, cacheDir string) (*dignity.MansionConvergence, error) {
 	// Build tropical planet map
 	tropical := cd.planets
 
 	// Ayanamsa already computed in chartData
 	result := dignity.ComputeMansionConvergence(name, tropical, cd.ayan)
-	return json.Marshal(result)
+	return result, nil
 }
 
 // computeArabicParts computes Arabic Parts with cross-system comparison.
-func computeArabicParts(name string, cd *chartData, orbDeg float64, cacheDir string) ([]byte, error) {
+func computeArabicParts(name string, cd *chartData, orbDeg float64, cacheDir string) (*dignity.PartCrossSystem, error) {
 	// Build tropical planet map
 	tropical := cd.planets
 
@@ -1409,12 +1442,12 @@ func computeArabicParts(name string, cd *chartData, orbDeg float64, cacheDir str
 	}
 
 	result := dignity.ComputePartCrossSystem(name, asc, tropical, cd.ayan, isDay, orbDeg)
-	return json.Marshal(result)
+	return result, nil
 }
 
 // computeTropicalSolarReturn computes the tropical solar return for a target year.
 // Returns positions, ASC/MC, aspects to natal, and patterns.
-func computeTropicalSolarReturn(name string, cd *chartData, targetYear int, cacheDir string) ([]byte, error) {
+func computeTropicalSolarReturn(name string, cd *chartData, targetYear int, cacheDir string) (*SolarReturnResponse, error) {
 	natalSun := cd.planets["Sun"]
 	jdSR := findSolarReturnJD(natalSun, targetYear, cd.jd)
 
@@ -1516,15 +1549,7 @@ func computeTropicalSolarReturn(name string, cd *chartData, targetYear int, cach
 	yr, mo, dy, hr := swe.Revjul(jdSR)
 	dtStr := fmt.Sprintf("%d-%02d-%02d %02d:%02d UT", yr, mo, dy, int(hr), int((hr-float64(int(hr)))*60))
 
-	response := struct {
-		Name       string                `json:"name"`
-		TargetYear int                   `json:"target_year"`
-		JD         float64               `json:"jd"`
-		DateTime   string                `json:"datetime"`
-		Positions  map[string]float64    `json:"positions"`
-		Aspects    []dignity.SynastryHit `json:"aspects"`
-		Patterns   []dignity.Pattern     `json:"patterns"`
-	}{
+	return &SolarReturnResponse{
 		Name:       name,
 		TargetYear: targetYear,
 		JD:         jdSR,
@@ -1532,13 +1557,11 @@ func computeTropicalSolarReturn(name string, cd *chartData, targetYear int, cach
 		Positions:  srPositions,
 		Aspects:    srAspects,
 		Patterns:   patternReport.Patterns,
-	}
-
-	return json.Marshal(response)
+	}, nil
 }
 
 // computeProgressed computes a secondary progressed chart and progressed-to-natal aspects.
-func computeProgressed(name string, cd *chartData, targetDate string, orbDeg float64, cacheDir string) ([]byte, error) {
+func computeProgressed(name string, cd *chartData, targetDate string, orbDeg float64, cacheDir string) (*dignity.ProgressedReport, error) {
 	// Parse target date
 	var y, m, d int
 	fmt.Sscanf(targetDate, "%d-%d-%d", &y, &m, &d)
@@ -1573,11 +1596,11 @@ func computeProgressed(name string, cd *chartData, targetDate string, orbDeg flo
 	}
 
 	report := dignity.ComputeProgressedReport(name, targetDate, age, progPositions, natalPositions, orbDeg)
-	return json.Marshal(report)
+	return report, nil
 }
 
 // computeComposite computes a midpoint composite chart for two people.
-func computeComposite(name1, name2 string, cd1, cd2 *chartData, orbDeg float64, cacheDir string) ([]byte, error) {
+func computeComposite(name1, name2 string, cd1, cd2 *chartData, orbDeg float64, cacheDir string) (*dignity.CompositeReport, error) {
 	// Build tropical planet maps
 	chart1 := make(map[string]float64)
 	for k, v := range cd1.planets {
@@ -1592,17 +1615,17 @@ func computeComposite(name1, name2 string, cd1, cd2 *chartData, orbDeg float64, 
 	chart2["Ascendant"] = cd2.asc
 
 	report := dignity.ComputeCompositeReport(name1, name2, chart1, chart2, orbDeg)
-	return json.Marshal(report)
+	return report, nil
 }
 
 // computeTraditional computes traditional astrology interpretive data.
-func computeTraditional(name string, cd *chartData) ([]byte, error) {
+func computeTraditional(name string, cd *chartData) (dignity.TraditionalReport, error) {
 	report := dignity.ComputeTraditionalReport(name, cd.planets, cd.speeds)
-	return json.Marshal(report)
+	return report, nil
 }
 
 // computeUranian computes Uranian/Hamburg School midpoint analysis.
-func computeUranian(name string, cd *chartData) ([]byte, error) {
+func computeUranian(name string, cd *chartData) (uranian.UranianReport, error) {
 	// Compute houses for the chart
 	cusps, _ := swe.Houses(cd.jd, 0, 0, 'P')
 	houses := make(map[string]float64)
@@ -1610,23 +1633,23 @@ func computeUranian(name string, cd *chartData) ([]byte, error) {
 		houses[fmt.Sprintf("H%d", i)] = cusps[i]
 	}
 	report := uranian.ComputeUranianReport(name, cd.planets, houses)
-	return json.Marshal(report)
+	return report, nil
 }
 
 // computeHarmonic computes Addey-style harmonic charts.
-func computeHarmonic(name string, cd *chartData, harmonics []int, orb float64) ([]byte, error) {
+func computeHarmonic(name string, cd *chartData, harmonics []int, orb float64) (harmonic.HarmonicReport, error) {
 	report := harmonic.ComputeHarmonicReport(name, cd.planets, harmonics, orb)
-	return json.Marshal(report)
+	return report, nil
 }
 
 // computeDivisional computes Vedic divisional charts.
-func computeDivisional(name string, cd *chartData, year, month, day int) ([]byte, error) {
+func computeDivisional(name string, cd *chartData, year, month, day int) (divisional.DivisionalReport, error) {
 	report := divisional.ComputeDivisionalReport(name, cd.planets, cd.ayan, year, month, day)
-	return json.Marshal(report)
+	return report, nil
 }
 
 // computeParans computes fixed star parans.
-func computeParans(name string, cd *chartData, orb float64, cacheDir string) ([]byte, error) {
+func computeParans(name string, cd *chartData, orb float64, cacheDir string) (parans.ParansReport, error) {
 	swe.SetEphePath(cacheDir)
 	// Compute star positions
 	starPositions := make(map[string]float64)
@@ -1640,11 +1663,11 @@ func computeParans(name string, cd *chartData, orb float64, cacheDir string) ([]
 	_, ascmc := swe.Houses(cd.jd, 0, 0, 'P')
 	mc := ascmc[1]
 	report := parans.ComputeParansReport(name, starPositions, cd.planets, cd.asc, mc, orb)
-	return json.Marshal(report)
+	return report, nil
 }
 
 // computeDeclination computes declination parallels.
-func computeDeclination(name string, cd *chartData, orb float64) ([]byte, error) {
+func computeDeclination(name string, cd *chartData, orb float64) (declination.DeclinationReport, error) {
 	// Build positions with lon/lat pairs
 	// We need latitudes — re-compute with CalcUT which returns lat
 	// For now, use the stored speeds and re-derive from SWE
@@ -1657,11 +1680,11 @@ func computeDeclination(name string, cd *chartData, orb float64) ([]byte, error)
 		positions[p.Name] = [2]float64{lon, lat}
 	}
 	report := declination.ComputeDeclinationReport(name, positions, orb)
-	return json.Marshal(report)
+	return report, nil
 }
 
 // computeFirdaria computes Persian firdaria planetary periods.
-func computeFirdaria(name string, cd *chartData, year, month, day int) ([]byte, error) {
+func computeFirdaria(name string, cd *chartData, year, month, day int) (firdaria.FirdariaReport, error) {
 	// Determine if Sun is above horizon (diurnal chart)
 	// Sun above ASC and below DSC means above horizon
 	sunLon := cd.planets["Sun"]
@@ -1676,7 +1699,7 @@ func computeFirdaria(name string, cd *chartData, year, month, day int) ([]byte, 
 		sunAbove = true
 	}
 	report := firdaria.ComputeFirdaria(name, sunAbove, year, month, day)
-	return json.Marshal(report)
+	return report, nil
 }
 
 // angularDistance returns the shortest angular distance between two longitudes.

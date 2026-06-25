@@ -14,6 +14,19 @@ import (
 	"github.com/aj-nt/empirical/internal/swe"
 )
 
+// mustMarshal marshals v to JSON bytes, returning the error if any.
+func mustMarshal(v interface{}) ([]byte, error) {
+	return json.Marshal(v)
+}
+
+// marshalResult marshals a (T, error) pair, propagating the error.
+func marshalResult[T any](result T, err error) ([]byte, error) {
+	if err != nil {
+		return nil, err
+	}
+	return json.Marshal(result)
+}
+
 func main() {
 	// ── serve subcommand ────────────────────────────────────────────
 	if len(os.Args) >= 2 && os.Args[1] == "serve" {
@@ -54,15 +67,15 @@ func main() {
 		}
 
 		transits := func(name string, year, month, day, hour, minute int, tzOff, lat, lng float64, startDate, endDate string, orbDeg float64, sidereal bool) ([]byte, error) {
-			return computeTransits(name, year, month, day, hour, minute, tzOff, lat, lng, startDate, endDate, orbDeg, sidereal, cacheDir)
+			return marshalResult(computeTransits(name, year, month, day, hour, minute, tzOff, lat, lng, startDate, endDate, orbDeg, sidereal, cacheDir))
 		}
 
 		synastry := func(name1 string, y1, mo1, d1, h1, mi1 int, tz1, la1, lo1 float64, name2 string, y2, mo2, d2, h2, mi2 int, tz2, la2, lo2 float64, orbDeg float64) ([]byte, error) {
-			return computeSynastry(name1, y1, mo1, d1, h1, mi1, tz1, la1, lo1, name2, y2, mo2, d2, h2, mi2, tz2, la2, lo2, orbDeg, cacheDir)
+			return marshalResult(computeSynastry(name1, y1, mo1, d1, h1, mi1, tz1, la1, lo1, name2, y2, mo2, d2, h2, mi2, tz2, la2, lo2, orbDeg, cacheDir))
 		}
 
 		relocation := func(name string, year, month, day, hour, minute int, tzOff, lat, lng float64, locA server.LatLng, locB server.LatLng, targetDate string) ([]byte, error) {
-			return computeRelocation(name, year, month, day, hour, minute, tzOff, lat, lng, locA, locB, targetDate, cacheDir)
+			return marshalResult(computeRelocation(name, year, month, day, hour, minute, tzOff, lat, lng, locA, locB, targetDate, cacheDir))
 		}
 
 		chart := func(name string, year, month, day, hour, minute int, tzOff, lat, lng float64, houseSystem string, sidereal bool, showAspects bool, outerPlanets bool, highlightPatterns bool, patternOrb float64) (string, error) {
@@ -92,54 +105,54 @@ func main() {
 
 		draconic := func(name string, year, month, day, hour, minute int, tzOff, lat, lng float64, orbDeg float64) ([]byte, error) {
 			cd := computePositions(year, month, day, hour, minute, tzOff, lat, lng, cacheDir)
-			return computeDraconic(name, cd, orbDeg)
+			return marshalResult(computeDraconic(name, cd, orbDeg))
 		}
 
 		draconicSynastry := func(name1 string, y1, mo1, d1, h1, mi1 int, tz1, la1, lo1 float64, name2 string, y2, mo2, d2, h2, mi2 int, tz2, la2, lo2 float64, orbDeg float64) ([]byte, error) {
 			cd1 := computePositions(y1, mo1, d1, h1, mi1, tz1, la1, lo1, cacheDir)
 			cd2 := computePositions(y2, mo2, d2, h2, mi2, tz2, la2, lo2, cacheDir)
-			return computeDraconicSynastry(name1, cd1, name2, cd2, orbDeg)
+			return marshalResult(computeDraconicSynastry(name1, cd1, name2, cd2, orbDeg))
 		}
 
 		draconicSynastryFull := func(name1 string, y1, mo1, d1, h1, mi1 int, tz1, la1, lo1 float64, name2 string, y2, mo2, d2, h2, mi2 int, tz2, la2, lo2 float64, orbDeg float64) ([]byte, error) {
 			cd1 := computePositions(y1, mo1, d1, h1, mi1, tz1, la1, lo1, cacheDir)
 			cd2 := computePositions(y2, mo2, d2, h2, mi2, tz2, la2, lo2, cacheDir)
-			return computeDraconicSynastryFull(name1, cd1, name2, cd2, orbDeg)
+			return marshalResult(computeDraconicSynastryFull(name1, cd1, name2, cd2, orbDeg))
 		}
 
 		draconicTransits := func(name string, year, month, day, hour, minute int, tzOff, lat, lng float64, startDate, endDate string, orbDeg float64) ([]byte, error) {
 			cd := computePositions(year, month, day, hour, minute, tzOff, lat, lng, cacheDir)
-			return computeDraconicTransits(name, cd, startDate, endDate, orbDeg, cacheDir)
+			return marshalResult(computeDraconicTransits(name, cd, startDate, endDate, orbDeg, cacheDir))
 		}
 
 		progressedDraconic := func(name string, year, month, day, hour, minute int, tzOff, lat, lng float64, targetDate string) ([]byte, error) {
 			cd := computePositions(year, month, day, hour, minute, tzOff, lat, lng, cacheDir)
-			return computeProgressedDraconic(name, cd, targetDate, cacheDir)
+			return marshalResult(computeProgressedDraconic(name, cd, targetDate, cacheDir))
 		}
 
 		draconicSolarReturn := func(name string, year, month, day, hour, minute int, tzOff, lat, lng float64, targetYear int) ([]byte, error) {
 			cd := computePositions(year, month, day, hour, minute, tzOff, lat, lng, cacheDir)
-			return computeDraconicSolarReturn(name, cd, targetYear, cacheDir)
+			return marshalResult(computeDraconicSolarReturn(name, cd, targetYear, cacheDir))
 		}
 
 		stars := func(name string, year, month, day, hour, minute int, tzOff, lat, lng float64, orbDeg float64) ([]byte, error) {
 			cd := computePositions(year, month, day, hour, minute, tzOff, lat, lng, cacheDir)
-			return computeStars(name, cd, orbDeg, cacheDir)
+			return marshalResult(computeStars(name, cd, orbDeg, cacheDir))
 		}
 
 		draconicTransitsCross := func(name string, year, month, day, hour, minute int, tzOff, lat, lng float64, startDate, endDate string, orbDeg float64) ([]byte, error) {
 			cd := computePositions(year, month, day, hour, minute, tzOff, lat, lng, cacheDir)
-			return computeDraconicTransitsCross(name, cd, startDate, endDate, orbDeg, cacheDir)
+			return marshalResult(computeDraconicTransitsCross(name, cd, startDate, endDate, orbDeg, cacheDir))
 		}
 
 		progressedCross := func(name string, year, month, day, hour, minute int, tzOff, lat, lng float64, targetDate string, orbDeg float64) ([]byte, error) {
 			cd := computePositions(year, month, day, hour, minute, tzOff, lat, lng, cacheDir)
-			return computeProgressedCross(name, cd, targetDate, orbDeg, cacheDir)
+			return marshalResult(computeProgressedCross(name, cd, targetDate, orbDeg, cacheDir))
 		}
 
 		directions := func(name string, year, month, day, hour, minute int, tzOff, lat, lng float64, age float64, orbDeg float64) ([]byte, error) {
 			cd := computePositions(year, month, day, hour, minute, tzOff, lat, lng, cacheDir)
-			return computeDirections(name, cd, lat, lng, age, orbDeg, cacheDir)
+			return marshalResult(computeDirections(name, cd, lat, lng, age, orbDeg, cacheDir))
 		}
 
 		interpretation := func(name string, year, month, day, hour, minute int, tzOff, lat, lng float64, houseSystem string, orbDeg float64) ([]byte, error) {
@@ -149,78 +162,78 @@ func main() {
 
 		astroCartography := func(name string, year, month, day, hour, minute int, tzOff, lat, lng float64, latStep float64, frame string) ([]byte, error) {
 			cd := computePositions(year, month, day, hour, minute, tzOff, lat, lng, cacheDir)
-			return computeAstroCartography(name, cd, latStep, frame, cacheDir)
+			return marshalResult(computeAstroCartography(name, cd, latStep, frame, cacheDir))
 		}
 
 		astroCartographyCompare := func(name string, year, month, day, hour, minute int, tzOff, lat, lng float64, latStep, targetLat, targetLng, orb float64) ([]byte, error) {
 			cd := computePositions(year, month, day, hour, minute, tzOff, lat, lng, cacheDir)
-			return computeAstroCartographyCompare(name, cd, latStep, targetLat, targetLng, orb, cacheDir)
+			return marshalResult(computeAstroCartographyCompare(name, cd, latStep, targetLat, targetLng, orb, cacheDir))
 		}
 
 		electional := func(name string, year, month, day, hour, minute int, tzOff, lat, lng float64, startDate, endDate string, orbDeg float64) ([]byte, error) {
 			cd := computePositions(year, month, day, hour, minute, tzOff, lat, lng, cacheDir)
-			return computeElectional(name, cd, lat, lng, startDate, endDate, orbDeg, cacheDir)
+			return marshalResult(computeElectional(name, cd, lat, lng, startDate, endDate, orbDeg, cacheDir))
 		}
 
 		mansionConvergence := func(name string, year, month, day, hour, minute int, tzOff, lat, lng float64) ([]byte, error) {
 			cd := computePositions(year, month, day, hour, minute, tzOff, lat, lng, cacheDir)
-			return computeMansionConvergence(name, cd, cacheDir)
+			return marshalResult(computeMansionConvergence(name, cd, cacheDir))
 		}
 
 		arabicParts := func(name string, year, month, day, hour, minute int, tzOff, lat, lng float64, orbDeg float64) ([]byte, error) {
 			cd := computePositions(year, month, day, hour, minute, tzOff, lat, lng, cacheDir)
-			return computeArabicParts(name, cd, orbDeg, cacheDir)
+			return marshalResult(computeArabicParts(name, cd, orbDeg, cacheDir))
 		}
 
 		solarReturn := func(name string, year, month, day, hour, minute int, tzOff, lat, lng float64, targetYear int) ([]byte, error) {
 			cd := computePositions(year, month, day, hour, minute, tzOff, lat, lng, cacheDir)
-			return computeTropicalSolarReturn(name, cd, targetYear, cacheDir)
+			return marshalResult(computeTropicalSolarReturn(name, cd, targetYear, cacheDir))
 		}
 
 		composite := func(name1 string, y1, m1, d1, h1, min1 int, tz1, lat1, lng1 float64, name2 string, y2, m2, d2, h2, min2 int, tz2, lat2, lng2 float64, orbDeg float64) ([]byte, error) {
 			cd1 := computePositions(y1, m1, d1, h1, min1, tz1, lat1, lng1, cacheDir)
 			cd2 := computePositions(y2, m2, d2, h2, min2, tz2, lat2, lng2, cacheDir)
-			return computeComposite(name1, name2, cd1, cd2, orbDeg, cacheDir)
+			return marshalResult(computeComposite(name1, name2, cd1, cd2, orbDeg, cacheDir))
 		}
 
 		starsCross := func(name string, year, month, day, hour, minute int, tzOff, lat, lng float64, orbDeg float64) ([]byte, error) {
 			cd := computePositions(year, month, day, hour, minute, tzOff, lat, lng, cacheDir)
-			return computeStarsCross(name, cd, orbDeg, cacheDir)
+			return marshalResult(computeStarsCross(name, cd, orbDeg, cacheDir))
 		}
 
 		traditional := func(name string, year, month, day, hour, minute int, tzOff, lat, lng float64) ([]byte, error) {
 			cd := computePositions(year, month, day, hour, minute, tzOff, lat, lng, cacheDir)
-			return computeTraditional(name, cd)
+			return marshalResult(computeTraditional(name, cd))
 		}
 
 		uranian := func(name string, year, month, day, hour, minute int, tzOff, lat, lng float64) ([]byte, error) {
 			cd := computePositions(year, month, day, hour, minute, tzOff, lat, lng, cacheDir)
-			return computeUranian(name, cd)
+			return marshalResult(computeUranian(name, cd))
 		}
 
 		harmonic := func(name string, year, month, day, hour, minute int, tzOff, lat, lng float64, harmonics []int, orb float64) ([]byte, error) {
 			cd := computePositions(year, month, day, hour, minute, tzOff, lat, lng, cacheDir)
-			return computeHarmonic(name, cd, harmonics, orb)
+			return marshalResult(computeHarmonic(name, cd, harmonics, orb))
 		}
 
 		divisional := func(name string, year, month, day, hour, minute int, tzOff, lat, lng float64) ([]byte, error) {
 			cd := computePositions(year, month, day, hour, minute, tzOff, lat, lng, cacheDir)
-			return computeDivisional(name, cd, year, month, day)
+			return marshalResult(computeDivisional(name, cd, year, month, day))
 		}
 
 		parans := func(name string, year, month, day, hour, minute int, tzOff, lat, lng float64, orb float64) ([]byte, error) {
 			cd := computePositions(year, month, day, hour, minute, tzOff, lat, lng, cacheDir)
-			return computeParans(name, cd, orb, cacheDir)
+			return marshalResult(computeParans(name, cd, orb, cacheDir))
 		}
 
 		declination := func(name string, year, month, day, hour, minute int, tzOff, lat, lng float64, orb float64) ([]byte, error) {
 			cd := computePositions(year, month, day, hour, minute, tzOff, lat, lng, cacheDir)
-			return computeDeclination(name, cd, orb)
+			return marshalResult(computeDeclination(name, cd, orb))
 		}
 
 		firdaria := func(name string, year, month, day, hour, minute int, tzOff, lat, lng float64) ([]byte, error) {
 			cd := computePositions(year, month, day, hour, minute, tzOff, lat, lng, cacheDir)
-			return computeFirdaria(name, cd, year, month, day)
+			return marshalResult(computeFirdaria(name, cd, year, month, day))
 		}
 
 		// Use embedded web files, stripping the "web/" prefix
@@ -304,10 +317,11 @@ func main() {
 			fmt.Fprintf(os.Stderr, "Transit error: %v\n", err)
 			os.Exit(1)
 		}
+		js, _ := json.Marshal(result)
 		if *jsonOut {
-			fmt.Println(string(result))
+			fmt.Println(string(js))
 		} else {
-			fmt.Print(string(result))
+			fmt.Print(string(js))
 		}
 		return
 	}
@@ -350,10 +364,11 @@ func main() {
 			fmt.Fprintf(os.Stderr, "Synastry error: %v\n", err)
 			os.Exit(1)
 		}
+		js, _ := json.Marshal(result)
 		if *jsonOut {
-			fmt.Println(string(result))
+			fmt.Println(string(js))
 		} else {
-			fmt.Print(string(result))
+			fmt.Print(string(js))
 		}
 		return
 	}
