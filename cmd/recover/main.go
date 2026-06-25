@@ -616,39 +616,11 @@ func computePositions(year, month, day, hour, minute int, tzOff, lat, lng float6
 
 	pls := map[string]float64{}
 	spds := map[string]float64{}
-	specs := []struct {
-		name string
-		id   int
-	}{
-		{"Sun", swe.SUN},
-		{"Moon", swe.MOON},
-		{"Mercury", swe.MERCURY},
-		{"Venus", swe.VENUS},
-		{"Mars", swe.MARS},
-		{"Jupiter", swe.JUPITER},
-		{"Saturn", swe.SATURN},
-		{"Uranus", swe.URANUS},
-		{"Neptune", swe.NEPTUNE},
-		{"Pluto", swe.PLUTO},
-		{"Ceres", swe.CERES},
-		{"Pallas", swe.PALLAS},
-		{"Juno", swe.JUNO},
-		{"Vesta", swe.VESTA},
-		{"Lilith", swe.MEAN_APOG},
-		{"Chiron", swe.CHIRON},
-		{"Cupido", swe.CUPIDO},
-		{"Hades", swe.HADES},
-		{"Zeus", swe.ZEUS},
-		{"Kronos", swe.KRONOS},
-		{"Apollon", swe.APOLLON},
-		{"Admetos", swe.ADMETOS},
-		{"Poseidon", swe.POSEIDON},
-		{"Vulkanus", swe.VULKANUS},
-	}
+	specs := dignity.AllPlanets
 	for _, p := range specs {
-		lon, speed, _, _ := swe.CalcUT(jd, p.id)
-		pls[p.name] = lon
-		spds[p.name] = speed
+		lon, speed, _, _ := swe.CalcUT(jd, p.ID)
+		pls[p.Name] = lon
+		spds[p.Name] = speed
 	}
 
 	// Get ASC and NN
@@ -1172,20 +1144,12 @@ func computeDraconicSolarReturn(name string, cd *chartData, targetYear int, cach
 	jdSR := findSolarReturnJD(natalSun, targetYear, cd.jd)
 
 	// Calculate positions at solar return
-	planetIDs := []struct {
-		name string
-		id   int
-	}{
-		{"Sun", swe.SUN}, {"Moon", swe.MOON}, {"Mercury", swe.MERCURY},
-		{"Venus", swe.VENUS}, {"Mars", swe.MARS}, {"Jupiter", swe.JUPITER},
-		{"Saturn", swe.SATURN}, {"Uranus", swe.URANUS}, {"Neptune", swe.NEPTUNE},
-		{"Pluto", swe.PLUTO}, {"Node", swe.MEAN_NODE},
-	}
+	planetIDs := dignity.BasicPlanets
 
 	tropical := make(map[string]float64)
 	for _, p := range planetIDs {
-		lon, _, _, _ := swe.CalcUT(jdSR, p.id)
-		tropical[p.name] = normalizeLon(lon)
+		lon, _, _, _ := swe.CalcUT(jdSR, p.ID)
+		tropical[p.Name] = normalizeLon(lon)
 	}
 
 	// Calculate ASC and MC at solar return
@@ -1299,25 +1263,12 @@ func computeDraconicTransitsCross(name string, cd *chartData, startDate, endDate
 	// Compute tropical transiting positions
 	tropTransits := make(map[string]float64)
 	sidTransits := make(map[string]float64)
-	planetIDs := []struct {
-		name string
-		id   int
-	}{
-		{"Sun", swe.SUN}, {"Moon", swe.MOON}, {"Mercury", swe.MERCURY},
-		{"Venus", swe.VENUS}, {"Mars", swe.MARS}, {"Jupiter", swe.JUPITER},
-		{"Saturn", swe.SATURN}, {"Uranus", swe.URANUS}, {"Neptune", swe.NEPTUNE},
-		{"Pluto", swe.PLUTO}, {"Node", swe.MEAN_NODE},
-		{"Ceres", swe.CERES}, {"Pallas", swe.PALLAS}, {"Juno", swe.JUNO},
-		{"Vesta", swe.VESTA}, {"Lilith", swe.MEAN_APOG}, {"Chiron", swe.CHIRON},
-		{"Cupido", swe.CUPIDO}, {"Hades", swe.HADES}, {"Zeus", swe.ZEUS},
-		{"Kronos", swe.KRONOS}, {"Apollon", swe.APOLLON}, {"Admetos", swe.ADMETOS},
-		{"Poseidon", swe.POSEIDON}, {"Vulkanus", swe.VULKANUS},
-	}
+	planetIDs := dignity.AllPlanets
 	for _, p := range planetIDs {
-		lon, _, _, _ := swe.CalcUT(midJD, p.id)
+		lon, _, _, _ := swe.CalcUT(midJD, p.ID)
 		tropLon := normalizeLon(lon)
-		tropTransits[p.name] = tropLon
-		sidTransits[p.name] = normalizeLon(tropLon - ayan)
+		tropTransits[p.Name] = tropLon
+		sidTransits[p.Name] = normalizeLon(tropLon - ayan)
 	}
 
 	aspects := dignity.DefaultAspects()
@@ -1387,31 +1338,17 @@ func computeProgressedCross(name string, cd *chartData, targetDate string, orbDe
 	}
 
 	// Progressed positions (tropical)
-	planetIDs := []struct {
-		name string
-		id   int
-	}{
-		{"Sun", swe.SUN}, {"Moon", swe.MOON}, {"Mercury", swe.MERCURY},
-		{"Venus", swe.VENUS}, {"Mars", swe.MARS}, {"Jupiter", swe.JUPITER},
-		{"Saturn", swe.SATURN}, {"Uranus", swe.URANUS}, {"Neptune", swe.NEPTUNE},
-		{"Pluto", swe.PLUTO}, {"Node", swe.MEAN_NODE},
-		{"Chiron", swe.CHIRON}, {"Lilith", swe.MEAN_APOG},
-		{"Ceres", swe.CERES}, {"Pallas", swe.PALLAS}, {"Juno", swe.JUNO},
-		{"Vesta", swe.VESTA},
-		{"Cupido", swe.CUPIDO}, {"Hades", swe.HADES}, {"Zeus", swe.ZEUS},
-		{"Kronos", swe.KRONOS}, {"Apollon", swe.APOLLON}, {"Admetos", swe.ADMETOS},
-		{"Vulcanus", swe.VULKANUS}, {"Poseidon", swe.POSEIDON},
-	}
+	planetIDs := dignity.AllPlanets
 	prog := make(map[string]float64)
 	for _, p := range planetIDs {
-		lon, _, _, _ := swe.CalcUT(progJD, p.id)
+		lon, _, _, _ := swe.CalcUT(progJD, p.ID)
 		for lon < 0 {
 			lon += 360
 		}
 		for lon >= 360 {
 			lon -= 360
 		}
-		prog[p.name] = lon
+		prog[p.Name] = lon
 	}
 
 	// Ayanamsa at birth
@@ -1788,25 +1725,16 @@ func computeElectional(name string, cd *chartData, lat, lng float64, startDate, 
 	for jd := startJD; jd <= endJD; jd++ {
 		// Transit positions at noon UT
 		transit := make(map[string]float64)
-		planetIDs := []struct {
-			name string
-			id   int
-		}{
-			{"Sun", swe.SUN}, {"Moon", swe.MOON}, {"Mercury", swe.MERCURY},
-			{"Venus", swe.VENUS}, {"Mars", swe.MARS}, {"Jupiter", swe.JUPITER},
-			{"Saturn", swe.SATURN}, {"Uranus", swe.URANUS}, {"Neptune", swe.NEPTUNE},
-			{"Pluto", swe.PLUTO}, {"Node", swe.MEAN_NODE},
-			{"Chiron", swe.CHIRON}, {"Lilith", swe.MEAN_APOG},
-		}
+		planetIDs := dignity.ElectionalPlanets
 		for _, p := range planetIDs {
-			lon, _, _, _ := swe.CalcUT(jd, p.id)
+			lon, _, _, _ := swe.CalcUT(jd, p.ID)
 			for lon < 0 {
 				lon += 360
 			}
 			for lon >= 360 {
 				lon -= 360
 			}
-			transit[p.name] = lon
+			transit[p.Name] = lon
 		}
 
 		// Moon house (whole-sign from natal ASC)
@@ -2082,22 +2010,12 @@ func computeTropicalSolarReturn(name string, cd *chartData, targetYear int, cach
 	jdSR := findSolarReturnJD(natalSun, targetYear, cd.jd)
 
 	// Full planet set for solar return
-	planetIDs := []struct {
-		name string
-		id   int
-	}{
-		{"Sun", swe.SUN}, {"Moon", swe.MOON}, {"Mercury", swe.MERCURY},
-		{"Venus", swe.VENUS}, {"Mars", swe.MARS}, {"Jupiter", swe.JUPITER},
-		{"Saturn", swe.SATURN}, {"Uranus", swe.URANUS}, {"Neptune", swe.NEPTUNE},
-		{"Pluto", swe.PLUTO}, {"Node", swe.MEAN_NODE},
-		{"Ceres", swe.CERES}, {"Pallas", swe.PALLAS}, {"Juno", swe.JUNO},
-		{"Vesta", swe.VESTA}, {"Lilith", swe.MEAN_APOG}, {"Chiron", swe.CHIRON},
-	}
+	planetIDs := dignity.AllPlanets[:18] // Sun-Pluto+Node+asteroids+Chiron+Lilith
 
 	srPositions := make(map[string]float64)
 	for _, p := range planetIDs {
-		lon, _, _, _ := swe.CalcUT(jdSR, p.id)
-		srPositions[p.name] = normalizeLon(lon)
+		lon, _, _, _ := swe.CalcUT(jdSR, p.ID)
+		srPositions[p.Name] = normalizeLon(lon)
 	}
 
 	// ASC/MC at solar return
@@ -2118,11 +2036,11 @@ func computeTropicalSolarReturn(name string, cd *chartData, targetYear int, cach
 
 	// Same-body aspects: SR Sun to natal Sun, etc.
 	for _, p := range planetIDs {
-		srLon, ok := srPositions[p.name]
+		srLon, ok := srPositions[p.Name]
 		if !ok {
 			continue
 		}
-		natLon, ok := natal[p.name]
+		natLon, ok := natal[p.Name]
 		if !ok {
 			continue
 		}
@@ -2131,8 +2049,8 @@ func computeTropicalSolarReturn(name string, cd *chartData, targetYear int, cach
 			diff := math.Abs(dist - a.Angle)
 			if diff <= orb {
 				srAspects = append(srAspects, dignity.SynastryHit{
-					Planet1: "SR_" + p.name,
-					Planet2: "Natal_" + p.name,
+					Planet1: "SR_" + p.Name,
+					Planet2: "Natal_" + p.Name,
 					Aspect:  a.Name,
 					Orb:     math.Round(diff*100) / 100,
 				})
@@ -2142,15 +2060,15 @@ func computeTropicalSolarReturn(name string, cd *chartData, targetYear int, cach
 
 	// Cross-body aspects: SR planet to natal planet
 	for _, p1 := range planetIDs {
-		srLon, ok1 := srPositions[p1.name]
+		srLon, ok1 := srPositions[p1.Name]
 		if !ok1 {
 			continue
 		}
 		for _, p2 := range planetIDs {
-			if p1.name == p2.name {
+			if p1.Name == p2.Name {
 				continue
 			}
-			natLon, ok2 := natal[p2.name]
+			natLon, ok2 := natal[p2.Name]
 			if !ok2 {
 				continue
 			}
@@ -2159,8 +2077,8 @@ func computeTropicalSolarReturn(name string, cd *chartData, targetYear int, cach
 				diff := math.Abs(dist - a.Angle)
 				if diff <= orb {
 					srAspects = append(srAspects, dignity.SynastryHit{
-						Planet1: "SR_" + p1.name,
-						Planet2: "Natal_" + p2.name,
+						Planet1: "SR_" + p1.Name,
+						Planet2: "Natal_" + p2.Name,
 						Aspect:  a.Name,
 						Orb:     math.Round(diff*100) / 100,
 					})
@@ -2228,32 +2146,18 @@ func computeProgressed(name string, cd *chartData, targetDate string, orbDeg flo
 	progJD := cd.jd + age
 
 	// Compute progressed positions
-	planetIDs := []struct {
-		name string
-		id   int
-	}{
-		{"Sun", swe.SUN}, {"Moon", swe.MOON}, {"Mercury", swe.MERCURY},
-		{"Venus", swe.VENUS}, {"Mars", swe.MARS}, {"Jupiter", swe.JUPITER},
-		{"Saturn", swe.SATURN}, {"Uranus", swe.URANUS}, {"Neptune", swe.NEPTUNE},
-		{"Pluto", swe.PLUTO}, {"Node", swe.MEAN_NODE},
-		{"Chiron", swe.CHIRON}, {"Lilith", swe.MEAN_APOG},
-		{"Ceres", swe.CERES}, {"Pallas", swe.PALLAS}, {"Juno", swe.JUNO},
-		{"Vesta", swe.VESTA},
-		{"Cupido", swe.CUPIDO}, {"Hades", swe.HADES}, {"Zeus", swe.ZEUS},
-		{"Kronos", swe.KRONOS}, {"Apollon", swe.APOLLON}, {"Admetos", swe.ADMETOS},
-		{"Vulcanus", swe.VULKANUS}, {"Poseidon", swe.POSEIDON},
-	}
+	planetIDs := dignity.AllPlanets
 
 	progPositions := make(map[string]float64)
 	for _, p := range planetIDs {
-		lon, _, _, _ := swe.CalcUT(progJD, p.id)
+		lon, _, _, _ := swe.CalcUT(progJD, p.ID)
 		for lon < 0 {
 			lon += 360
 		}
 		for lon >= 360 {
 			lon -= 360
 		}
-		progPositions[p.name] = lon
+		progPositions[p.Name] = lon
 	}
 
 	// Natal positions
@@ -2341,20 +2245,10 @@ func computeDeclination(name string, cd *chartData, orb float64) ([]byte, error)
 	positions := make(map[string][2]float64)
 	// We need to re-compute with latitude. Use the JD from cd.
 	// Actually, we stored speeds but not latitudes. Re-compute.
-	specs := []struct {
-		name string
-		id   int
-	}{
-		{"Sun", swe.SUN}, {"Moon", swe.MOON}, {"Mercury", swe.MERCURY},
-		{"Venus", swe.VENUS}, {"Mars", swe.MARS}, {"Jupiter", swe.JUPITER},
-		{"Saturn", swe.SATURN}, {"Uranus", swe.URANUS}, {"Neptune", swe.NEPTUNE},
-		{"Pluto", swe.PLUTO}, {"Chiron", swe.CHIRON}, {"Lilith", swe.MEAN_APOG},
-		{"Ceres", swe.CERES}, {"Pallas", swe.PALLAS}, {"Juno", swe.JUNO},
-		{"Vesta", swe.VESTA},
-	}
+	specs := dignity.AllPlanets[:18] // Sun-Pluto+Node+asteroids+Chiron+Lilith
 	for _, p := range specs {
-		lon, lat, _, _ := swe.CalcUT(cd.jd, p.id)
-		positions[p.name] = [2]float64{lon, lat}
+		lon, lat, _, _ := swe.CalcUT(cd.jd, p.ID)
+		positions[p.Name] = [2]float64{lon, lat}
 	}
 	report := declination.ComputeDeclinationReport(name, positions, orb)
 	return json.Marshal(report)
