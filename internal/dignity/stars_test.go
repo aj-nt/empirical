@@ -3,6 +3,8 @@ package dignity
 import (
 	"math"
 	"testing"
+
+	"github.com/aj-nt/empirical/internal/swe"
 )
 
 func TestFindStarConjunctions(t *testing.T) {
@@ -185,5 +187,70 @@ func TestCompareStarConjunctionsCrossSystem_NoConjunctions(t *testing.T) {
 	}
 	if result.TotalSid != 0 {
 		t.Errorf("Expected 0 sidereal conjunctions, got %d", result.TotalSid)
+	}
+}
+
+// ── Golden Test: AJ's Natal Chart + Regulus ────────────────────────────────
+
+func TestFindStarAspects_AJ_Regulus(t *testing.T) {
+	initEphe(t)
+
+	bc, err := ComputeBaseChart(
+		"AJ",
+		1969, 2, 15, 23, 10, 0,
+		-8.0, 47.038, -122.901,
+	)
+	if err != nil {
+		t.Fatalf("ComputeBaseChart: %v", err)
+	}
+
+	// Regulus position via Swiss Ephemeris
+	regulusLon, _, _, _ := swe.Fixstar("Regulus", bc.JD)
+	regulusLon = math.Mod(regulusLon+360, 360)
+
+	// Golden: Regulus at ~149.41° (Leo)
+	if math.Abs(regulusLon-149.41) > 0.05 {
+		t.Errorf("Regulus tropical: got %.2f°, want ~149.41°", regulusLon)
+	}
+
+	// Extract planet longitudes from BaseChart (traditional 10 only, matching
+	// the original check_regulus tool's planet set)
+	planetLons := make(map[string]float64)
+	for _, name := range []string{"Sun", "Moon", "Mercury", "Venus", "Mars", "Jupiter", "Saturn", "Uranus", "Neptune", "Pluto"} {
+		if pos, ok := bc.Tropical[name]; ok {
+			planetLons[name] = pos.Lon
+		}
+	}
+
+	// Find all aspects within 5° orb
+	hits := FindStarAspects(regulusLon, "Regulus", planetLons, DefaultAspects(), 5.0)
+
+	// Golden: 3 aspects — Sun opposition, Neptune square, Mars square
+	if len(hits) != 3 {
+		t.Fatalf("expected 3 aspects, got %d: %+v", len(hits), hits)
+	}
+
+	// Tightest: Neptune square Regulus at 0.74°
+	if hits[0].Planet != "Neptune" || hits[0].Aspect != "square" {
+		t.Errorf("tightest: want Neptune square, got %s %s", hits[0].Planet, hits[0].Aspect)
+	}
+	if math.Abs(hits[0].Orb-0.74) > 0.02 {
+		t.Errorf("Neptune square orb: want 0.74, got %.2f", hits[0].Orb)
+	}
+
+	// Second: Sun opposition Regulus at 1.96°
+	if hits[1].Planet != "Sun" || hits[1].Aspect != "opposition" {
+		t.Errorf("second: want Sun opposition, got %s %s", hits[1].Planet, hits[1].Aspect)
+	}
+	if math.Abs(hits[1].Orb-1.96) > 0.02 {
+		t.Errorf("Sun opposition orb: want 1.96, got %.2f", hits[1].Orb)
+	}
+
+	// Third: Mars square Regulus at 3.60°
+	if hits[2].Planet != "Mars" || hits[2].Aspect != "square" {
+		t.Errorf("third: want Mars square, got %s %s", hits[2].Planet, hits[2].Aspect)
+	}
+	if math.Abs(hits[2].Orb-3.60) > 0.02 {
+		t.Errorf("Mars square orb: want 3.60, got %.2f", hits[2].Orb)
 	}
 }

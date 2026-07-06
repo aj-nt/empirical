@@ -197,6 +197,54 @@ func FindStarConjunctions(starPositions, planetPositions map[string]float64, max
 	return conjunctions
 }
 
+// ── Star Aspects (all aspect types, not just conjunctions) ────────────────
+
+// StarAspectHit records an aspect between a planet and a fixed star.
+type StarAspectHit struct {
+	Star      string  `json:"star"`
+	StarLon   float64 `json:"star_lon"`
+	Planet    string  `json:"planet"`
+	PlanetLon float64 `json:"planet_lon"`
+	Aspect    string  `json:"aspect"`
+	Orb       float64 `json:"orb"`
+}
+
+// FindStarAspects finds all aspects between a single fixed star and a set of
+// planet positions within the given orb. Results are sorted by orb (tightest
+// first). Uses the same angleDist and AspectDef types as the rest of the
+// library — no duplicated math.
+func FindStarAspects(starLon float64, starName string, planetPositions map[string]float64, aspects []AspectDef, orb float64) []StarAspectHit {
+	var hits []StarAspectHit
+
+	for planet, plon := range planetPositions {
+		dist := angleDist(starLon, plon)
+		for _, a := range aspects {
+			diff := math.Abs(dist - a.Angle)
+			if diff <= orb {
+				hits = append(hits, StarAspectHit{
+					Star:      starName,
+					StarLon:   starLon,
+					Planet:    planet,
+					PlanetLon: plon,
+					Aspect:    a.Name,
+					Orb:       math.Round(diff*100) / 100,
+				})
+			}
+		}
+	}
+
+	// Sort by orb, tightest first
+	for i := 0; i < len(hits); i++ {
+		for j := i + 1; j < len(hits); j++ {
+			if hits[j].Orb < hits[i].Orb {
+				hits[i], hits[j] = hits[j], hits[i]
+			}
+		}
+	}
+
+	return hits
+}
+
 // ── Cross-System Star Conjunction Comparison ──────────────────────────────
 
 // StarCrossSystem holds the result of comparing star conjunctions

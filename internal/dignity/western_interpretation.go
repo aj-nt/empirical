@@ -268,6 +268,24 @@ func InterpretPattern(name string, planets []string) string {
 	return fmt.Sprintf("%s involving %s: %s.", name, planetList, pd)
 }
 
+// InterpretStarConjunction returns a natural-language description of a fixed star
+// conjunct a planet or point, including the star's traditional meaning and the
+// significance of the planet it touches.
+func InterpretStarConjunction(sc StarConjunction) string {
+	pd, ok := planetDescriptions[sc.Planet]
+	if !ok {
+		pd = strings.ToLower(sc.Planet)
+	}
+
+	sign := SignForLongitude(sc.PlanetLon)
+
+	return fmt.Sprintf(
+		"%s conjunct %s at %.2f° %s (orb %.2f°): %s touches %s — %s.",
+		sc.Star, sc.Planet, sc.PlanetLon, sign, sc.Orb,
+		sc.Star, pd, sc.Meaning,
+	)
+}
+
 // InterpretChart produces a full chart interpretation from planetary positions,
 // house placements, aspects, and patterns.
 func InterpretChart(
