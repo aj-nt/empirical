@@ -125,7 +125,7 @@ func ComputeBaseChart(
 			starPositions[starName] = normalizeLon(lon)
 		}
 	}
-	planetLons := tropicalToLonMap(tropical)
+	planetLons := TropicalToLonMap(tropical)
 	stars := FindStarConjunctions(starPositions, planetLons, 2.0)
 
 	// ── Arabic Parts ────────────────────────────────────────────────────
@@ -173,8 +173,8 @@ func ComputeBaseChart(
 	}, nil
 }
 
-// tropicalToLonMap extracts a longitude-only map from tropical positions.
-func tropicalToLonMap(tropical map[string]Position) map[string]float64 {
+// TropicalToLonMap extracts a longitude-only map from tropical positions.
+func TropicalToLonMap(tropical map[string]Position) map[string]float64 {
 	m := make(map[string]float64, len(tropical))
 	for k, v := range tropical {
 		m[k] = v.Lon

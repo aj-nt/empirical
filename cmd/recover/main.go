@@ -58,10 +58,10 @@ func main() {
 		}
 
 		timing := func(name string, year, month, day, hour, minute int, tzOff, lat, lng float64, targetDate string) ([]byte, error) {
-			chartData := computePositions(year, month, day, hour, minute, tzOff, lat, lng, cacheDir)
+			bc := computePositions(year, month, day, hour, minute, tzOff, lat, lng, cacheDir)
 			report := dignity.ComputeTimingReport(
 				name, year, month, day, hour, minute, tzOff, lat, lng,
-				targetDate, chartData.planets, chartData.ayan, chartData.asc,
+				targetDate, dignity.TropicalToLonMap(bc.Tropical), bc.Ayanamsa, bc.ASC,
 			)
 			return report.TimingReportJSON()
 		}
@@ -90,14 +90,10 @@ func main() {
 		}
 
 		patterns := func(name string, year, month, day, hour, minute int, tzOff, lat, lng float64, orbDeg float64) ([]byte, error) {
-			cd := computePositions(year, month, day, hour, minute, tzOff, lat, lng, cacheDir)
-			// All planets (including outer, asteroids, Lilith) are already in cd.planets
-			planetMap := make(map[string]float64)
-			for k, v := range cd.planets {
-				planetMap[k] = v
-			}
+			bc := computePositions(year, month, day, hour, minute, tzOff, lat, lng, cacheDir)
+			planetMap := dignity.TropicalToLonMap(bc.Tropical)
 			// Add North Node
-			planetMap["Node"] = cd.nn
+			planetMap["Node"] = bc.NorthNode
 			report := dignity.DetectPatterns(planetMap, orbDeg)
 			report.Name = name
 			return report.PatternReportJSON()
@@ -436,9 +432,8 @@ func main() {
 					fmt.Fprintf(os.Stderr, "unknown person: %s\n", name)
 					os.Exit(1)
 				}
-				cd := computePositions(b.y, b.mo, b.d, b.h, b.mi, b.tz, b.la, b.lo, cacheDir)
-				longs := make(map[string]float64)
-				for k, v := range cd.planets { longs[k] = v }
+				bc := computePositions(b.y, b.mo, b.d, b.h, b.mi, b.tz, b.la, b.lo, cacheDir)
+				longs := dignity.TropicalToLonMap(bc.Tropical)
 				people = append(people, dignity.BatchPerson{Name: name, PlanetLongs: longs})
 			}
 
@@ -490,9 +485,8 @@ func main() {
 					fmt.Fprintf(os.Stderr, "unknown person: %s\n", name)
 					os.Exit(1)
 				}
-				cd := computePositions(b.y, b.mo, b.d, b.h, b.mi, b.tz, b.la, b.lo, cacheDir)
-				longs := make(map[string]float64)
-				for k, v := range cd.planets { longs[k] = v }
+				bc := computePositions(b.y, b.mo, b.d, b.h, b.mi, b.tz, b.la, b.lo, cacheDir)
+				longs := dignity.TropicalToLonMap(bc.Tropical)
 				people = append(people, dignity.BatchPerson{Name: name, PlanetLongs: longs})
 			}
 
