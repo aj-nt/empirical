@@ -326,10 +326,7 @@ func computeTransits(name string, year, month, day, hour, minute int, tzOff, lat
 	bc := computePositions(year, month, day, hour, minute, tzOff, lat, lng, cacheDir)
 
 	// Build planet positions — all bodies already in dignity.TropicalToLonMap(bc.Tropical)
-	natalLongs := make(map[string]float64)
-	for k, v := range dignity.TropicalToLonMap(bc.Tropical) {
-		natalLongs[k] = v
-	}
+	natalLongs := dignity.TropicalToLonMap(bc.Tropical)
 
 	natalPlanets := dignity.AllPlanetNames
 
@@ -412,14 +409,8 @@ func computeSynastry(name1 string, y1, mo1, d1, h1, mi1 int, tz1, la1, lo1 float
 	bc2 := computePositions(y2, mo2, d2, h2, mi2, tz2, la2, lo2, cacheDir)
 
 	// Build planet maps — all bodies already in dignity.TropicalToLonMap(bc.Tropical)
-	chart1 := make(map[string]float64)
-	for k, v := range dignity.TropicalToLonMap(bc1.Tropical) {
-		chart1[k] = v
-	}
-	chart2 := make(map[string]float64)
-	for k, v := range dignity.TropicalToLonMap(bc2.Tropical) {
-		chart2[k] = v
-	}
+	chart1 := dignity.TropicalToLonMap(bc1.Tropical)
+	chart2 := dignity.TropicalToLonMap(bc2.Tropical)
 
 	planets := dignity.AllPlanetNames
 	aspects := []dignity.AspectDef{
@@ -555,14 +546,8 @@ func computeDraconic(name string, bc *dignity.BaseChart, orbDeg float64) (*Draco
 
 // computeDraconicSynastry builds the draconic synastry JSON response.
 func computeDraconicSynastry(name1 string, bc1 *dignity.BaseChart, name2 string, bc2 *dignity.BaseChart, orbDeg float64) (*DraconicSynastryResponse, error) {
-	tropical1 := make(map[string]float64)
-	for k, v := range dignity.TropicalToLonMap(bc1.Tropical) {
-		tropical1[k] = v
-	}
-	tropical2 := make(map[string]float64)
-	for k, v := range dignity.TropicalToLonMap(bc2.Tropical) {
-		tropical2[k] = v
-	}
+	tropical1 := dignity.TropicalToLonMap(bc1.Tropical)
+	tropical2 := dignity.TropicalToLonMap(bc2.Tropical)
 
 	allPlanets := dignity.NonTNPNoNodePlanetNames
 	hits := dignity.ComputeDraconicSynastry(tropical1, bc1.NorthNode, tropical2, bc2.NorthNode, allPlanets, dignity.DefaultAspects(), orbDeg)
@@ -576,14 +561,8 @@ func computeDraconicSynastry(name1 string, bc1 *dignity.BaseChart, name2 string,
 
 // computeDraconicSynastryFull builds the full three-layer draconic synastry JSON.
 func computeDraconicSynastryFull(name1 string, bc1 *dignity.BaseChart, name2 string, bc2 *dignity.BaseChart, orbDeg float64) (*DraconicSynastryFullResponse, error) {
-	tropical1 := make(map[string]float64)
-	for k, v := range dignity.TropicalToLonMap(bc1.Tropical) {
-		tropical1[k] = v
-	}
-	tropical2 := make(map[string]float64)
-	for k, v := range dignity.TropicalToLonMap(bc2.Tropical) {
-		tropical2[k] = v
-	}
+	tropical1 := dignity.TropicalToLonMap(bc1.Tropical)
+	tropical2 := dignity.TropicalToLonMap(bc2.Tropical)
 
 	allPlanets := dignity.NonTNPNoNodePlanetNames
 	result := dignity.ComputeDraconicSynastryFull(tropical1, bc1.NorthNode, tropical2, bc2.NorthNode, allPlanets, dignity.DefaultAspects(), orbDeg)
@@ -938,46 +917,8 @@ func computeDirections(name string, bc *dignity.BaseChart, lat, lng, age float64
 
 // computeInterpretation produces a natural-language chart interpretation.
 func computeInterpretation(name string, bc *dignity.BaseChart, lat, lng float64, houseSystem string, orbDeg float64, cacheDir string) ([]byte, error) {
-	// Compute houses
-	hs := houseSystem
-	if hs == "" {
-		hs = "P"
-	}
-	_, ascmc := swe.Houses(bc.JD, lat, lng, hs[0])
-	ascLon := ascmc[0]
-
-	// Planet-to-house mapping (whole-sign from ASC)
-	houses := make(map[string]int)
-	for planet, lon := range dignity.TropicalToLonMap(bc.Tropical) {
-		house := ((int(lon/30) - int(ascLon/30) + 12) % 12) + 1
-		houses[planet] = house
-	}
-
-	// Compute aspects
-	aspects := dignity.DefaultAspects()
-	aspectHits := dignity.FindNatalAspects(dignity.TropicalToLonMap(bc.Tropical), aspects, orbDeg)
-	var hits []dignity.AspectHit
-	for _, a := range aspectHits {
-		hits = append(hits, dignity.AspectHit{
-			Planet1: a.Planet1,
-			Planet2: a.Planet2,
-			Aspect:  a.Aspect,
-			Orb:     a.Orb,
-		})
-	}
-
-	// Compute patterns
-	patternReport := dignity.DetectPatterns(dignity.TropicalToLonMap(bc.Tropical), orbDeg)
-	var patternHits []dignity.PatternHit
-	for _, p := range patternReport.Patterns {
-		patternHits = append(patternHits, dignity.PatternHit{
-			Name:    p.Name,
-			Planets: p.Planets,
-		})
-	}
-
-	// Build interpretation
-	report := dignity.InterpretChart(name, dignity.TropicalToLonMap(bc.Tropical), houses, hits, patternHits, nil)
+	bc.Name = name
+	report := dignity.KoinéFromBase(bc, orbDeg)
 	return report.JSON()
 }
 
@@ -1298,10 +1239,7 @@ func computeStars(name string, bc *dignity.BaseChart, orbDeg float64, cacheDir s
 	}
 
 	// Build planet position map
-	planetPositions := make(map[string]float64)
-	for k, v := range dignity.TropicalToLonMap(bc.Tropical) {
-		planetPositions[k] = v
-	}
+	planetPositions := dignity.TropicalToLonMap(bc.Tropical)
 
 	conjunctions := dignity.FindStarConjunctions(starPositions, planetPositions, orbDeg)
 
@@ -1336,10 +1274,7 @@ func computeStarsCross(name string, bc *dignity.BaseChart, orbDeg float64, cache
 	}
 
 	// Build planet position map
-	planetPositions := make(map[string]float64)
-	for k, v := range dignity.TropicalToLonMap(bc.Tropical) {
-		planetPositions[k] = v
-	}
+	planetPositions := dignity.TropicalToLonMap(bc.Tropical)
 
 	result := dignity.CompareStarConjunctionsCrossSystem(name, starPositions, planetPositions, bc.Ayanamsa, orbDeg)
 	return result, nil
@@ -1564,10 +1499,7 @@ func computeProgressed(name string, bc *dignity.BaseChart, targetDate string, or
 	}
 
 	// Natal positions
-	natalPositions := make(map[string]float64)
-	for k, v := range dignity.TropicalToLonMap(bc.Tropical) {
-		natalPositions[k] = v
-	}
+	natalPositions := dignity.TropicalToLonMap(bc.Tropical)
 
 	report := dignity.ComputeProgressedReport(name, targetDate, age, progPositions, natalPositions, orbDeg)
 	return report, nil
@@ -1575,17 +1507,11 @@ func computeProgressed(name string, bc *dignity.BaseChart, targetDate string, or
 
 // computeComposite computes a midpoint composite chart for two people.
 func computeComposite(name1, name2 string, bc1, bc2 *dignity.BaseChart, orbDeg float64, cacheDir string) (*dignity.CompositeReport, error) {
-	// Build tropical planet maps
-	chart1 := make(map[string]float64)
-	for k, v := range dignity.TropicalToLonMap(bc1.Tropical) {
-		chart1[k] = v
-	}
+	// Build tropical planet maps with Ascendant
+	chart1 := dignity.TropicalToLonMap(bc1.Tropical)
 	chart1["Ascendant"] = bc1.ASC
 
-	chart2 := make(map[string]float64)
-	for k, v := range dignity.TropicalToLonMap(bc2.Tropical) {
-		chart2[k] = v
-	}
+	chart2 := dignity.TropicalToLonMap(bc2.Tropical)
 	chart2["Ascendant"] = bc2.ASC
 
 	report := dignity.ComputeCompositeReport(name1, name2, chart1, chart2, orbDeg)
@@ -1642,16 +1568,10 @@ func computeParans(name string, bc *dignity.BaseChart, orb float64, cacheDir str
 
 // computeDeclination computes declination parallels.
 func computeDeclination(name string, bc *dignity.BaseChart, orb float64) (declination.DeclinationReport, error) {
-	// Build positions with lon/lat pairs
-	// We need latitudes — re-compute with CalcUT which returns lat
-	// For now, use the stored speeds and re-derive from SWE
-	positions := make(map[string][2]float64)
-	// We need to re-compute with latitude. Use the JD from bc.
-	// Actually, we stored speeds but not latitudes. Re-compute.
-	specs := dignity.AllPlanets[:18] // Sun-Pluto+Node+asteroids+Chiron+Lilith
-	for _, p := range specs {
-		lon, lat, _, _ := swe.CalcUT(bc.JD, p.ID)
-		positions[p.Name] = [2]float64{lon, lat}
+	// Extract lon/lat from BaseChart — no SWE re-computation needed.
+	positions := make(map[string][2]float64, len(bc.Tropical))
+	for k, v := range bc.Tropical {
+		positions[k] = [2]float64{v.Lon, v.Lat}
 	}
 	report := declination.ComputeDeclinationReport(name, positions, orb)
 	return report, nil
@@ -1659,16 +1579,10 @@ func computeDeclination(name string, bc *dignity.BaseChart, orb float64) (declin
 
 // computeFirdaria computes Persian firdaria planetary periods.
 func computeFirdaria(name string, bc *dignity.BaseChart, year, month, day int) (firdaria.FirdariaReport, error) {
-	// Determine if Sun is above horizon (diurnal chart)
-	// Sun above ASC and below DSC means above horizon
+	// Determine if Sun is above horizon (diurnal chart) using BaseChart data.
 	sunLon := dignity.TropicalToLonMap(bc.Tropical)["Sun"]
-	// Sun is above horizon if it's between ASC and DSC (through MC)
-	// Simplified: Sun in houses 7-12 = above horizon
-	_, ascmc := swe.Houses(bc.JD, 0, 0, 'P')
-	asc := ascmc[0]
-	// Sun above horizon if its longitude is between ASC and ASC+180 (going forward)
 	sunAbove := false
-	diff := math.Mod(sunLon-asc+360, 360)
+	diff := math.Mod(sunLon-bc.ASC+360, 360)
 	if diff < 180 {
 		sunAbove = true
 	}

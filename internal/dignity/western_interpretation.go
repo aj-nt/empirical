@@ -3,12 +3,11 @@ package dignity
 import (
 	"encoding/json"
 	"fmt"
-	"math"
 	"strings"
 )
 
 // ═══════════════════════════════════════════════════════════════════════
-// Interpretation Engine
+// Western Interpretation Engine
 // ═══════════════════════════════════════════════════════════════════════
 //
 // Natural-language descriptions of chart features. Template-based,
@@ -186,41 +185,6 @@ var pairDynamics = map[string]string{
 
 // ── Interpretation functions ──────────────────────────────────────────
 
-// FindNatalAspects computes all aspects between natal planets.
-func FindNatalAspects(planets map[string]float64, aspects []AspectDef, orb float64) []AspectHit {
-	var hits []AspectHit
-	names := make([]string, 0, len(planets))
-	for n := range planets {
-		names = append(names, n)
-	}
-	for i := 0; i < len(names); i++ {
-		for j := i + 1; j < len(names); j++ {
-			p1, p2 := names[i], names[j]
-			dist := angleDist(planets[p1], planets[p2])
-			for _, a := range aspects {
-				diff := math.Abs(dist - a.Angle)
-				if diff <= orb {
-					hits = append(hits, AspectHit{
-						Planet1: p1,
-						Planet2: p2,
-						Aspect:  a.Name,
-						Orb:     math.Round(diff*100) / 100,
-					})
-				}
-			}
-		}
-	}
-	// Sort by orb
-	for i := 0; i < len(hits); i++ {
-		for j := i + 1; j < len(hits); j++ {
-			if hits[j].Orb < hits[i].Orb {
-				hits[i], hits[j] = hits[j], hits[i]
-			}
-		}
-	}
-	return hits
-}
-
 // InterpretPlanetInSign returns a natural-language description of a planet in a sign.
 func InterpretPlanetInSign(planet, sign string) string {
 	pd, ok := planetDescriptions[planet]
@@ -249,7 +213,16 @@ func InterpretPlanetInSign(planet, sign string) string {
 }
 
 // InterpretPlanetInHouse returns a natural-language description of a planet in a house.
+// Uses the authored planetHouseMeanings table when available; falls back to template assembly.
 func InterpretPlanetInHouse(planet string, house int) string {
+	// Check authored content first
+	if planetMap, ok := planetHouseMeanings[planet]; ok {
+		if meaning, ok := planetMap[house]; ok {
+			return meaning
+		}
+	}
+
+	// Fallback: template assembly
 	pd, ok := planetDescriptions[planet]
 	if !ok {
 		pd = strings.ToLower(planet)
