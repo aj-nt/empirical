@@ -21,12 +21,18 @@ const (
 	NEPTUNE   = C.SE_NEPTUNE
 	PLUTO     = C.SE_PLUTO
 	MEAN_NODE = C.SE_MEAN_NODE
+	TRUE_NODE = C.SE_TRUE_NODE
 	CHIRON    = C.SE_CHIRON
 	CERES     = C.SE_CERES
 	PALLAS    = C.SE_PALLAS
 	JUNO      = C.SE_JUNO
 	VESTA     = C.SE_VESTA
 	MEAN_APOG = C.SE_MEAN_APOG
+
+	// Dwarf planets and distant objects (asteroid numbers + SE_AST_OFFSET)
+	ERIS     = C.SE_AST_OFFSET + 136199
+	MAKEMAKE = C.SE_AST_OFFSET + 136472
+	GONGGONG = C.SE_AST_OFFSET + 225088
 
 	// Uranian (Hamburg School) hypothetical planets
 	CUPIDO   = C.SE_CUPIDO

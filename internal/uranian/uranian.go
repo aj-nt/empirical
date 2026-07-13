@@ -335,3 +335,120 @@ func ComputeUranianReport(name string, planets map[string]float64, houses map[st
 		Activations:      acts,
 	}
 }
+
+// ── General Midpoint Analysis (Ebertin-style) ─────────────────────────────
+
+// DirectMidpointHit represents a planet occupying a midpoint of two other objects.
+type DirectMidpointHit struct {
+	PairA  string  `json:"pair_a"`
+	PairB  string  `json:"pair_b"`
+	Planet string  `json:"planet"`
+	Orb    float64 `json:"orb"`
+}
+
+// FindDirectMidpoints finds all direct midpoint hits in a set of objects.
+// For every pair (A, B), checks if any third object C sits at the A/B midpoint
+// within maxOrb degrees. Results are sorted by orb ascending.
+// A planet is never a hit for a pair it's part of.
+func FindDirectMidpoints(objects map[string]float64, maxOrb float64) []DirectMidpointHit {
+	names := sortedKeys(objects)
+	var hits []DirectMidpointHit
+
+	for i, nameA := range names {
+		for _, nameB := range names[i+1:] {
+			mp := Midpoint(objects[nameA], objects[nameB])
+			for _, nameC := range names {
+				if nameC == nameA || nameC == nameB {
+					continue
+				}
+				orb := angularDistance(mp, objects[nameC])
+				if orb <= maxOrb {
+					hits = append(hits, DirectMidpointHit{
+						PairA:  nameA,
+						PairB:  nameB,
+						Planet: nameC,
+						Orb:    math.Round(orb*1e4) / 1e4,
+					})
+				}
+			}
+		}
+	}
+
+	sort.Slice(hits, func(i, j int) bool { return hits[i].Orb < hits[j].Orb })
+	return hits
+}
+
+// angularDistance returns the shortest angular distance between two longitudes.
+func angularDistance(a, b float64) float64 {
+	d := math.Abs(a - b)
+	if d > 180 {
+		d = 360 - d
+	}
+	return d
+}
+
+// ── Midpoint Report (Ebertin + Uranian combined) ──────────────────────────
+
+// MidpointReport combines general midpoint analysis with Uranian harmonic pictures.
+type MidpointReport struct {
+	Name             string              `json:"name"`
+	DialPositions    []DialEntry         `json:"dial_positions"`
+	DirectMidpoints  []DirectMidpointHit `json:"direct_midpoints"`
+	MidpointPictures []MidpointPicture   `json:"midpoint_pictures"`
+	TightPictures    []MidpointPicture   `json:"tight_pictures"`
+	Activations      []Activation        `json:"activations"`
+}
+
+// ComputeMidpointReport computes the full midpoint analysis including angles.
+// planets: planet name → ecliptic longitude
+// houses: house cusp name (e.g., "H1") → ecliptic longitude
+// angles: angle name (e.g., "ASC", "MC", "DSC", "IC") → ecliptic longitude
+func ComputeMidpointReport(name string, planets, houses, angles map[string]float64) MidpointReport {
+	// Combine all factors
+	factors := make(map[string]float64)
+	for k, v := range planets {
+		factors[k] = v
+	}
+	for k, v := range houses {
+		factors[k] = v
+	}
+	for k, v := range angles {
+		factors[k] = v
+	}
+
+	// Target longitudes: all planet + angle positions
+	targets := make([]float64, 0, len(planets)+len(angles))
+	for _, lon := range planets {
+		targets = append(targets, lon)
+	}
+	for _, lon := range angles {
+		targets = append(targets, lon)
+	}
+
+	direct := FindDirectMidpoints(factors, 1.0)
+	pics := FindMidpointPictures(factors, 1.0, true)
+	tight := FindTightPictures(factors, 0.5)
+	acts := FindActivations(targets, factors, 1.0)
+
+	if direct == nil {
+		direct = []DirectMidpointHit{}
+	}
+	if pics == nil {
+		pics = []MidpointPicture{}
+	}
+	if tight == nil {
+		tight = []MidpointPicture{}
+	}
+	if acts == nil {
+		acts = []Activation{}
+	}
+
+	return MidpointReport{
+		Name:             name,
+		DialPositions:    DialSort(factors),
+		DirectMidpoints:  direct,
+		MidpointPictures: pics,
+		TightPictures:    tight,
+		Activations:      acts,
+	}
+}

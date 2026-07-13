@@ -108,3 +108,115 @@ func TestTransit_CompactTransits(t *testing.T) {
 	if len(c) != 1 { t.Fatalf("want 1 compact, got %d", len(c)) }
 	if c[0].MinOrb != 0.0 { t.Errorf("want 0.0, got %.2f", c[0].MinOrb) }
 }
+
+func TestFindTransitPeriods_SaturnConjunctSaturn(t *testing.T) {
+	// AJ's natal Saturn at 21.48° — Saturn conjunct natal Saturn in 2027
+	natalLongs := map[string]float64{"Saturn": 21.48}
+	natalPlanets := []string{"Saturn"}
+	aspects := []AspectDef{{0, "conjunction"}}
+
+	periods, err := FindTransitPeriods(
+		natalLongs, []string{"Saturn"}, natalPlanets,
+		"2026-01-01", "2028-01-01",
+		aspects, 3.0, 1.0,
+	)
+	if err != nil {
+		t.Fatalf("FindTransitPeriods error: %v", err)
+	}
+	if len(periods) == 0 {
+		t.Fatal("expected at least 1 Saturn-Saturn conjunction period, got 0")
+	}
+	// Each period should have 3 contacts: ingress, peak, egress
+	for i, p := range periods {
+		if len(p.Contacts) != 3 {
+			t.Errorf("period %d: want 3 contacts, got %d", i, len(p.Contacts))
+		}
+		if p.Contacts[0].Type != ContactIngress {
+			t.Errorf("period %d: first contact should be ingress, got %v", i, p.Contacts[0].Type)
+		}
+		if p.Contacts[1].Type != ContactPeak {
+			t.Errorf("period %d: second contact should be peak, got %v", i, p.Contacts[1].Type)
+		}
+		if p.Contacts[2].Type != ContactEgress {
+			t.Errorf("period %d: third contact should be egress, got %v", i, p.Contacts[2].Type)
+		}
+		if p.TransitPlanet != "Saturn" || p.NatalPlanet != "Saturn" || p.Aspect != "conjunction" {
+			t.Errorf("period %d: unexpected planet/aspect: %s/%s/%s", i, p.TransitPlanet, p.NatalPlanet, p.Aspect)
+		}
+		// Peak orb should be very small for a conjunction
+		if p.Contacts[1].Orb > 0.5 {
+			t.Errorf("period %d: peak orb %.4f > 0.5", i, p.Contacts[1].Orb)
+		}
+	}
+	t.Logf("Found %d Saturn-Saturn conjunction periods", len(periods))
+}
+
+func TestFindTransitPeriods_SaturnSquareMoon_Zero(t *testing.T) {
+	// AJ's natal Moon at 322.29° — Saturn never squares it in 2026-2027
+	natalLongs := map[string]float64{"Moon": 322.29}
+	aspects := []AspectDef{{90, "square"}}
+
+	periods, err := FindTransitPeriods(
+		natalLongs, []string{"Saturn"}, []string{"Moon"},
+		"2026-01-01", "2028-01-01",
+		aspects, 3.0, 1.0,
+	)
+	if err != nil {
+		t.Fatalf("FindTransitPeriods error: %v", err)
+	}
+	if len(periods) != 0 {
+		t.Errorf("expected 0 Saturn-Moon square periods, got %d", len(periods))
+		for _, p := range periods {
+			t.Logf("  unexpected: %s %s %s, ingress=%v", p.TransitPlanet, p.Aspect, p.NatalPlanet, p.Contacts[0].JD)
+		}
+	}
+}
+
+func TestFindTransitPeriods_MercurySquareMoon(t *testing.T) {
+	// AJ's natal Moon at 322.29° — Mercury squares it multiple times in 2026
+	natalLongs := map[string]float64{"Moon": 322.29}
+	aspects := []AspectDef{{90, "square"}}
+
+	periods, err := FindTransitPeriods(
+		natalLongs, []string{"Mercury"}, []string{"Moon"},
+		"2026-01-01", "2027-01-01",
+		aspects, 3.0, 1.0,
+	)
+	if err != nil {
+		t.Fatalf("FindTransitPeriods error: %v", err)
+	}
+	if len(periods) < 2 {
+		t.Fatalf("expected at least 2 Mercury-Moon square periods, got %d", len(periods))
+	}
+	for i, p := range periods {
+		if len(p.Contacts) != 3 {
+			t.Errorf("period %d: want 3 contacts, got %d", i, len(p.Contacts))
+		}
+		if p.TransitPlanet != "Mercury" || p.NatalPlanet != "Moon" || p.Aspect != "square" {
+			t.Errorf("period %d: unexpected planet/aspect: %s/%s/%s", i, p.TransitPlanet, p.NatalPlanet, p.Aspect)
+		}
+	}
+	t.Logf("Found %d Mercury-Moon square periods", len(periods))
+}
+
+func TestFindTransitPeriods_InvalidDate(t *testing.T) {
+	_, err := FindTransitPeriods(
+		map[string]float64{"Sun": 0}, []string{"Sun"}, []string{"Sun"},
+		"bad-date", "2026-01-01",
+		HardAspectsOnly(), 3.0, 1.0,
+	)
+	if err == nil {
+		t.Error("expected error for invalid start date")
+	}
+}
+
+func TestFindTransitPeriods_UnknownPlanet(t *testing.T) {
+	_, err := FindTransitPeriods(
+		map[string]float64{"Sun": 0}, []string{"NotAPlanet"}, []string{"Sun"},
+		"2026-01-01", "2026-01-02",
+		HardAspectsOnly(), 3.0, 1.0,
+	)
+	if err == nil {
+		t.Error("expected error for unknown planet")
+	}
+}

@@ -21,25 +21,26 @@ var BasicPlanets = []PlanetID{
 	{"Neptune", swe.NEPTUNE},
 	{"Pluto", swe.PLUTO},
 	{"Node", swe.MEAN_NODE},
+	{"TrueNode", swe.TRUE_NODE},
 }
 
-// AllPlanets is BasicPlanets plus asteroids and TNPs (24 bodies).
+// AllPlanets is BasicPlanets plus asteroids, dwarf planets, and TNPs (28 bodies).
 var AllPlanets []PlanetID
 
 // ElectionalPlanets is BasicPlanets plus Chiron and Lilith (14 bodies).
 var ElectionalPlanets []PlanetID
 
-// AllPlanetNames is the name list for AllPlanets (24 bodies including TNPs).
+// AllPlanetNames is the name list for AllPlanets (28 bodies including TNPs and dwarf planets).
 var AllPlanetNames []string
 
-// NonTNPPlanetNames is AllPlanets minus TNPs (18 bodies: Sun-Pluto+Node+asteroids+Chiron+Lilith).
+// NonTNPPlanetNames is AllPlanets minus TNPs (22 bodies: Sun-Pluto+Node+TrueNode+asteroids+Chiron+Lilith+dwarfs).
 var NonTNPPlanetNames []string
 
-// NonTNPNoNodePlanetNames is NonTNPPlanetNames minus Node (17 bodies).
+// NonTNPNoNodePlanetNames is NonTNPPlanetNames minus Node and TrueNode (20 bodies).
 var NonTNPNoNodePlanetNames []string
 
 func init() {
-	AllPlanets = make([]PlanetID, 0, 24)
+	AllPlanets = make([]PlanetID, 0, 28)
 	AllPlanets = append(AllPlanets, BasicPlanets...)
 	AllPlanets = append(AllPlanets,
 		PlanetID{"Ceres", swe.CERES},
@@ -48,6 +49,9 @@ func init() {
 		PlanetID{"Vesta", swe.VESTA},
 		PlanetID{"Lilith", swe.MEAN_APOG},
 		PlanetID{"Chiron", swe.CHIRON},
+		PlanetID{"Eris", swe.ERIS},
+		PlanetID{"Makemake", swe.MAKEMAKE},
+		PlanetID{"Gonggong", swe.GONGGONG},
 		PlanetID{"Cupido", swe.CUPIDO},
 		PlanetID{"Hades", swe.HADES},
 		PlanetID{"Zeus", swe.ZEUS},
@@ -66,11 +70,11 @@ func init() {
 	)
 
 	AllPlanetNames = planetNames(AllPlanets)
-	NonTNPPlanetNames = planetNames(AllPlanets[:18])
+	NonTNPPlanetNames = planetNames(AllPlanets[:22])
 
-	NonTNPNoNodePlanetNames = make([]string, 0, 17)
-	for _, p := range AllPlanets[:18] {
-		if p.Name != "Node" {
+	NonTNPNoNodePlanetNames = make([]string, 0, 20)
+	for _, p := range AllPlanets[:22] {
+		if p.Name != "Node" && p.Name != "TrueNode" {
 			NonTNPNoNodePlanetNames = append(NonTNPNoNodePlanetNames, p.Name)
 		}
 	}

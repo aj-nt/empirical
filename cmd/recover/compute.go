@@ -1360,8 +1360,8 @@ func computeTropicalSolarReturn(name string, bc *dignity.BaseChart, targetYear i
 	natalSun := dignity.TropicalToLonMap(bc.Tropical)["Sun"]
 	jdSR := findSolarReturnJD(natalSun, targetYear, bc.JD)
 
-	// Full planet set for solar return
-	planetIDs := dignity.AllPlanets[:18] // Sun-Pluto+Node+asteroids+Chiron+Lilith
+	// Full planet set for solar return (non-TNP: Sun-Pluto+Nodes+asteroids+Chiron+Lilith+dwarfs)
+	planetIDs := dignity.AllPlanets[:22]
 
 	srPositions := make(map[string]float64)
 	for _, p := range planetIDs {
@@ -1525,14 +1525,21 @@ func computeTraditional(name string, bc *dignity.BaseChart) (dignity.Traditional
 }
 
 // computeUranian computes Uranian/Hamburg School midpoint analysis.
-func computeUranian(name string, bc *dignity.BaseChart) (uranian.UranianReport, error) {
+func computeUranian(name string, bc *dignity.BaseChart) (uranian.MidpointReport, error) {
 	// Compute houses for the chart
-	cusps, _ := swe.Houses(bc.JD, 0, 0, 'P')
+	cusps, ascmc := swe.Houses(bc.JD, bc.Lat, bc.Lng, 'P')
 	houses := make(map[string]float64)
 	for i := 1; i <= 12; i++ {
 		houses[fmt.Sprintf("H%d", i)] = cusps[i]
 	}
-	report := uranian.ComputeUranianReport(name, dignity.TropicalToLonMap(bc.Tropical), houses)
+	// Angles: ASC, MC, DSC (ASC+180), IC (MC+180)
+	angles := map[string]float64{
+		"ASC": ascmc[0],
+		"MC":  ascmc[1],
+		"DSC": math.Mod(ascmc[0]+180, 360),
+		"IC":  math.Mod(ascmc[1]+180, 360),
+	}
+	report := uranian.ComputeMidpointReport(name, dignity.TropicalToLonMap(bc.Tropical), houses, angles)
 	return report, nil
 }
 

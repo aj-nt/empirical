@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 )
 
-//go:embed ephe/*
+//go:embed ephe/* ephe/ast*/*.se1
 var epheFiles embed.FS
 
 // EnsureEpheCache extracts embedded ephemeris files to ~/.cache/empirical/ephe/
@@ -42,8 +42,18 @@ func EnsureEpheCache() (string, error) {
 			return err
 		}
 
-		// path is like "ephe/seas_18.se1" — extract just the filename
-		targetPath := filepath.Join(cacheDir, filepath.Base(path))
+		// path is like "ephe/seas_18.se1" or "ephe/ast136/s136199s.se1"
+		// Preserve subdirectory structure relative to ephe/
+		relPath, err := filepath.Rel("ephe", path)
+		if err != nil {
+			return err
+		}
+		targetPath := filepath.Join(cacheDir, relPath)
+		if dir := filepath.Dir(targetPath); dir != cacheDir {
+			if err := os.MkdirAll(dir, 0755); err != nil {
+				return err
+			}
+		}
 		return os.WriteFile(targetPath, data, 0644)
 	})
 }
