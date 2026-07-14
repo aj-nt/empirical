@@ -51,6 +51,32 @@ func DefaultAspects() []AspectDef {
 	return defaultAspectsVal
 }
 
+var (
+	westernAspectsOnce sync.Once
+	westernAspectsVal  []AspectDef
+)
+
+// WesternAspects returns the nine aspects used in modern Western astrology:
+// the five Ptolemaic aspects plus semi-sextile (30°), semi-square (45°),
+// sesquiquadrate (135°), and quincunx (150°).
+// The returned slice is cached; callers must not mutate it.
+func WesternAspects() []AspectDef {
+	westernAspectsOnce.Do(func() {
+		westernAspectsVal = []AspectDef{
+			{0, "conjunction"},
+			{30, "semi-sextile"},
+			{45, "semi-square"},
+			{60, "sextile"},
+			{90, "square"},
+			{120, "trine"},
+			{135, "sesquiquadrate"},
+			{150, "quincunx"},
+			{180, "opposition"},
+		}
+	})
+	return westernAspectsVal
+}
+
 // TransitHit records one transit-to-natal aspect at a specific date.
 type TransitHit struct {
 	Date          string  `json:"date"`

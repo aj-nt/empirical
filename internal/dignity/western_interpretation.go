@@ -30,12 +30,18 @@ type PatternHit struct {
 
 // ChartInterpretation holds the full interpretation of a chart.
 type ChartInterpretation struct {
-	Name         string   `json:"name"`
-	PlanetSigns  []string `json:"planet_signs"`
-	PlanetHouses []string `json:"planet_houses"`
-	Aspects      []string `json:"aspects"`
-	Patterns     []string `json:"patterns"`
-	Stars        []string `json:"stars,omitempty"`
+	Name            string         `json:"name"`
+	PlanetSigns     []string       `json:"planet_signs"`
+	PlanetHouses    []string       `json:"planet_houses"`
+	Aspects         []string       `json:"aspects"`
+	Patterns        []string       `json:"patterns"`
+	Stars           []string       `json:"stars,omitempty"`
+	Midpoints       []string       `json:"midpoints,omitempty"`
+	ElementBalance  map[string]int     `json:"element_balance,omitempty"`
+	ModalityBalance map[string]int     `json:"modality_balance,omitempty"`
+	Hemisphere       *HemisphereEmphasis `json:"hemisphere,omitempty"`
+	RulershipChains  map[int][]string    `json:"rulership_chains,omitempty"`
+	DispositorTrees  map[string][]string `json:"dispositor_trees,omitempty"`
 }
 
 // JSON returns the interpretation as JSON bytes.
@@ -134,12 +140,15 @@ var houseDescriptions = map[int]string{
 // ── Aspect descriptions ───────────────────────────────────────────────
 
 var aspectDescriptions = map[string]string{
-	"conjunction": "merge and amplify — the two planets operate as one force",
-	"opposition":  "polarity and tension — a seesaw between two extremes",
-	"trine":       "flow and ease — natural harmony, talent that comes without effort",
-	"square":      "friction and growth — conflict that forces development",
-	"sextile":     "opportunity — a door that opens when you walk through it",
-	"quincunx":    "adjustment — two energies that don't understand each other",
+	"conjunction":    "merge and amplify — the two planets operate as one force",
+	"opposition":     "polarity and tension — a seesaw between two extremes",
+	"trine":          "flow and ease — natural harmony, talent that comes without effort",
+	"square":         "friction and growth — conflict that forces development",
+	"sextile":        "opportunity — a door that opens when you walk through it",
+	"quincunx":       "adjustment — two energies that don't understand each other",
+	"semi-sextile":   "adjacent signs — a subtle nudge, two energies that barely recognize each other",
+	"semi-square":    "irritation — a low-grade friction that wears down or sharpens over time",
+	"sesquiquadrate": "agitation — a square-and-a-half, restless tension that demands realignment",
 }
 
 // ── Pattern descriptions ──────────────────────────────────────────────

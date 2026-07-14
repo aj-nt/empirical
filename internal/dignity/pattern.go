@@ -75,8 +75,9 @@ func DetectPatterns(planets map[string]float64, orbDeg float64) *PatternReport {
 		angle float64
 		name  string
 	}{
-		{0, "conjunction"}, {60, "sextile"}, {90, "square"},
-		{120, "trine"}, {150, "quincunx"}, {180, "opposition"},
+		{0, "conjunction"}, {30, "semi-sextile"}, {45, "semi-square"},
+		{60, "sextile"}, {90, "square"}, {120, "trine"},
+		{135, "sesquiquadrate"}, {150, "quincunx"}, {180, "opposition"},
 	}
 
 	for i := 0; i < len(names); i++ {
