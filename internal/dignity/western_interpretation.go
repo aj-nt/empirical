@@ -35,6 +35,7 @@ type ChartInterpretation struct {
 	PlanetHouses []string `json:"planet_houses"`
 	Aspects      []string `json:"aspects"`
 	Patterns     []string `json:"patterns"`
+	Stars        []string `json:"stars,omitempty"`
 }
 
 // JSON returns the interpretation as JSON bytes.

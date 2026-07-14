@@ -6,11 +6,13 @@ import (
 	"strings"
 )
 
-// Signs is the ordered list of zodiac signs.
-var Signs = []string{
+var signs = [12]string{
 	"Aries", "Taurus", "Gemini", "Cancer", "Leo", "Virgo",
 	"Libra", "Scorpio", "Sagittarius", "Capricorn", "Aquarius", "Pisces",
 }
+
+// Signs is the ordered list of zodiac signs.
+var Signs = signs[:]
 
 // ClassicalPlanets are the seven classical planets used in dignity comparisons.
 var ClassicalPlanets = []string{
@@ -65,12 +67,19 @@ var vedicCategoryNames = map[string]string{
 	"neecha":     "debilitated (fall)",
 }
 
+// CardinalSigns are the four cardinal signs (equinoxes and solstices).
+var CardinalSigns = map[string]bool{
+	"Aries": true, "Cancer": true, "Libra": true, "Capricorn": true,
+}
+
 // ── Sign Lookup ─────────────────────────────────────────────────────────
+func SignIndex(lonDeg float64) int {
+	return ((int(lonDeg)%360 + 360) % 360) / 30
+}
 
 // SignForLongitude returns the zodiac sign for an ecliptic longitude in degrees.
 func SignForLongitude(lonDeg float64) string {
-	idx := (int(lonDeg)%360 + 360) % 360 / 30
-	return Signs[idx]
+	return Signs[SignIndex(lonDeg)]
 }
 
 // ── Dignity Computation ─────────────────────────────────────────────────
@@ -489,6 +498,16 @@ func normalizeLon(lon float64) float64 {
 		lon -= 360
 	}
 	return lon
+}
+
+// JulianDay computes the Julian Day from a Gregorian date and fractional hour.
+// Uses the Meeus algorithm (valid for CE dates).
+func JulianDay(year, month, day int, hour float64) float64 {
+	a := (14 - month) / 12
+	y := year + 4800 - a
+	m := month + 12*a - 3
+	jd := float64(day) + float64(153*m+2)/5.0 + float64(365*y) + float64(y/4) - float64(y/100) + float64(y/400) - 32045.0 + hour/24.0
+	return jd
 }
 
 // angleDist returns the angular distance between two longitudes (0-180).

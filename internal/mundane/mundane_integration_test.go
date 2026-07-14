@@ -4,6 +4,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/aj-nt/empirical/internal/dignity"
 	"github.com/aj-nt/empirical/internal/swe"
 )
 
@@ -200,7 +201,7 @@ func TestRealSWE_CastUSChart(t *testing.T) {
 	t.Logf("  Date: %d-%02d-%02d %.2f UT", us.Year, us.Month, us.Day, us.Hour)
 	t.Logf("  ASC: %.2f", chart.ASC)
 	t.Logf("  MC:  %.2f", chart.MC)
-	t.Logf("  Sun: %.2f (%s)", chart.Planets["Sun"], signName(chart.Planets["Sun"]))
+	t.Logf("  Sun: %.2f (%s)", chart.Planets["Sun"], dignity.SignForLongitude(chart.Planets["Sun"]))
 
 	// US Sibly chart: ASC should be ~7° Sagittarius (~255°)
 	if chart.ASC < 245 || chart.ASC > 265 {

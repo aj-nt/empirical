@@ -21,7 +21,7 @@ import (
 // ZodiacScore captures the dignity density for one chart under one zodiac.
 type ZodiacScore struct {
 	Name           string            `json:"name"`
-	Zodiac         string            `json:"zodiac"` // "tropical" or "sidereal"
+	Zodiac         string            `json:"zodiac"` // FrameTropical or FrameSidereal
 	Placements     map[string]string `json:"placements"`
 	Signs          map[string]string `json:"signs"`
 	DignifiedCount int               `json:"dignified_count"`
@@ -47,10 +47,10 @@ type ZodiacComparison struct {
 // Winner returns which zodiac produces more non-peregrine placements.
 func (zc *ZodiacComparison) Winner() string {
 	if zc.Tropical.DignityDensity() > zc.Sidereal.DignityDensity() {
-		return "tropical"
+		return string(FrameTropical)
 	}
 	if zc.Sidereal.DignityDensity() > zc.Tropical.DignityDensity() {
-		return "sidereal"
+		return string(FrameSidereal)
 	}
 	return "tie"
 }
@@ -61,7 +61,7 @@ func (zc *ZodiacComparison) Winner() string {
 func ComputeZodiacComparison(tropicalLons map[string]float64, ayan float64, name string) *ZodiacComparison {
 	tropScore := zodiacDignityDensity(tropicalLons)
 	tropScore.Name = name
-	tropScore.Zodiac = "tropical"
+	tropScore.Zodiac = string(FrameTropical)
 
 	sidLons := make(map[string]float64, len(tropicalLons))
 	for p, lon := range tropicalLons {
@@ -69,7 +69,7 @@ func ComputeZodiacComparison(tropicalLons map[string]float64, ayan float64, name
 	}
 	sidScore := zodiacDignityDensity(sidLons)
 	sidScore.Name = name
-	sidScore.Zodiac = "sidereal"
+	sidScore.Zodiac = string(FrameSidereal)
 
 	return &ZodiacComparison{
 		Name:            name,

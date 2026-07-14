@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/aj-nt/empirical/internal/dignity"
 	"github.com/aj-nt/empirical/internal/mundane"
 	"github.com/aj-nt/empirical/internal/swe"
 )
@@ -214,8 +215,8 @@ func main() {
 			if err == nil {
 				fmt.Printf("  ASC: %.2f°  MC: %.2f°\n", natalChart.ASC, natalChart.MC)
 				fmt.Printf("  Sun: %.2f° (%s)  Moon: %.2f° (%s)\n",
-					natalChart.Planets["Sun"], signName(natalChart.Planets["Sun"]),
-					natalChart.Planets["Moon"], signName(natalChart.Planets["Moon"]))
+					natalChart.Planets["Sun"], dignity.SignForLongitude(natalChart.Planets["Sun"]),
+					natalChart.Planets["Moon"], dignity.SignForLongitude(natalChart.Planets["Moon"]))
 			}
 			fmt.Println()
 
@@ -263,7 +264,7 @@ func printChartSummary(title string, chart *mundane.MundaneChart, orb float64) {
 	fmt.Printf("\n  ▸ %s\n", title)
 	fmt.Printf("    Time: %s UTC\n", chart.Time.Format("2006-01-02 15:04:05"))
 	fmt.Printf("    ASC: %.2f° (%s)  MC: %.2f° (%s)\n",
-		chart.ASC, signName(chart.ASC), chart.MC, signName(chart.MC))
+		chart.ASC, dignity.SignForLongitude(chart.ASC), chart.MC, dignity.SignForLongitude(chart.MC))
 
 	// Planet positions (condensed)
 	var planetNames []string
@@ -277,7 +278,7 @@ func printChartSummary(title string, chart *mundane.MundaneChart, orb float64) {
 		if i > 0 {
 			fmt.Print(", ")
 		}
-		fmt.Printf("%s %.1f° %s", n, chart.Planets[n], signName(chart.Planets[n]))
+		fmt.Printf("%s %.1f° %s", n, chart.Planets[n], dignity.SignForLongitude(chart.Planets[n]))
 	}
 	fmt.Println()
 
@@ -291,12 +292,3 @@ func printChartSummary(title string, chart *mundane.MundaneChart, orb float64) {
 	}
 }
 
-func signName(lon float64) string {
-	names := []string{"Aries", "Taurus", "Gemini", "Cancer", "Leo", "Virgo",
-		"Libra", "Scorpio", "Sagittarius", "Capricorn", "Aquarius", "Pisces"}
-	lon = float64(int(lon)%360)
-	if lon < 0 {
-		lon += 360
-	}
-	return names[int(lon/30)]
-}

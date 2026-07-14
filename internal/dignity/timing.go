@@ -441,11 +441,6 @@ var hellSignElements = map[string]string{
 	"Sagittarius": "Fire", "Capricorn": "Earth", "Aquarius": "Air", "Pisces": "Water",
 }
 
-var hellZodiacSigns = []string{
-	"Aries", "Taurus", "Gemini", "Cancer", "Leo", "Virgo",
-	"Libra", "Scorpio", "Sagittarius", "Capricorn", "Aquarius", "Pisces",
-}
-
 // ProfectionInfo holds the annual profection for a target date.
 type ProfectionInfo struct {
 	Age             int
@@ -484,7 +479,7 @@ func ComputeProfection(birthYear, birthMonth, birthDay int, targetDate time.Time
 	for profSignIdx < 0 {
 		profSignIdx += 12
 	}
-	profSign := hellZodiacSigns[profSignIdx]
+	profSign := Signs[profSignIdx]
 	lord := hellSignRulerships[profSign]
 
 	return ProfectionInfo{

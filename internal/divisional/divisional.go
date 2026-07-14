@@ -3,6 +3,8 @@ package divisional
 import (
 	"fmt"
 	"math"
+
+	"github.com/aj-nt/empirical/internal/dignity"
 )
 
 // ── Vedic Divisional Charts ──────────────────────────────────────────────
@@ -18,12 +20,6 @@ import (
 //   Earth signs (Taurus, Virgo, Cap) → D9 starts at Capricorn
 //   Air signs (Gemini, Libra, Aqu) → D9 starts at Libra
 //   Water signs (Cancer, Scorpio, Pisces) → D9 starts at Cancer
-
-var zodiacSigns = []string{
-	"Aries", "Taurus", "Gemini", "Cancer",
-	"Leo", "Virgo", "Libra", "Scorpio",
-	"Sagittarius", "Capricorn", "Aquarius", "Pisces",
-}
 
 // NavamshaPosition computes the D9 position from a sidereal longitude.
 // Returns navamsha longitude and sign name.
@@ -53,7 +49,7 @@ func NavamshaPosition(siderealLon float64) (float64, string) {
 	navDeg := math.Mod(degInSign, 30.0/9.0) * 9.0 // Scale degree within navamsha
 	navLongitude := float64(navSign)*30.0 + navDeg
 
-	return navLongitude, zodiacSigns[navSign]
+	return navLongitude, dignity.Signs[navSign]
 }
 
 // ── Nakshatras ───────────────────────────────────────────────────────────
@@ -219,7 +215,7 @@ func ComputeDivisionalReport(name string, planets map[string]float64, ayanamsa f
 	for planetName, tropLon := range planets {
 		sidLon := math.Mod(tropLon-ayanamsa+360, 360)
 		sidSignIdx := int(sidLon / 30) % 12
-		sidSign := zodiacSigns[sidSignIdx]
+		sidSign := dignity.Signs[sidSignIdx]
 		nak := GetNakshatra(sidLon)
 		navLon, navSign := NavamshaPosition(sidLon)
 

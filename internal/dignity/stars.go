@@ -1,10 +1,51 @@
 package dignity
 
-import "math"
+import (
+	"math"
+	"sync"
+)
 
 // ── Star Catalog ────────────────────────────────────────────────────────
 // 116 visible stars (mag generally < 5), names from sefstars.txt.
 // These are the same stars used by the Python reference implementation.
+
+var starCatalogOnce sync.Once
+
+// validateStarCatalog runs a one-time consistency check on StarNames and
+// StarMeanings. It panics if the catalog is inconsistent (length mismatch,
+// missing meaning, or extra meaning). Safe to call multiple times — the
+// check runs at most once.
+func validateStarCatalog() {
+	starCatalogOnce.Do(func() {
+		checkStarCatalog(StarNames, StarMeanings)
+	})
+}
+
+// checkStarCatalog validates that names and meanings are consistent.
+// Panics on any inconsistency — these are programmer errors that should
+// be caught at test time, not silently tolerated at runtime.
+func checkStarCatalog(names []string, meanings map[string]string) {
+	if len(names) != len(meanings) {
+		panic("star catalog: StarNames and StarMeanings have different lengths")
+	}
+	for _, name := range names {
+		if _, ok := meanings[name]; !ok {
+			panic("star catalog: StarNames has " + name + " but StarMeanings doesn't")
+		}
+	}
+	for name := range meanings {
+		found := false
+		for _, n := range names {
+			if n == name {
+				found = true
+				break
+			}
+		}
+		if !found {
+			panic("star catalog: StarMeanings has " + name + " but StarNames doesn't")
+		}
+	}
+}
 
 var StarNames = []string{
 	"Achernar", "Acrux", "Acubens", "Adhafera", "Agena", "Ain",

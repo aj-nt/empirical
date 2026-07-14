@@ -49,11 +49,6 @@ var signGlyphs = map[string]string{
 	"Capricorn": "\u2651", "Aquarius": "\u2652", "Pisces": "\u2653",
 }
 
-var zodiacSigns = []string{
-	"Aries", "Taurus", "Gemini", "Cancer", "Leo", "Virgo",
-	"Libra", "Scorpio", "Sagittarius", "Capricorn", "Aquarius", "Pisces",
-}
-
 var aspectColors = map[string]string{
 	"conjunction": "#d2991d",
 	"sextile":     "#58a6ff",
@@ -199,7 +194,7 @@ func RenderChartSVG(
 	// ── Sign ring (outer band) ─────────────────────────────────────────
 	outerR := 340.0
 	innerR := 310.0
-	for i, signName := range zodiacSigns {
+	for i, signName := range Signs {
 		signStart := float64(i * 30)
 		signEnd := signStart + 30
 
@@ -525,9 +520,9 @@ func RenderChartSVG(
 		`<text x="%.1f" y="%.1f" fill="#8b949e" font-size="9" text-anchor="middle" dominant-baseline="central">%d-%02d-%02d %02d:%02d</text>`,
 		cx, cy+6, year, month, day, hour, minute,
 	))
-	coordLabel := "tropical"
+	coordLabel := string(FrameTropical)
 	if opts.Sidereal {
-		coordLabel = "sidereal"
+		coordLabel = string(FrameSidereal)
 	}
 	sb.WriteString(fmt.Sprintf(
 		`<text x="%.1f" y="%.1f" fill="#8b949e" font-size="8" text-anchor="middle" dominant-baseline="central">%s · %s</text>`,

@@ -47,8 +47,8 @@ func main() {
 		swe.SetSidMode(swe.SIDM_LAHIRI, 0, 0)
 
 		// Build compute function: all phases
-		compute := func(name string, year, month, day, hour, minute int, tzOff, lat, lng float64) ([]byte, error) {
-			result := computeAll(name, year, month, day, hour, minute, 0, tzOff, lat, lng, cacheDir)
+		compute := func(bd dignity.BirthData) ([]byte, error) {
+			result := computeAll(bd.Name, bd.Year, bd.Month, bd.Day, bd.Hour, bd.Minute, 0, bd.TZOffset, bd.Lat, bd.Lng, cacheDir)
 			return result.FullReportJSON()
 		}
 
@@ -57,28 +57,28 @@ func main() {
 			return dignity.FormatAspectJSON(catalog)
 		}
 
-		timing := func(name string, year, month, day, hour, minute int, tzOff, lat, lng float64, targetDate string) ([]byte, error) {
-			bc := computePositions(year, month, day, hour, minute, tzOff, lat, lng, cacheDir)
+		timing := func(bd dignity.BirthData, targetDate string) ([]byte, error) {
+			bc := computePositions(bd.Year, bd.Month, bd.Day, bd.Hour, bd.Minute, bd.TZOffset, bd.Lat, bd.Lng, cacheDir)
 			report := dignity.ComputeTimingReport(
-				name, year, month, day, hour, minute, tzOff, lat, lng,
+				bd.Name, bd.Year, bd.Month, bd.Day, bd.Hour, bd.Minute, bd.TZOffset, bd.Lat, bd.Lng,
 				targetDate, dignity.TropicalToLonMap(bc.Tropical), bc.Ayanamsa, bc.ASC,
 			)
 			return report.TimingReportJSON()
 		}
 
-		transits := func(name string, year, month, day, hour, minute int, tzOff, lat, lng float64, startDate, endDate string, orbDeg float64, sidereal bool) ([]byte, error) {
-			return marshalResult(computeTransits(name, year, month, day, hour, minute, tzOff, lat, lng, startDate, endDate, orbDeg, sidereal, cacheDir))
+		transits := func(bd dignity.BirthData, startDate, endDate string, orbDeg float64, sidereal bool) ([]byte, error) {
+			return marshalResult(computeTransits(bd.Name, bd.Year, bd.Month, bd.Day, bd.Hour, bd.Minute, bd.TZOffset, bd.Lat, bd.Lng, startDate, endDate, orbDeg, sidereal, cacheDir))
 		}
 
 		synastry := func(name1 string, y1, mo1, d1, h1, mi1 int, tz1, la1, lo1 float64, name2 string, y2, mo2, d2, h2, mi2 int, tz2, la2, lo2 float64, orbDeg float64) ([]byte, error) {
 			return marshalResult(computeSynastry(name1, y1, mo1, d1, h1, mi1, tz1, la1, lo1, name2, y2, mo2, d2, h2, mi2, tz2, la2, lo2, orbDeg, cacheDir))
 		}
 
-		relocation := func(name string, year, month, day, hour, minute int, tzOff, lat, lng float64, locA server.LatLng, locB server.LatLng, targetDate string) ([]byte, error) {
-			return marshalResult(computeRelocation(name, year, month, day, hour, minute, tzOff, lat, lng, locA, locB, targetDate, cacheDir))
+		relocation := func(bd dignity.BirthData, locA server.LatLng, locB server.LatLng, targetDate string) ([]byte, error) {
+			return marshalResult(computeRelocation(bd.Name, bd.Year, bd.Month, bd.Day, bd.Hour, bd.Minute, bd.TZOffset, bd.Lat, bd.Lng, locA, locB, targetDate, cacheDir))
 		}
 
-		chart := func(name string, year, month, day, hour, minute int, tzOff, lat, lng float64, houseSystem string, sidereal bool, showAspects bool, outerPlanets bool, highlightPatterns bool, patternOrb float64) (string, error) {
+		chart := func(bd dignity.BirthData, houseSystem string, sidereal bool, showAspects bool, outerPlanets bool, highlightPatterns bool, patternOrb float64) (string, error) {
 			opts := dignity.DefaultChartOptions()
 			opts.HouseSystem = houseSystem
 			opts.Sidereal = sidereal
@@ -86,22 +86,22 @@ func main() {
 			opts.OuterPlanets = outerPlanets
 			opts.HighlightPatterns = highlightPatterns
 			opts.PatternOrb = patternOrb
-			return dignity.RenderChartSVG(name, year, month, day, hour, minute, tzOff, lat, lng, opts), nil
+			return dignity.RenderChartSVG(bd.Name, bd.Year, bd.Month, bd.Day, bd.Hour, bd.Minute, bd.TZOffset, bd.Lat, bd.Lng, opts), nil
 		}
 
-		patterns := func(name string, year, month, day, hour, minute int, tzOff, lat, lng float64, orbDeg float64) ([]byte, error) {
-			bc := computePositions(year, month, day, hour, minute, tzOff, lat, lng, cacheDir)
+		patterns := func(bd dignity.BirthData, orbDeg float64) ([]byte, error) {
+			bc := computePositions(bd.Year, bd.Month, bd.Day, bd.Hour, bd.Minute, bd.TZOffset, bd.Lat, bd.Lng, cacheDir)
 			planetMap := dignity.TropicalToLonMap(bc.Tropical)
 			// Add North Node
 			planetMap["Node"] = bc.NorthNode
 			report := dignity.DetectPatterns(planetMap, orbDeg)
-			report.Name = name
+			report.Name = bd.Name
 			return report.PatternReportJSON()
 		}
 
-		draconic := func(name string, year, month, day, hour, minute int, tzOff, lat, lng float64, orbDeg float64) ([]byte, error) {
-			cd := computePositions(year, month, day, hour, minute, tzOff, lat, lng, cacheDir)
-			return marshalResult(computeDraconic(name, cd, orbDeg))
+		draconic := func(bd dignity.BirthData, orbDeg float64) ([]byte, error) {
+			cd := computePositions(bd.Year, bd.Month, bd.Day, bd.Hour, bd.Minute, bd.TZOffset, bd.Lat, bd.Lng, cacheDir)
+			return marshalResult(computeDraconic(bd.Name, cd, orbDeg))
 		}
 
 		draconicSynastry := func(name1 string, y1, mo1, d1, h1, mi1 int, tz1, la1, lo1 float64, name2 string, y2, mo2, d2, h2, mi2 int, tz2, la2, lo2 float64, orbDeg float64) ([]byte, error) {
@@ -116,74 +116,74 @@ func main() {
 			return marshalResult(computeDraconicSynastryFull(name1, cd1, name2, cd2, orbDeg))
 		}
 
-		draconicTransits := func(name string, year, month, day, hour, minute int, tzOff, lat, lng float64, startDate, endDate string, orbDeg float64) ([]byte, error) {
-			cd := computePositions(year, month, day, hour, minute, tzOff, lat, lng, cacheDir)
-			return marshalResult(computeDraconicTransits(name, cd, startDate, endDate, orbDeg, cacheDir))
+		draconicTransits := func(bd dignity.BirthData, startDate, endDate string, orbDeg float64) ([]byte, error) {
+			cd := computePositions(bd.Year, bd.Month, bd.Day, bd.Hour, bd.Minute, bd.TZOffset, bd.Lat, bd.Lng, cacheDir)
+			return marshalResult(computeDraconicTransits(bd.Name, cd, startDate, endDate, orbDeg, cacheDir))
 		}
 
-		progressedDraconic := func(name string, year, month, day, hour, minute int, tzOff, lat, lng float64, targetDate string) ([]byte, error) {
-			cd := computePositions(year, month, day, hour, minute, tzOff, lat, lng, cacheDir)
-			return marshalResult(computeProgressedDraconic(name, cd, targetDate, cacheDir))
+		progressedDraconic := func(bd dignity.BirthData, targetDate string) ([]byte, error) {
+			cd := computePositions(bd.Year, bd.Month, bd.Day, bd.Hour, bd.Minute, bd.TZOffset, bd.Lat, bd.Lng, cacheDir)
+			return marshalResult(computeProgressedDraconic(bd.Name, cd, targetDate, cacheDir))
 		}
 
-		draconicSolarReturn := func(name string, year, month, day, hour, minute int, tzOff, lat, lng float64, targetYear int) ([]byte, error) {
-			cd := computePositions(year, month, day, hour, minute, tzOff, lat, lng, cacheDir)
-			return marshalResult(computeDraconicSolarReturn(name, cd, targetYear, cacheDir))
+		draconicSolarReturn := func(bd dignity.BirthData, targetYear int) ([]byte, error) {
+			cd := computePositions(bd.Year, bd.Month, bd.Day, bd.Hour, bd.Minute, bd.TZOffset, bd.Lat, bd.Lng, cacheDir)
+			return marshalResult(computeDraconicSolarReturn(bd.Name, cd, targetYear, cacheDir))
 		}
 
-		stars := func(name string, year, month, day, hour, minute int, tzOff, lat, lng float64, orbDeg float64) ([]byte, error) {
-			cd := computePositions(year, month, day, hour, minute, tzOff, lat, lng, cacheDir)
-			return marshalResult(computeStars(name, cd, orbDeg, cacheDir))
+		stars := func(bd dignity.BirthData, orbDeg float64) ([]byte, error) {
+			cd := computePositions(bd.Year, bd.Month, bd.Day, bd.Hour, bd.Minute, bd.TZOffset, bd.Lat, bd.Lng, cacheDir)
+			return marshalResult(computeStars(bd.Name, cd, orbDeg, cacheDir))
 		}
 
-		draconicTransitsCross := func(name string, year, month, day, hour, minute int, tzOff, lat, lng float64, startDate, endDate string, orbDeg float64) ([]byte, error) {
-			cd := computePositions(year, month, day, hour, minute, tzOff, lat, lng, cacheDir)
-			return marshalResult(computeDraconicTransitsCross(name, cd, startDate, endDate, orbDeg, cacheDir))
+		draconicTransitsCross := func(bd dignity.BirthData, startDate, endDate string, orbDeg float64) ([]byte, error) {
+			cd := computePositions(bd.Year, bd.Month, bd.Day, bd.Hour, bd.Minute, bd.TZOffset, bd.Lat, bd.Lng, cacheDir)
+			return marshalResult(computeDraconicTransitsCross(bd.Name, cd, startDate, endDate, orbDeg, cacheDir))
 		}
 
-		progressedCross := func(name string, year, month, day, hour, minute int, tzOff, lat, lng float64, targetDate string, orbDeg float64) ([]byte, error) {
-			cd := computePositions(year, month, day, hour, minute, tzOff, lat, lng, cacheDir)
-			return marshalResult(computeProgressedCross(name, cd, targetDate, orbDeg, cacheDir))
+		progressedCross := func(bd dignity.BirthData, targetDate string, orbDeg float64) ([]byte, error) {
+			cd := computePositions(bd.Year, bd.Month, bd.Day, bd.Hour, bd.Minute, bd.TZOffset, bd.Lat, bd.Lng, cacheDir)
+			return marshalResult(computeProgressedCross(bd.Name, cd, targetDate, orbDeg, cacheDir))
 		}
 
-		directions := func(name string, year, month, day, hour, minute int, tzOff, lat, lng float64, age float64, orbDeg float64) ([]byte, error) {
-			cd := computePositions(year, month, day, hour, minute, tzOff, lat, lng, cacheDir)
-			return marshalResult(computeDirections(name, cd, lat, lng, age, orbDeg, cacheDir))
+		directions := func(bd dignity.BirthData, age float64, orbDeg float64) ([]byte, error) {
+			cd := computePositions(bd.Year, bd.Month, bd.Day, bd.Hour, bd.Minute, bd.TZOffset, bd.Lat, bd.Lng, cacheDir)
+			return marshalResult(computeDirections(bd.Name, cd, bd.Lat, bd.Lng, age, orbDeg, cacheDir))
 		}
 
-		interpretation := func(name string, year, month, day, hour, minute int, tzOff, lat, lng float64, houseSystem string, orbDeg float64) ([]byte, error) {
-			cd := computePositions(year, month, day, hour, minute, tzOff, lat, lng, cacheDir)
-			return computeInterpretation(name, cd, lat, lng, houseSystem, orbDeg, cacheDir)
+		interpretation := func(bd dignity.BirthData, houseSystem string, orbDeg float64, system string) ([]byte, error) {
+			cd := computePositions(bd.Year, bd.Month, bd.Day, bd.Hour, bd.Minute, bd.TZOffset, bd.Lat, bd.Lng, cacheDir)
+			return computeInterpretation(bd.Name, cd, bd.Lat, bd.Lng, houseSystem, orbDeg, system, cacheDir)
 		}
 
-		astroCartography := func(name string, year, month, day, hour, minute int, tzOff, lat, lng float64, latStep float64, frame string) ([]byte, error) {
-			cd := computePositions(year, month, day, hour, minute, tzOff, lat, lng, cacheDir)
-			return marshalResult(computeAstroCartography(name, cd, latStep, frame, cacheDir))
+		astroCartography := func(bd dignity.BirthData, latStep float64, frame string) ([]byte, error) {
+			cd := computePositions(bd.Year, bd.Month, bd.Day, bd.Hour, bd.Minute, bd.TZOffset, bd.Lat, bd.Lng, cacheDir)
+			return marshalResult(computeAstroCartography(bd.Name, cd, latStep, frame, cacheDir))
 		}
 
-		astroCartographyCompare := func(name string, year, month, day, hour, minute int, tzOff, lat, lng float64, latStep, targetLat, targetLng, orb float64) ([]byte, error) {
-			cd := computePositions(year, month, day, hour, minute, tzOff, lat, lng, cacheDir)
-			return marshalResult(computeAstroCartographyCompare(name, cd, latStep, targetLat, targetLng, orb, cacheDir))
+		astroCartographyCompare := func(bd dignity.BirthData, latStep, targetLat, targetLng, orb float64) ([]byte, error) {
+			cd := computePositions(bd.Year, bd.Month, bd.Day, bd.Hour, bd.Minute, bd.TZOffset, bd.Lat, bd.Lng, cacheDir)
+			return marshalResult(computeAstroCartographyCompare(bd.Name, cd, latStep, targetLat, targetLng, orb, cacheDir))
 		}
 
-		electional := func(name string, year, month, day, hour, minute int, tzOff, lat, lng float64, startDate, endDate string, orbDeg float64) ([]byte, error) {
-			cd := computePositions(year, month, day, hour, minute, tzOff, lat, lng, cacheDir)
-			return marshalResult(computeElectional(name, cd, lat, lng, startDate, endDate, orbDeg, cacheDir))
+		electional := func(bd dignity.BirthData, startDate, endDate string, orbDeg float64) ([]byte, error) {
+			cd := computePositions(bd.Year, bd.Month, bd.Day, bd.Hour, bd.Minute, bd.TZOffset, bd.Lat, bd.Lng, cacheDir)
+			return marshalResult(computeElectional(bd.Name, cd, bd.Lat, bd.Lng, startDate, endDate, orbDeg, cacheDir))
 		}
 
-		mansionConvergence := func(name string, year, month, day, hour, minute int, tzOff, lat, lng float64) ([]byte, error) {
-			cd := computePositions(year, month, day, hour, minute, tzOff, lat, lng, cacheDir)
-			return marshalResult(computeMansionConvergence(name, cd, cacheDir))
+		mansionConvergence := func(bd dignity.BirthData) ([]byte, error) {
+			cd := computePositions(bd.Year, bd.Month, bd.Day, bd.Hour, bd.Minute, bd.TZOffset, bd.Lat, bd.Lng, cacheDir)
+			return marshalResult(computeMansionConvergence(bd.Name, cd, cacheDir))
 		}
 
-		arabicParts := func(name string, year, month, day, hour, minute int, tzOff, lat, lng float64, orbDeg float64) ([]byte, error) {
-			cd := computePositions(year, month, day, hour, minute, tzOff, lat, lng, cacheDir)
-			return marshalResult(computeArabicParts(name, cd, orbDeg, cacheDir))
+		arabicParts := func(bd dignity.BirthData, orbDeg float64) ([]byte, error) {
+			cd := computePositions(bd.Year, bd.Month, bd.Day, bd.Hour, bd.Minute, bd.TZOffset, bd.Lat, bd.Lng, cacheDir)
+			return marshalResult(computeArabicParts(bd.Name, cd, orbDeg, cacheDir))
 		}
 
-		solarReturn := func(name string, year, month, day, hour, minute int, tzOff, lat, lng float64, targetYear int) ([]byte, error) {
-			cd := computePositions(year, month, day, hour, minute, tzOff, lat, lng, cacheDir)
-			return marshalResult(computeTropicalSolarReturn(name, cd, targetYear, cacheDir))
+		solarReturn := func(bd dignity.BirthData, targetYear int) ([]byte, error) {
+			cd := computePositions(bd.Year, bd.Month, bd.Day, bd.Hour, bd.Minute, bd.TZOffset, bd.Lat, bd.Lng, cacheDir)
+			return marshalResult(computeTropicalSolarReturn(bd.Name, cd, targetYear, cacheDir))
 		}
 
 		composite := func(name1 string, y1, m1, d1, h1, min1 int, tz1, lat1, lng1 float64, name2 string, y2, m2, d2, h2, min2 int, tz2, lat2, lng2 float64, orbDeg float64) ([]byte, error) {
@@ -192,44 +192,44 @@ func main() {
 			return marshalResult(computeComposite(name1, name2, cd1, cd2, orbDeg, cacheDir))
 		}
 
-		starsCross := func(name string, year, month, day, hour, minute int, tzOff, lat, lng float64, orbDeg float64) ([]byte, error) {
-			cd := computePositions(year, month, day, hour, minute, tzOff, lat, lng, cacheDir)
-			return marshalResult(computeStarsCross(name, cd, orbDeg, cacheDir))
+		starsCross := func(bd dignity.BirthData, orbDeg float64) ([]byte, error) {
+			cd := computePositions(bd.Year, bd.Month, bd.Day, bd.Hour, bd.Minute, bd.TZOffset, bd.Lat, bd.Lng, cacheDir)
+			return marshalResult(computeStarsCross(bd.Name, cd, orbDeg, cacheDir))
 		}
 
-		traditional := func(name string, year, month, day, hour, minute int, tzOff, lat, lng float64) ([]byte, error) {
-			cd := computePositions(year, month, day, hour, minute, tzOff, lat, lng, cacheDir)
-			return marshalResult(computeTraditional(name, cd))
+		traditional := func(bd dignity.BirthData) ([]byte, error) {
+			cd := computePositions(bd.Year, bd.Month, bd.Day, bd.Hour, bd.Minute, bd.TZOffset, bd.Lat, bd.Lng, cacheDir)
+			return marshalResult(computeTraditional(bd.Name, cd))
 		}
 
-		uranian := func(name string, year, month, day, hour, minute int, tzOff, lat, lng float64) ([]byte, error) {
-			cd := computePositions(year, month, day, hour, minute, tzOff, lat, lng, cacheDir)
-			return marshalResult(computeUranian(name, cd))
+		uranian := func(bd dignity.BirthData) ([]byte, error) {
+			cd := computePositions(bd.Year, bd.Month, bd.Day, bd.Hour, bd.Minute, bd.TZOffset, bd.Lat, bd.Lng, cacheDir)
+			return marshalResult(computeUranian(bd.Name, cd))
 		}
 
-		harmonic := func(name string, year, month, day, hour, minute int, tzOff, lat, lng float64, harmonics []int, orb float64) ([]byte, error) {
-			cd := computePositions(year, month, day, hour, minute, tzOff, lat, lng, cacheDir)
-			return marshalResult(computeHarmonic(name, cd, harmonics, orb))
+		harmonic := func(bd dignity.BirthData, harmonics []int, orb float64) ([]byte, error) {
+			cd := computePositions(bd.Year, bd.Month, bd.Day, bd.Hour, bd.Minute, bd.TZOffset, bd.Lat, bd.Lng, cacheDir)
+			return marshalResult(computeHarmonic(bd.Name, cd, harmonics, orb))
 		}
 
-		divisional := func(name string, year, month, day, hour, minute int, tzOff, lat, lng float64) ([]byte, error) {
-			cd := computePositions(year, month, day, hour, minute, tzOff, lat, lng, cacheDir)
-			return marshalResult(computeDivisional(name, cd, year, month, day))
+		divisional := func(bd dignity.BirthData) ([]byte, error) {
+			cd := computePositions(bd.Year, bd.Month, bd.Day, bd.Hour, bd.Minute, bd.TZOffset, bd.Lat, bd.Lng, cacheDir)
+			return marshalResult(computeDivisional(bd.Name, cd, bd.Year, bd.Month, bd.Day))
 		}
 
-		parans := func(name string, year, month, day, hour, minute int, tzOff, lat, lng float64, orb float64) ([]byte, error) {
-			cd := computePositions(year, month, day, hour, minute, tzOff, lat, lng, cacheDir)
-			return marshalResult(computeParans(name, cd, orb, cacheDir))
+		parans := func(bd dignity.BirthData, orb float64) ([]byte, error) {
+			cd := computePositions(bd.Year, bd.Month, bd.Day, bd.Hour, bd.Minute, bd.TZOffset, bd.Lat, bd.Lng, cacheDir)
+			return marshalResult(computeParans(bd.Name, cd, orb, cacheDir))
 		}
 
-		declination := func(name string, year, month, day, hour, minute int, tzOff, lat, lng float64, orb float64) ([]byte, error) {
-			cd := computePositions(year, month, day, hour, minute, tzOff, lat, lng, cacheDir)
-			return marshalResult(computeDeclination(name, cd, orb))
+		declination := func(bd dignity.BirthData, orb float64) ([]byte, error) {
+			cd := computePositions(bd.Year, bd.Month, bd.Day, bd.Hour, bd.Minute, bd.TZOffset, bd.Lat, bd.Lng, cacheDir)
+			return marshalResult(computeDeclination(bd.Name, cd, orb))
 		}
 
-		firdaria := func(name string, year, month, day, hour, minute int, tzOff, lat, lng float64) ([]byte, error) {
-			cd := computePositions(year, month, day, hour, minute, tzOff, lat, lng, cacheDir)
-			return marshalResult(computeFirdaria(name, cd, year, month, day))
+		firdaria := func(bd dignity.BirthData) ([]byte, error) {
+			cd := computePositions(bd.Year, bd.Month, bd.Day, bd.Hour, bd.Minute, bd.TZOffset, bd.Lat, bd.Lng, cacheDir)
+			return marshalResult(computeFirdaria(bd.Name, cd, bd.Year, bd.Month, bd.Day))
 		}
 
 		// Use embedded web files, stripping the "web/" prefix

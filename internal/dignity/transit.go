@@ -3,6 +3,7 @@ package dignity
 import (
 	"fmt"
 	"math"
+	"sync"
 	"time"
 
 	"github.com/aj-nt/empirical/internal/swe"
@@ -30,15 +31,24 @@ func HardAspectsOnly() []AspectDef {
 	}
 }
 
+var (
+	defaultAspectsOnce sync.Once
+	defaultAspectsVal  []AspectDef
+)
+
 // DefaultAspects returns the five standard Ptolemaic aspects.
+// The returned slice is cached; callers must not mutate it.
 func DefaultAspects() []AspectDef {
-	return []AspectDef{
-		{0, "conjunction"},
-		{60, "sextile"},
-		{90, "square"},
-		{120, "trine"},
-		{180, "opposition"},
-	}
+	defaultAspectsOnce.Do(func() {
+		defaultAspectsVal = []AspectDef{
+			{0, "conjunction"},
+			{60, "sextile"},
+			{90, "square"},
+			{120, "trine"},
+			{180, "opposition"},
+		}
+	})
+	return defaultAspectsVal
 }
 
 // TransitHit records one transit-to-natal aspect at a specific date.
@@ -56,34 +66,43 @@ type planetSpec struct {
 	ID   int
 }
 
+var (
+	defaultTransitPlanetsOnce sync.Once
+	defaultTransitPlanetsVal  []planetSpec
+)
+
 // DefaultTransitPlanets returns the standard planet set for transit scanning.
+// The returned slice is cached; callers must not mutate it.
 func DefaultTransitPlanets() []planetSpec {
-	return []planetSpec{
-		{"Sun", 0},
-		{"Moon", 1},
-		{"Mercury", 2},
-		{"Venus", 3},
-		{"Mars", 4},
-		{"Jupiter", 5},
-		{"Saturn", 6},
-		{"Uranus", 7},
-		{"Neptune", 8},
-		{"Pluto", 9},
-		{"Ceres", swe.CERES},
-		{"Pallas", swe.PALLAS},
-		{"Juno", swe.JUNO},
-		{"Vesta", swe.VESTA},
-		{"Lilith", swe.MEAN_APOG},
-		{"Chiron", swe.CHIRON},
-		{"Cupido", swe.CUPIDO},
-		{"Hades", swe.HADES},
-		{"Zeus", swe.ZEUS},
-		{"Kronos", swe.KRONOS},
-		{"Apollon", swe.APOLLON},
-		{"Admetos", swe.ADMETOS},
-		{"Poseidon", swe.POSEIDON},
-		{"Vulkanus", swe.VULKANUS},
-	}
+	defaultTransitPlanetsOnce.Do(func() {
+		defaultTransitPlanetsVal = []planetSpec{
+			{"Sun", 0},
+			{"Moon", 1},
+			{"Mercury", 2},
+			{"Venus", 3},
+			{"Mars", 4},
+			{"Jupiter", 5},
+			{"Saturn", 6},
+			{"Uranus", 7},
+			{"Neptune", 8},
+			{"Pluto", 9},
+			{"Ceres", swe.CERES},
+			{"Pallas", swe.PALLAS},
+			{"Juno", swe.JUNO},
+			{"Vesta", swe.VESTA},
+			{"Lilith", swe.MEAN_APOG},
+			{"Chiron", swe.CHIRON},
+			{"Cupido", swe.CUPIDO},
+			{"Hades", swe.HADES},
+			{"Zeus", swe.ZEUS},
+			{"Kronos", swe.KRONOS},
+			{"Apollon", swe.APOLLON},
+			{"Admetos", swe.ADMETOS},
+			{"Poseidon", swe.POSEIDON},
+			{"Vulkanus", swe.VULKANUS},
+		}
+	})
+	return defaultTransitPlanetsVal
 }
 
 // ScanTransits computes transits over a date range.

@@ -8,44 +8,46 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+
+	"github.com/aj-nt/empirical/internal/dignity"
 )
 
 // ── Mock functions ────────────────────────────────────────────────────────
 
-func mockCompute(name string, year, month, day, hour, minute int, tzOff, lat, lng float64) ([]byte, error) {
-	return json.Marshal(map[string]interface{}{"name": name, "year": year})
+func mockCompute(bd dignity.BirthData) ([]byte, error) {
+	return json.Marshal(map[string]interface{}{"name": bd.Name, "year": bd.Year})
 }
 
 func mockAspects() ([]byte, error) {
 	return json.Marshal([]map[string]interface{}{{"name": "Conjunction", "angle": 0}})
 }
 
-func mockTiming(name string, year, month, day, hour, minute int, tzOff, lat, lng float64, targetDate string) ([]byte, error) {
-	return json.Marshal(map[string]interface{}{"name": name, "target": targetDate})
+func mockTiming(bd dignity.BirthData, targetDate string) ([]byte, error) {
+	return json.Marshal(map[string]interface{}{"name": bd.Name, "target": targetDate})
 }
 
-func mockTransits(name string, year, month, day, hour, minute int, tzOff, lat, lng float64, startDate, endDate string, orb float64, sidereal bool) ([]byte, error) {
-	return json.Marshal(map[string]interface{}{"name": name, "start": startDate, "end": endDate})
+func mockTransits(bd dignity.BirthData, startDate, endDate string, orb float64, sidereal bool) ([]byte, error) {
+	return json.Marshal(map[string]interface{}{"name": bd.Name, "start": startDate, "end": endDate})
 }
 
 func mockSynastry(name1 string, y1, mo1, d1, h1, mi1 int, tz1, la1, lo1 float64, name2 string, y2, mo2, d2, h2, mi2 int, tz2, la2, lo2 float64, orb float64) ([]byte, error) {
 	return json.Marshal(map[string]interface{}{"name1": name1, "name2": name2})
 }
 
-func mockRelocation(name string, year, month, day, hour, minute int, tzOff, lat, lng float64, locA LatLng, locB LatLng, targetDate string) ([]byte, error) {
-	return json.Marshal(map[string]interface{}{"name": name, "locA": locA.Name, "locB": locB.Name})
+func mockRelocation(bd dignity.BirthData, locA LatLng, locB LatLng, targetDate string) ([]byte, error) {
+	return json.Marshal(map[string]interface{}{"name": bd.Name, "locA": locA.Name, "locB": locB.Name})
 }
 
-func mockChart(name string, year, month, day, hour, minute int, tzOff, lat, lng float64, houseSystem string, sidereal bool, showAspects bool, outerPlanets bool, highlightPatterns bool, patternOrb float64) (string, error) {
+func mockChart(bd dignity.BirthData, houseSystem string, sidereal bool, showAspects bool, outerPlanets bool, highlightPatterns bool, patternOrb float64) (string, error) {
 	return "<svg>mock chart</svg>", nil
 }
 
-func mockPatterns(name string, year, month, day, hour, minute int, tzOff, lat, lng float64, orb float64) ([]byte, error) {
-	return json.Marshal(map[string]interface{}{"name": name})
+func mockPatterns(bd dignity.BirthData, orb float64) ([]byte, error) {
+	return json.Marshal(map[string]interface{}{"name": bd.Name})
 }
 
-func mockDraconic(name string, year, month, day, hour, minute int, tzOff, lat, lng float64, orb float64) ([]byte, error) {
-	return json.Marshal(map[string]interface{}{"name": name})
+func mockDraconic(bd dignity.BirthData, orb float64) ([]byte, error) {
+	return json.Marshal(map[string]interface{}{"name": bd.Name})
 }
 
 func mockDraconicSynastry(name1 string, y1, mo1, d1, h1, mi1 int, tz1, la1, lo1 float64, name2 string, y2, mo2, d2, h2, mi2 int, tz2, la2, lo2 float64, orb float64) ([]byte, error) {
@@ -56,96 +58,136 @@ func mockDraconicSynastryFull(name1 string, y1, mo1, d1, h1, mi1 int, tz1, la1, 
 	return json.Marshal(map[string]interface{}{"name1": name1, "name2": name2})
 }
 
-func mockDraconicTransits(name string, year, month, day, hour, minute int, tzOff, lat, lng float64, startDate, endDate string, orb float64) ([]byte, error) {
-	return json.Marshal(map[string]interface{}{"name": name})
+func mockDraconicTransits(bd dignity.BirthData, startDate, endDate string, orb float64) ([]byte, error) {
+	return json.Marshal(map[string]interface{}{"name": bd.Name, "start": startDate, "end": endDate})
 }
 
-func mockProgressedDraconic(name string, year, month, day, hour, minute int, tzOff, lat, lng float64, targetDate string) ([]byte, error) {
-	return json.Marshal(map[string]interface{}{"name": name})
+func mockProgressedDraconic(bd dignity.BirthData, targetDate string) ([]byte, error) {
+	return json.Marshal(map[string]interface{}{"name": bd.Name, "target": targetDate})
 }
 
-func mockDraconicSolarReturn(name string, year, month, day, hour, minute int, tzOff, lat, lng float64, targetYear int) ([]byte, error) {
-	return json.Marshal(map[string]interface{}{"name": name, "target_year": targetYear})
+func mockDraconicSolarReturn(bd dignity.BirthData, targetYear int) ([]byte, error) {
+	return json.Marshal(map[string]interface{}{"name": bd.Name, "targetYear": targetYear})
 }
 
-func mockStars(name string, year, month, day, hour, minute int, tzOff, lat, lng float64, orb float64) ([]byte, error) {
-	return json.Marshal(map[string]interface{}{"name": name})
+func mockStars(bd dignity.BirthData, orb float64) ([]byte, error) {
+	return json.Marshal(map[string]interface{}{"name": bd.Name})
 }
 
-func mockDraconicTransitsCross(name string, year, month, day, hour, minute int, tzOff, lat, lng float64, startDate, endDate string, orb float64) ([]byte, error) {
-	return json.Marshal(map[string]interface{}{"name": name})
+func mockDraconicTransitsCross(bd dignity.BirthData, startDate, endDate string, orb float64) ([]byte, error) {
+	return json.Marshal(map[string]interface{}{"name": bd.Name, "start": startDate, "end": endDate})
 }
 
-func mockProgressedCross(name string, year, month, day, hour, minute int, tzOff, lat, lng float64, targetDate string, orb float64) ([]byte, error) {
-	return json.Marshal(map[string]interface{}{"name": name})
+func mockProgressedCross(bd dignity.BirthData, targetDate string, orb float64) ([]byte, error) {
+	return json.Marshal(map[string]interface{}{"name": bd.Name, "target": targetDate})
 }
 
-func mockDirections(name string, year, month, day, hour, minute int, tzOff, lat, lng float64, age float64, orb float64) ([]byte, error) {
-	return json.Marshal(map[string]interface{}{"name": name})
+func mockDirections(bd dignity.BirthData, age float64, orb float64) ([]byte, error) {
+	return json.Marshal(map[string]interface{}{"name": bd.Name, "age": age})
 }
 
-func mockInterpretation(name string, year, month, day, hour, minute int, tzOff, lat, lng float64, houseSystem string, orb float64) ([]byte, error) {
-	return json.Marshal(map[string]interface{}{"name": name})
+func mockInterpretation(bd dignity.BirthData, houseSystem string, orb float64, system string) ([]byte, error) {
+	return json.Marshal(map[string]interface{}{"name": bd.Name, "system": system})
 }
 
-func mockAstroCartography(name string, year, month, day, hour, minute int, tzOff, lat, lng float64, latStep float64, frame string) ([]byte, error) {
-	return json.Marshal(map[string]interface{}{"name": name})
+func mockAstroCartography(bd dignity.BirthData, latStep float64, frame string) ([]byte, error) {
+	return json.Marshal(map[string]interface{}{"name": bd.Name, "frame": frame})
 }
 
-func mockAstroCartographyCompare(name string, year, month, day, hour, minute int, tzOff, lat, lng float64, latStep, targetLat, targetLng, orb float64) ([]byte, error) {
-	return json.Marshal(map[string]interface{}{"name": name})
+func mockAstroCartographyCompare(bd dignity.BirthData, latStep, targetLat, targetLng, orb float64) ([]byte, error) {
+	return json.Marshal(map[string]interface{}{"name": bd.Name, "targetLat": targetLat, "targetLng": targetLng})
 }
 
-func mockElectional(name string, year, month, day, hour, minute int, tzOff, lat, lng float64, startDate, endDate string, orb float64) ([]byte, error) {
-	return json.Marshal(map[string]interface{}{"name": name})
+func mockElectional(bd dignity.BirthData, startDate, endDate string, orb float64) ([]byte, error) {
+	return json.Marshal(map[string]interface{}{"name": bd.Name, "start": startDate, "end": endDate})
 }
 
-func mockMansionConvergence(name string, year, month, day, hour, minute int, tzOff, lat, lng float64) ([]byte, error) {
-	return json.Marshal(map[string]interface{}{"name": name})
+func mockMansionConvergence(bd dignity.BirthData) ([]byte, error) {
+	return json.Marshal(map[string]interface{}{"name": bd.Name})
 }
 
-func mockArabicParts(name string, year, month, day, hour, minute int, tzOff, lat, lng float64, orb float64) ([]byte, error) {
-	return json.Marshal(map[string]interface{}{"name": name})
+func mockArabicParts(bd dignity.BirthData, orb float64) ([]byte, error) {
+	return json.Marshal(map[string]interface{}{"name": bd.Name})
 }
 
-func mockSolarReturn(name string, year, month, day, hour, minute int, tzOff, lat, lng float64, targetYear int) ([]byte, error) {
-	return json.Marshal(map[string]interface{}{"name": name, "target_year": targetYear})
+func mockSolarReturn(bd dignity.BirthData, targetYear int) ([]byte, error) {
+	return json.Marshal(map[string]interface{}{"name": bd.Name, "targetYear": targetYear})
 }
 
 func mockComposite(name1 string, y1, m1, d1, h1, min1 int, tz1, lat1, lng1 float64, name2 string, y2, m2, d2, h2, min2 int, tz2, lat2, lng2 float64, orb float64) ([]byte, error) {
 	return json.Marshal(map[string]interface{}{"name1": name1, "name2": name2})
 }
 
-func mockStarsCross(name string, year, month, day, hour, minute int, tzOff, lat, lng float64, orb float64) ([]byte, error) {
-	return json.Marshal(map[string]interface{}{"name": name})
+func mockStarsCross(bd dignity.BirthData, orb float64) ([]byte, error) {
+	return json.Marshal(map[string]interface{}{"name": bd.Name})
 }
 
-func mockTraditional(name string, year, month, day, hour, minute int, tzOff, lat, lng float64) ([]byte, error) {
-	return json.Marshal(map[string]interface{}{"name": name})
+func mockTraditional(bd dignity.BirthData) ([]byte, error) {
+	return json.Marshal(map[string]interface{}{"name": bd.Name})
 }
 
-func mockUranian(name string, year, month, day, hour, minute int, tzOff, lat, lng float64) ([]byte, error) {
-	return json.Marshal(map[string]interface{}{"name": name})
+func mockUranian(bd dignity.BirthData) ([]byte, error) {
+	return json.Marshal(map[string]interface{}{"name": bd.Name})
 }
 
-func mockHarmonic(name string, year, month, day, hour, minute int, tzOff, lat, lng float64, harmonics []int, orb float64) ([]byte, error) {
-	return json.Marshal(map[string]interface{}{"name": name})
+func mockHarmonic(bd dignity.BirthData, harmonics []int, orb float64) ([]byte, error) {
+	return json.Marshal(map[string]interface{}{"name": bd.Name})
 }
 
-func mockDivisional(name string, year, month, day, hour, minute int, tzOff, lat, lng float64) ([]byte, error) {
-	return json.Marshal(map[string]interface{}{"name": name})
+func mockDivisional(bd dignity.BirthData) ([]byte, error) {
+	return json.Marshal(map[string]interface{}{"name": bd.Name})
 }
 
-func mockParans(name string, year, month, day, hour, minute int, tzOff, lat, lng float64, orb float64) ([]byte, error) {
-	return json.Marshal(map[string]interface{}{"name": name})
+func mockParans(bd dignity.BirthData, orb float64) ([]byte, error) {
+	return json.Marshal(map[string]interface{}{"name": bd.Name})
 }
 
-func mockDeclination(name string, year, month, day, hour, minute int, tzOff, lat, lng float64, orb float64) ([]byte, error) {
-	return json.Marshal(map[string]interface{}{"name": name})
+func mockDeclination(bd dignity.BirthData, orb float64) ([]byte, error) {
+	return json.Marshal(map[string]interface{}{"name": bd.Name})
 }
 
-func mockFirdaria(name string, year, month, day, hour, minute int, tzOff, lat, lng float64) ([]byte, error) {
-	return json.Marshal(map[string]interface{}{"name": name})
+func mockFirdaria(bd dignity.BirthData) ([]byte, error) {
+	return json.Marshal(map[string]interface{}{"name": bd.Name})
+}
+
+// testConfig returns a ServerConfig with all mock functions populated.
+func testConfig() ServerConfig {
+	return ServerConfig{
+		Compute:               mockCompute,
+		Aspects:               mockAspects,
+		Timing:                mockTiming,
+		Transits:              mockTransits,
+		Synastry:              mockSynastry,
+		Relocation:            mockRelocation,
+		Chart:                 mockChart,
+		Patterns:              mockPatterns,
+		Draconic:              mockDraconic,
+		DraconicSynastry:      mockDraconicSynastry,
+		DraconicSynastryFull:  mockDraconicSynastryFull,
+		DraconicTransits:      mockDraconicTransits,
+		ProgressedDraconic:    mockProgressedDraconic,
+		DraconicSolarReturn:   mockDraconicSolarReturn,
+		Stars:                 mockStars,
+		DraconicTransitsCross: mockDraconicTransitsCross,
+		ProgressedCross:       mockProgressedCross,
+		Directions:            mockDirections,
+		Interpretation:        mockInterpretation,
+		AstroCartography:      mockAstroCartography,
+		AstroCartographyCompare: mockAstroCartographyCompare,
+		Electional:            mockElectional,
+		MansionConvergence:    mockMansionConvergence,
+		ArabicParts:           mockArabicParts,
+		SolarReturn:           mockSolarReturn,
+		Composite:             mockComposite,
+		StarsCross:            mockStarsCross,
+		Traditional:           mockTraditional,
+		Uranian:               mockUranian,
+		Harmonic:              mockHarmonic,
+		Divisional:            mockDivisional,
+		Parans:                mockParans,
+		Declination:           mockDeclination,
+		Firdaria:              mockFirdaria,
+	}
 }
 
 // ── Test helpers ─────────────────────────────────────────────────────────
@@ -175,43 +217,7 @@ func getJSON(t *testing.T, ts *httptest.Server, path string) *http.Response {
 // ── Server tests using NewMux with mock functions ────────────────────────
 
 func TestServerRecover(t *testing.T) {
-	mux := NewMux(ServerConfig{
-		StaticFS: nil,
-		Compute: mockCompute,
-		Aspects: mockAspects,
-		Timing: mockTiming,
-		Transits: mockTransits,
-		Synastry: mockSynastry,
-		Relocation: mockRelocation,
-		Chart: mockChart,
-		Patterns: mockPatterns,
-		Draconic: mockDraconic,
-		DraconicSynastry: mockDraconicSynastry,
-		DraconicSynastryFull: mockDraconicSynastryFull,
-		DraconicTransits: mockDraconicTransits,
-		ProgressedDraconic: mockProgressedDraconic,
-		DraconicSolarReturn: mockDraconicSolarReturn,
-		Stars: mockStars,
-		DraconicTransitsCross: mockDraconicTransitsCross,
-		ProgressedCross: mockProgressedCross,
-		Directions: mockDirections,
-		Interpretation: mockInterpretation,
-		AstroCartography: mockAstroCartography,
-		AstroCartographyCompare: mockAstroCartographyCompare,
-		Electional: mockElectional,
-		MansionConvergence: mockMansionConvergence,
-		ArabicParts: mockArabicParts,
-		SolarReturn: mockSolarReturn,
-		Composite: mockComposite,
-		StarsCross: mockStarsCross,
-		Traditional: mockTraditional,
-		Uranian: mockUranian,
-		Harmonic: mockHarmonic,
-		Divisional: mockDivisional,
-		Parans: mockParans,
-		Declination: mockDeclination,
-		Firdaria: mockFirdaria,
-	})
+	mux := NewMux(testConfig())
 	ts := httptest.NewServer(mux)
 	defer ts.Close()
 
@@ -231,43 +237,7 @@ func TestServerRecover(t *testing.T) {
 }
 
 func TestServerRecoverMethodNotAllowed(t *testing.T) {
-	mux := NewMux(ServerConfig{
-		StaticFS: nil,
-		Compute: mockCompute,
-		Aspects: mockAspects,
-		Timing: mockTiming,
-		Transits: mockTransits,
-		Synastry: mockSynastry,
-		Relocation: mockRelocation,
-		Chart: mockChart,
-		Patterns: mockPatterns,
-		Draconic: mockDraconic,
-		DraconicSynastry: mockDraconicSynastry,
-		DraconicSynastryFull: mockDraconicSynastryFull,
-		DraconicTransits: mockDraconicTransits,
-		ProgressedDraconic: mockProgressedDraconic,
-		DraconicSolarReturn: mockDraconicSolarReturn,
-		Stars: mockStars,
-		DraconicTransitsCross: mockDraconicTransitsCross,
-		ProgressedCross: mockProgressedCross,
-		Directions: mockDirections,
-		Interpretation: mockInterpretation,
-		AstroCartography: mockAstroCartography,
-		AstroCartographyCompare: mockAstroCartographyCompare,
-		Electional: mockElectional,
-		MansionConvergence: mockMansionConvergence,
-		ArabicParts: mockArabicParts,
-		SolarReturn: mockSolarReturn,
-		Composite: mockComposite,
-		StarsCross: mockStarsCross,
-		Traditional: mockTraditional,
-		Uranian: mockUranian,
-		Harmonic: mockHarmonic,
-		Divisional: mockDivisional,
-		Parans: mockParans,
-		Declination: mockDeclination,
-		Firdaria: mockFirdaria,
-	})
+	mux := NewMux(testConfig())
 	ts := httptest.NewServer(mux)
 	defer ts.Close()
 
@@ -278,43 +248,7 @@ func TestServerRecoverMethodNotAllowed(t *testing.T) {
 }
 
 func TestServerRecoverBadJSON(t *testing.T) {
-	mux := NewMux(ServerConfig{
-		StaticFS: nil,
-		Compute: mockCompute,
-		Aspects: mockAspects,
-		Timing: mockTiming,
-		Transits: mockTransits,
-		Synastry: mockSynastry,
-		Relocation: mockRelocation,
-		Chart: mockChart,
-		Patterns: mockPatterns,
-		Draconic: mockDraconic,
-		DraconicSynastry: mockDraconicSynastry,
-		DraconicSynastryFull: mockDraconicSynastryFull,
-		DraconicTransits: mockDraconicTransits,
-		ProgressedDraconic: mockProgressedDraconic,
-		DraconicSolarReturn: mockDraconicSolarReturn,
-		Stars: mockStars,
-		DraconicTransitsCross: mockDraconicTransitsCross,
-		ProgressedCross: mockProgressedCross,
-		Directions: mockDirections,
-		Interpretation: mockInterpretation,
-		AstroCartography: mockAstroCartography,
-		AstroCartographyCompare: mockAstroCartographyCompare,
-		Electional: mockElectional,
-		MansionConvergence: mockMansionConvergence,
-		ArabicParts: mockArabicParts,
-		SolarReturn: mockSolarReturn,
-		Composite: mockComposite,
-		StarsCross: mockStarsCross,
-		Traditional: mockTraditional,
-		Uranian: mockUranian,
-		Harmonic: mockHarmonic,
-		Divisional: mockDivisional,
-		Parans: mockParans,
-		Declination: mockDeclination,
-		Firdaria: mockFirdaria,
-	})
+	mux := NewMux(testConfig())
 	ts := httptest.NewServer(mux)
 	defer ts.Close()
 
@@ -325,43 +259,7 @@ func TestServerRecoverBadJSON(t *testing.T) {
 }
 
 func TestServerAspectCatalog(t *testing.T) {
-	mux := NewMux(ServerConfig{
-		StaticFS: nil,
-		Compute: mockCompute,
-		Aspects: mockAspects,
-		Timing: mockTiming,
-		Transits: mockTransits,
-		Synastry: mockSynastry,
-		Relocation: mockRelocation,
-		Chart: mockChart,
-		Patterns: mockPatterns,
-		Draconic: mockDraconic,
-		DraconicSynastry: mockDraconicSynastry,
-		DraconicSynastryFull: mockDraconicSynastryFull,
-		DraconicTransits: mockDraconicTransits,
-		ProgressedDraconic: mockProgressedDraconic,
-		DraconicSolarReturn: mockDraconicSolarReturn,
-		Stars: mockStars,
-		DraconicTransitsCross: mockDraconicTransitsCross,
-		ProgressedCross: mockProgressedCross,
-		Directions: mockDirections,
-		Interpretation: mockInterpretation,
-		AstroCartography: mockAstroCartography,
-		AstroCartographyCompare: mockAstroCartographyCompare,
-		Electional: mockElectional,
-		MansionConvergence: mockMansionConvergence,
-		ArabicParts: mockArabicParts,
-		SolarReturn: mockSolarReturn,
-		Composite: mockComposite,
-		StarsCross: mockStarsCross,
-		Traditional: mockTraditional,
-		Uranian: mockUranian,
-		Harmonic: mockHarmonic,
-		Divisional: mockDivisional,
-		Parans: mockParans,
-		Declination: mockDeclination,
-		Firdaria: mockFirdaria,
-	})
+	mux := NewMux(testConfig())
 	ts := httptest.NewServer(mux)
 	defer ts.Close()
 
@@ -377,43 +275,7 @@ func TestServerAspectCatalog(t *testing.T) {
 }
 
 func TestServerTimingConvergence(t *testing.T) {
-	mux := NewMux(ServerConfig{
-		StaticFS: nil,
-		Compute: mockCompute,
-		Aspects: mockAspects,
-		Timing: mockTiming,
-		Transits: mockTransits,
-		Synastry: mockSynastry,
-		Relocation: mockRelocation,
-		Chart: mockChart,
-		Patterns: mockPatterns,
-		Draconic: mockDraconic,
-		DraconicSynastry: mockDraconicSynastry,
-		DraconicSynastryFull: mockDraconicSynastryFull,
-		DraconicTransits: mockDraconicTransits,
-		ProgressedDraconic: mockProgressedDraconic,
-		DraconicSolarReturn: mockDraconicSolarReturn,
-		Stars: mockStars,
-		DraconicTransitsCross: mockDraconicTransitsCross,
-		ProgressedCross: mockProgressedCross,
-		Directions: mockDirections,
-		Interpretation: mockInterpretation,
-		AstroCartography: mockAstroCartography,
-		AstroCartographyCompare: mockAstroCartographyCompare,
-		Electional: mockElectional,
-		MansionConvergence: mockMansionConvergence,
-		ArabicParts: mockArabicParts,
-		SolarReturn: mockSolarReturn,
-		Composite: mockComposite,
-		StarsCross: mockStarsCross,
-		Traditional: mockTraditional,
-		Uranian: mockUranian,
-		Harmonic: mockHarmonic,
-		Divisional: mockDivisional,
-		Parans: mockParans,
-		Declination: mockDeclination,
-		Firdaria: mockFirdaria,
-	})
+	mux := NewMux(testConfig())
 	ts := httptest.NewServer(mux)
 	defer ts.Close()
 
@@ -428,43 +290,7 @@ func TestServerTimingConvergence(t *testing.T) {
 }
 
 func TestServerTransits(t *testing.T) {
-	mux := NewMux(ServerConfig{
-		StaticFS: nil,
-		Compute: mockCompute,
-		Aspects: mockAspects,
-		Timing: mockTiming,
-		Transits: mockTransits,
-		Synastry: mockSynastry,
-		Relocation: mockRelocation,
-		Chart: mockChart,
-		Patterns: mockPatterns,
-		Draconic: mockDraconic,
-		DraconicSynastry: mockDraconicSynastry,
-		DraconicSynastryFull: mockDraconicSynastryFull,
-		DraconicTransits: mockDraconicTransits,
-		ProgressedDraconic: mockProgressedDraconic,
-		DraconicSolarReturn: mockDraconicSolarReturn,
-		Stars: mockStars,
-		DraconicTransitsCross: mockDraconicTransitsCross,
-		ProgressedCross: mockProgressedCross,
-		Directions: mockDirections,
-		Interpretation: mockInterpretation,
-		AstroCartography: mockAstroCartography,
-		AstroCartographyCompare: mockAstroCartographyCompare,
-		Electional: mockElectional,
-		MansionConvergence: mockMansionConvergence,
-		ArabicParts: mockArabicParts,
-		SolarReturn: mockSolarReturn,
-		Composite: mockComposite,
-		StarsCross: mockStarsCross,
-		Traditional: mockTraditional,
-		Uranian: mockUranian,
-		Harmonic: mockHarmonic,
-		Divisional: mockDivisional,
-		Parans: mockParans,
-		Declination: mockDeclination,
-		Firdaria: mockFirdaria,
-	})
+	mux := NewMux(testConfig())
 	ts := httptest.NewServer(mux)
 	defer ts.Close()
 
@@ -480,43 +306,7 @@ func TestServerTransits(t *testing.T) {
 }
 
 func TestServerTransitsDefaultOrb(t *testing.T) {
-	mux := NewMux(ServerConfig{
-		StaticFS: nil,
-		Compute: mockCompute,
-		Aspects: mockAspects,
-		Timing: mockTiming,
-		Transits: mockTransits,
-		Synastry: mockSynastry,
-		Relocation: mockRelocation,
-		Chart: mockChart,
-		Patterns: mockPatterns,
-		Draconic: mockDraconic,
-		DraconicSynastry: mockDraconicSynastry,
-		DraconicSynastryFull: mockDraconicSynastryFull,
-		DraconicTransits: mockDraconicTransits,
-		ProgressedDraconic: mockProgressedDraconic,
-		DraconicSolarReturn: mockDraconicSolarReturn,
-		Stars: mockStars,
-		DraconicTransitsCross: mockDraconicTransitsCross,
-		ProgressedCross: mockProgressedCross,
-		Directions: mockDirections,
-		Interpretation: mockInterpretation,
-		AstroCartography: mockAstroCartography,
-		AstroCartographyCompare: mockAstroCartographyCompare,
-		Electional: mockElectional,
-		MansionConvergence: mockMansionConvergence,
-		ArabicParts: mockArabicParts,
-		SolarReturn: mockSolarReturn,
-		Composite: mockComposite,
-		StarsCross: mockStarsCross,
-		Traditional: mockTraditional,
-		Uranian: mockUranian,
-		Harmonic: mockHarmonic,
-		Divisional: mockDivisional,
-		Parans: mockParans,
-		Declination: mockDeclination,
-		Firdaria: mockFirdaria,
-	})
+	mux := NewMux(testConfig())
 	ts := httptest.NewServer(mux)
 	defer ts.Close()
 
@@ -533,43 +323,7 @@ func TestServerTransitsDefaultOrb(t *testing.T) {
 }
 
 func TestServerSynastry(t *testing.T) {
-	mux := NewMux(ServerConfig{
-		StaticFS: nil,
-		Compute: mockCompute,
-		Aspects: mockAspects,
-		Timing: mockTiming,
-		Transits: mockTransits,
-		Synastry: mockSynastry,
-		Relocation: mockRelocation,
-		Chart: mockChart,
-		Patterns: mockPatterns,
-		Draconic: mockDraconic,
-		DraconicSynastry: mockDraconicSynastry,
-		DraconicSynastryFull: mockDraconicSynastryFull,
-		DraconicTransits: mockDraconicTransits,
-		ProgressedDraconic: mockProgressedDraconic,
-		DraconicSolarReturn: mockDraconicSolarReturn,
-		Stars: mockStars,
-		DraconicTransitsCross: mockDraconicTransitsCross,
-		ProgressedCross: mockProgressedCross,
-		Directions: mockDirections,
-		Interpretation: mockInterpretation,
-		AstroCartography: mockAstroCartography,
-		AstroCartographyCompare: mockAstroCartographyCompare,
-		Electional: mockElectional,
-		MansionConvergence: mockMansionConvergence,
-		ArabicParts: mockArabicParts,
-		SolarReturn: mockSolarReturn,
-		Composite: mockComposite,
-		StarsCross: mockStarsCross,
-		Traditional: mockTraditional,
-		Uranian: mockUranian,
-		Harmonic: mockHarmonic,
-		Divisional: mockDivisional,
-		Parans: mockParans,
-		Declination: mockDeclination,
-		Firdaria: mockFirdaria,
-	})
+	mux := NewMux(testConfig())
 	ts := httptest.NewServer(mux)
 	defer ts.Close()
 
@@ -584,43 +338,7 @@ func TestServerSynastry(t *testing.T) {
 }
 
 func TestServerChart(t *testing.T) {
-	mux := NewMux(ServerConfig{
-		StaticFS: nil,
-		Compute: mockCompute,
-		Aspects: mockAspects,
-		Timing: mockTiming,
-		Transits: mockTransits,
-		Synastry: mockSynastry,
-		Relocation: mockRelocation,
-		Chart: mockChart,
-		Patterns: mockPatterns,
-		Draconic: mockDraconic,
-		DraconicSynastry: mockDraconicSynastry,
-		DraconicSynastryFull: mockDraconicSynastryFull,
-		DraconicTransits: mockDraconicTransits,
-		ProgressedDraconic: mockProgressedDraconic,
-		DraconicSolarReturn: mockDraconicSolarReturn,
-		Stars: mockStars,
-		DraconicTransitsCross: mockDraconicTransitsCross,
-		ProgressedCross: mockProgressedCross,
-		Directions: mockDirections,
-		Interpretation: mockInterpretation,
-		AstroCartography: mockAstroCartography,
-		AstroCartographyCompare: mockAstroCartographyCompare,
-		Electional: mockElectional,
-		MansionConvergence: mockMansionConvergence,
-		ArabicParts: mockArabicParts,
-		SolarReturn: mockSolarReturn,
-		Composite: mockComposite,
-		StarsCross: mockStarsCross,
-		Traditional: mockTraditional,
-		Uranian: mockUranian,
-		Harmonic: mockHarmonic,
-		Divisional: mockDivisional,
-		Parans: mockParans,
-		Declination: mockDeclination,
-		Firdaria: mockFirdaria,
-	})
+	mux := NewMux(testConfig())
 	ts := httptest.NewServer(mux)
 	defer ts.Close()
 
@@ -640,43 +358,7 @@ func TestServerChart(t *testing.T) {
 }
 
 func TestServerChartDefaultHouseSystem(t *testing.T) {
-	mux := NewMux(ServerConfig{
-		StaticFS: nil,
-		Compute: mockCompute,
-		Aspects: mockAspects,
-		Timing: mockTiming,
-		Transits: mockTransits,
-		Synastry: mockSynastry,
-		Relocation: mockRelocation,
-		Chart: mockChart,
-		Patterns: mockPatterns,
-		Draconic: mockDraconic,
-		DraconicSynastry: mockDraconicSynastry,
-		DraconicSynastryFull: mockDraconicSynastryFull,
-		DraconicTransits: mockDraconicTransits,
-		ProgressedDraconic: mockProgressedDraconic,
-		DraconicSolarReturn: mockDraconicSolarReturn,
-		Stars: mockStars,
-		DraconicTransitsCross: mockDraconicTransitsCross,
-		ProgressedCross: mockProgressedCross,
-		Directions: mockDirections,
-		Interpretation: mockInterpretation,
-		AstroCartography: mockAstroCartography,
-		AstroCartographyCompare: mockAstroCartographyCompare,
-		Electional: mockElectional,
-		MansionConvergence: mockMansionConvergence,
-		ArabicParts: mockArabicParts,
-		SolarReturn: mockSolarReturn,
-		Composite: mockComposite,
-		StarsCross: mockStarsCross,
-		Traditional: mockTraditional,
-		Uranian: mockUranian,
-		Harmonic: mockHarmonic,
-		Divisional: mockDivisional,
-		Parans: mockParans,
-		Declination: mockDeclination,
-		Firdaria: mockFirdaria,
-	})
+	mux := NewMux(testConfig())
 	ts := httptest.NewServer(mux)
 	defer ts.Close()
 
@@ -691,43 +373,7 @@ func TestServerChartDefaultHouseSystem(t *testing.T) {
 }
 
 func TestServerPatterns(t *testing.T) {
-	mux := NewMux(ServerConfig{
-		StaticFS: nil,
-		Compute: mockCompute,
-		Aspects: mockAspects,
-		Timing: mockTiming,
-		Transits: mockTransits,
-		Synastry: mockSynastry,
-		Relocation: mockRelocation,
-		Chart: mockChart,
-		Patterns: mockPatterns,
-		Draconic: mockDraconic,
-		DraconicSynastry: mockDraconicSynastry,
-		DraconicSynastryFull: mockDraconicSynastryFull,
-		DraconicTransits: mockDraconicTransits,
-		ProgressedDraconic: mockProgressedDraconic,
-		DraconicSolarReturn: mockDraconicSolarReturn,
-		Stars: mockStars,
-		DraconicTransitsCross: mockDraconicTransitsCross,
-		ProgressedCross: mockProgressedCross,
-		Directions: mockDirections,
-		Interpretation: mockInterpretation,
-		AstroCartography: mockAstroCartography,
-		AstroCartographyCompare: mockAstroCartographyCompare,
-		Electional: mockElectional,
-		MansionConvergence: mockMansionConvergence,
-		ArabicParts: mockArabicParts,
-		SolarReturn: mockSolarReturn,
-		Composite: mockComposite,
-		StarsCross: mockStarsCross,
-		Traditional: mockTraditional,
-		Uranian: mockUranian,
-		Harmonic: mockHarmonic,
-		Divisional: mockDivisional,
-		Parans: mockParans,
-		Declination: mockDeclination,
-		Firdaria: mockFirdaria,
-	})
+	mux := NewMux(testConfig())
 	ts := httptest.NewServer(mux)
 	defer ts.Close()
 
@@ -742,43 +388,7 @@ func TestServerPatterns(t *testing.T) {
 }
 
 func TestServerDraconic(t *testing.T) {
-	mux := NewMux(ServerConfig{
-		StaticFS: nil,
-		Compute: mockCompute,
-		Aspects: mockAspects,
-		Timing: mockTiming,
-		Transits: mockTransits,
-		Synastry: mockSynastry,
-		Relocation: mockRelocation,
-		Chart: mockChart,
-		Patterns: mockPatterns,
-		Draconic: mockDraconic,
-		DraconicSynastry: mockDraconicSynastry,
-		DraconicSynastryFull: mockDraconicSynastryFull,
-		DraconicTransits: mockDraconicTransits,
-		ProgressedDraconic: mockProgressedDraconic,
-		DraconicSolarReturn: mockDraconicSolarReturn,
-		Stars: mockStars,
-		DraconicTransitsCross: mockDraconicTransitsCross,
-		ProgressedCross: mockProgressedCross,
-		Directions: mockDirections,
-		Interpretation: mockInterpretation,
-		AstroCartography: mockAstroCartography,
-		AstroCartographyCompare: mockAstroCartographyCompare,
-		Electional: mockElectional,
-		MansionConvergence: mockMansionConvergence,
-		ArabicParts: mockArabicParts,
-		SolarReturn: mockSolarReturn,
-		Composite: mockComposite,
-		StarsCross: mockStarsCross,
-		Traditional: mockTraditional,
-		Uranian: mockUranian,
-		Harmonic: mockHarmonic,
-		Divisional: mockDivisional,
-		Parans: mockParans,
-		Declination: mockDeclination,
-		Firdaria: mockFirdaria,
-	})
+	mux := NewMux(testConfig())
 	ts := httptest.NewServer(mux)
 	defer ts.Close()
 
@@ -793,43 +403,7 @@ func TestServerDraconic(t *testing.T) {
 }
 
 func TestServerStars(t *testing.T) {
-	mux := NewMux(ServerConfig{
-		StaticFS: nil,
-		Compute: mockCompute,
-		Aspects: mockAspects,
-		Timing: mockTiming,
-		Transits: mockTransits,
-		Synastry: mockSynastry,
-		Relocation: mockRelocation,
-		Chart: mockChart,
-		Patterns: mockPatterns,
-		Draconic: mockDraconic,
-		DraconicSynastry: mockDraconicSynastry,
-		DraconicSynastryFull: mockDraconicSynastryFull,
-		DraconicTransits: mockDraconicTransits,
-		ProgressedDraconic: mockProgressedDraconic,
-		DraconicSolarReturn: mockDraconicSolarReturn,
-		Stars: mockStars,
-		DraconicTransitsCross: mockDraconicTransitsCross,
-		ProgressedCross: mockProgressedCross,
-		Directions: mockDirections,
-		Interpretation: mockInterpretation,
-		AstroCartography: mockAstroCartography,
-		AstroCartographyCompare: mockAstroCartographyCompare,
-		Electional: mockElectional,
-		MansionConvergence: mockMansionConvergence,
-		ArabicParts: mockArabicParts,
-		SolarReturn: mockSolarReturn,
-		Composite: mockComposite,
-		StarsCross: mockStarsCross,
-		Traditional: mockTraditional,
-		Uranian: mockUranian,
-		Harmonic: mockHarmonic,
-		Divisional: mockDivisional,
-		Parans: mockParans,
-		Declination: mockDeclination,
-		Firdaria: mockFirdaria,
-	})
+	mux := NewMux(testConfig())
 	ts := httptest.NewServer(mux)
 	defer ts.Close()
 
@@ -844,43 +418,7 @@ func TestServerStars(t *testing.T) {
 }
 
 func TestServerTraditional(t *testing.T) {
-	mux := NewMux(ServerConfig{
-		StaticFS: nil,
-		Compute: mockCompute,
-		Aspects: mockAspects,
-		Timing: mockTiming,
-		Transits: mockTransits,
-		Synastry: mockSynastry,
-		Relocation: mockRelocation,
-		Chart: mockChart,
-		Patterns: mockPatterns,
-		Draconic: mockDraconic,
-		DraconicSynastry: mockDraconicSynastry,
-		DraconicSynastryFull: mockDraconicSynastryFull,
-		DraconicTransits: mockDraconicTransits,
-		ProgressedDraconic: mockProgressedDraconic,
-		DraconicSolarReturn: mockDraconicSolarReturn,
-		Stars: mockStars,
-		DraconicTransitsCross: mockDraconicTransitsCross,
-		ProgressedCross: mockProgressedCross,
-		Directions: mockDirections,
-		Interpretation: mockInterpretation,
-		AstroCartography: mockAstroCartography,
-		AstroCartographyCompare: mockAstroCartographyCompare,
-		Electional: mockElectional,
-		MansionConvergence: mockMansionConvergence,
-		ArabicParts: mockArabicParts,
-		SolarReturn: mockSolarReturn,
-		Composite: mockComposite,
-		StarsCross: mockStarsCross,
-		Traditional: mockTraditional,
-		Uranian: mockUranian,
-		Harmonic: mockHarmonic,
-		Divisional: mockDivisional,
-		Parans: mockParans,
-		Declination: mockDeclination,
-		Firdaria: mockFirdaria,
-	})
+	mux := NewMux(testConfig())
 	ts := httptest.NewServer(mux)
 	defer ts.Close()
 
@@ -895,43 +433,7 @@ func TestServerTraditional(t *testing.T) {
 }
 
 func TestServerUranian(t *testing.T) {
-	mux := NewMux(ServerConfig{
-		StaticFS: nil,
-		Compute: mockCompute,
-		Aspects: mockAspects,
-		Timing: mockTiming,
-		Transits: mockTransits,
-		Synastry: mockSynastry,
-		Relocation: mockRelocation,
-		Chart: mockChart,
-		Patterns: mockPatterns,
-		Draconic: mockDraconic,
-		DraconicSynastry: mockDraconicSynastry,
-		DraconicSynastryFull: mockDraconicSynastryFull,
-		DraconicTransits: mockDraconicTransits,
-		ProgressedDraconic: mockProgressedDraconic,
-		DraconicSolarReturn: mockDraconicSolarReturn,
-		Stars: mockStars,
-		DraconicTransitsCross: mockDraconicTransitsCross,
-		ProgressedCross: mockProgressedCross,
-		Directions: mockDirections,
-		Interpretation: mockInterpretation,
-		AstroCartography: mockAstroCartography,
-		AstroCartographyCompare: mockAstroCartographyCompare,
-		Electional: mockElectional,
-		MansionConvergence: mockMansionConvergence,
-		ArabicParts: mockArabicParts,
-		SolarReturn: mockSolarReturn,
-		Composite: mockComposite,
-		StarsCross: mockStarsCross,
-		Traditional: mockTraditional,
-		Uranian: mockUranian,
-		Harmonic: mockHarmonic,
-		Divisional: mockDivisional,
-		Parans: mockParans,
-		Declination: mockDeclination,
-		Firdaria: mockFirdaria,
-	})
+	mux := NewMux(testConfig())
 	ts := httptest.NewServer(mux)
 	defer ts.Close()
 
@@ -946,43 +448,7 @@ func TestServerUranian(t *testing.T) {
 }
 
 func TestServerHarmonic(t *testing.T) {
-	mux := NewMux(ServerConfig{
-		StaticFS: nil,
-		Compute: mockCompute,
-		Aspects: mockAspects,
-		Timing: mockTiming,
-		Transits: mockTransits,
-		Synastry: mockSynastry,
-		Relocation: mockRelocation,
-		Chart: mockChart,
-		Patterns: mockPatterns,
-		Draconic: mockDraconic,
-		DraconicSynastry: mockDraconicSynastry,
-		DraconicSynastryFull: mockDraconicSynastryFull,
-		DraconicTransits: mockDraconicTransits,
-		ProgressedDraconic: mockProgressedDraconic,
-		DraconicSolarReturn: mockDraconicSolarReturn,
-		Stars: mockStars,
-		DraconicTransitsCross: mockDraconicTransitsCross,
-		ProgressedCross: mockProgressedCross,
-		Directions: mockDirections,
-		Interpretation: mockInterpretation,
-		AstroCartography: mockAstroCartography,
-		AstroCartographyCompare: mockAstroCartographyCompare,
-		Electional: mockElectional,
-		MansionConvergence: mockMansionConvergence,
-		ArabicParts: mockArabicParts,
-		SolarReturn: mockSolarReturn,
-		Composite: mockComposite,
-		StarsCross: mockStarsCross,
-		Traditional: mockTraditional,
-		Uranian: mockUranian,
-		Harmonic: mockHarmonic,
-		Divisional: mockDivisional,
-		Parans: mockParans,
-		Declination: mockDeclination,
-		Firdaria: mockFirdaria,
-	})
+	mux := NewMux(testConfig())
 	ts := httptest.NewServer(mux)
 	defer ts.Close()
 
@@ -994,43 +460,7 @@ func TestServerHarmonic(t *testing.T) {
 }
 
 func TestServerDivisional(t *testing.T) {
-	mux := NewMux(ServerConfig{
-		StaticFS: nil,
-		Compute: mockCompute,
-		Aspects: mockAspects,
-		Timing: mockTiming,
-		Transits: mockTransits,
-		Synastry: mockSynastry,
-		Relocation: mockRelocation,
-		Chart: mockChart,
-		Patterns: mockPatterns,
-		Draconic: mockDraconic,
-		DraconicSynastry: mockDraconicSynastry,
-		DraconicSynastryFull: mockDraconicSynastryFull,
-		DraconicTransits: mockDraconicTransits,
-		ProgressedDraconic: mockProgressedDraconic,
-		DraconicSolarReturn: mockDraconicSolarReturn,
-		Stars: mockStars,
-		DraconicTransitsCross: mockDraconicTransitsCross,
-		ProgressedCross: mockProgressedCross,
-		Directions: mockDirections,
-		Interpretation: mockInterpretation,
-		AstroCartography: mockAstroCartography,
-		AstroCartographyCompare: mockAstroCartographyCompare,
-		Electional: mockElectional,
-		MansionConvergence: mockMansionConvergence,
-		ArabicParts: mockArabicParts,
-		SolarReturn: mockSolarReturn,
-		Composite: mockComposite,
-		StarsCross: mockStarsCross,
-		Traditional: mockTraditional,
-		Uranian: mockUranian,
-		Harmonic: mockHarmonic,
-		Divisional: mockDivisional,
-		Parans: mockParans,
-		Declination: mockDeclination,
-		Firdaria: mockFirdaria,
-	})
+	mux := NewMux(testConfig())
 	ts := httptest.NewServer(mux)
 	defer ts.Close()
 
@@ -1045,43 +475,7 @@ func TestServerDivisional(t *testing.T) {
 }
 
 func TestServerParans(t *testing.T) {
-	mux := NewMux(ServerConfig{
-		StaticFS: nil,
-		Compute: mockCompute,
-		Aspects: mockAspects,
-		Timing: mockTiming,
-		Transits: mockTransits,
-		Synastry: mockSynastry,
-		Relocation: mockRelocation,
-		Chart: mockChart,
-		Patterns: mockPatterns,
-		Draconic: mockDraconic,
-		DraconicSynastry: mockDraconicSynastry,
-		DraconicSynastryFull: mockDraconicSynastryFull,
-		DraconicTransits: mockDraconicTransits,
-		ProgressedDraconic: mockProgressedDraconic,
-		DraconicSolarReturn: mockDraconicSolarReturn,
-		Stars: mockStars,
-		DraconicTransitsCross: mockDraconicTransitsCross,
-		ProgressedCross: mockProgressedCross,
-		Directions: mockDirections,
-		Interpretation: mockInterpretation,
-		AstroCartography: mockAstroCartography,
-		AstroCartographyCompare: mockAstroCartographyCompare,
-		Electional: mockElectional,
-		MansionConvergence: mockMansionConvergence,
-		ArabicParts: mockArabicParts,
-		SolarReturn: mockSolarReturn,
-		Composite: mockComposite,
-		StarsCross: mockStarsCross,
-		Traditional: mockTraditional,
-		Uranian: mockUranian,
-		Harmonic: mockHarmonic,
-		Divisional: mockDivisional,
-		Parans: mockParans,
-		Declination: mockDeclination,
-		Firdaria: mockFirdaria,
-	})
+	mux := NewMux(testConfig())
 	ts := httptest.NewServer(mux)
 	defer ts.Close()
 
@@ -1096,43 +490,7 @@ func TestServerParans(t *testing.T) {
 }
 
 func TestServerDeclination(t *testing.T) {
-	mux := NewMux(ServerConfig{
-		StaticFS: nil,
-		Compute: mockCompute,
-		Aspects: mockAspects,
-		Timing: mockTiming,
-		Transits: mockTransits,
-		Synastry: mockSynastry,
-		Relocation: mockRelocation,
-		Chart: mockChart,
-		Patterns: mockPatterns,
-		Draconic: mockDraconic,
-		DraconicSynastry: mockDraconicSynastry,
-		DraconicSynastryFull: mockDraconicSynastryFull,
-		DraconicTransits: mockDraconicTransits,
-		ProgressedDraconic: mockProgressedDraconic,
-		DraconicSolarReturn: mockDraconicSolarReturn,
-		Stars: mockStars,
-		DraconicTransitsCross: mockDraconicTransitsCross,
-		ProgressedCross: mockProgressedCross,
-		Directions: mockDirections,
-		Interpretation: mockInterpretation,
-		AstroCartography: mockAstroCartography,
-		AstroCartographyCompare: mockAstroCartographyCompare,
-		Electional: mockElectional,
-		MansionConvergence: mockMansionConvergence,
-		ArabicParts: mockArabicParts,
-		SolarReturn: mockSolarReturn,
-		Composite: mockComposite,
-		StarsCross: mockStarsCross,
-		Traditional: mockTraditional,
-		Uranian: mockUranian,
-		Harmonic: mockHarmonic,
-		Divisional: mockDivisional,
-		Parans: mockParans,
-		Declination: mockDeclination,
-		Firdaria: mockFirdaria,
-	})
+	mux := NewMux(testConfig())
 	ts := httptest.NewServer(mux)
 	defer ts.Close()
 
@@ -1147,43 +505,7 @@ func TestServerDeclination(t *testing.T) {
 }
 
 func TestServerFirdaria(t *testing.T) {
-	mux := NewMux(ServerConfig{
-		StaticFS: nil,
-		Compute: mockCompute,
-		Aspects: mockAspects,
-		Timing: mockTiming,
-		Transits: mockTransits,
-		Synastry: mockSynastry,
-		Relocation: mockRelocation,
-		Chart: mockChart,
-		Patterns: mockPatterns,
-		Draconic: mockDraconic,
-		DraconicSynastry: mockDraconicSynastry,
-		DraconicSynastryFull: mockDraconicSynastryFull,
-		DraconicTransits: mockDraconicTransits,
-		ProgressedDraconic: mockProgressedDraconic,
-		DraconicSolarReturn: mockDraconicSolarReturn,
-		Stars: mockStars,
-		DraconicTransitsCross: mockDraconicTransitsCross,
-		ProgressedCross: mockProgressedCross,
-		Directions: mockDirections,
-		Interpretation: mockInterpretation,
-		AstroCartography: mockAstroCartography,
-		AstroCartographyCompare: mockAstroCartographyCompare,
-		Electional: mockElectional,
-		MansionConvergence: mockMansionConvergence,
-		ArabicParts: mockArabicParts,
-		SolarReturn: mockSolarReturn,
-		Composite: mockComposite,
-		StarsCross: mockStarsCross,
-		Traditional: mockTraditional,
-		Uranian: mockUranian,
-		Harmonic: mockHarmonic,
-		Divisional: mockDivisional,
-		Parans: mockParans,
-		Declination: mockDeclination,
-		Firdaria: mockFirdaria,
-	})
+	mux := NewMux(testConfig())
 	ts := httptest.NewServer(mux)
 	defer ts.Close()
 
@@ -1198,43 +520,7 @@ func TestServerFirdaria(t *testing.T) {
 }
 
 func TestServerRelocation(t *testing.T) {
-	mux := NewMux(ServerConfig{
-		StaticFS: nil,
-		Compute: mockCompute,
-		Aspects: mockAspects,
-		Timing: mockTiming,
-		Transits: mockTransits,
-		Synastry: mockSynastry,
-		Relocation: mockRelocation,
-		Chart: mockChart,
-		Patterns: mockPatterns,
-		Draconic: mockDraconic,
-		DraconicSynastry: mockDraconicSynastry,
-		DraconicSynastryFull: mockDraconicSynastryFull,
-		DraconicTransits: mockDraconicTransits,
-		ProgressedDraconic: mockProgressedDraconic,
-		DraconicSolarReturn: mockDraconicSolarReturn,
-		Stars: mockStars,
-		DraconicTransitsCross: mockDraconicTransitsCross,
-		ProgressedCross: mockProgressedCross,
-		Directions: mockDirections,
-		Interpretation: mockInterpretation,
-		AstroCartography: mockAstroCartography,
-		AstroCartographyCompare: mockAstroCartographyCompare,
-		Electional: mockElectional,
-		MansionConvergence: mockMansionConvergence,
-		ArabicParts: mockArabicParts,
-		SolarReturn: mockSolarReturn,
-		Composite: mockComposite,
-		StarsCross: mockStarsCross,
-		Traditional: mockTraditional,
-		Uranian: mockUranian,
-		Harmonic: mockHarmonic,
-		Divisional: mockDivisional,
-		Parans: mockParans,
-		Declination: mockDeclination,
-		Firdaria: mockFirdaria,
-	})
+	mux := NewMux(testConfig())
 	ts := httptest.NewServer(mux)
 	defer ts.Close()
 
@@ -1251,43 +537,7 @@ func TestServerRelocation(t *testing.T) {
 }
 
 func TestServerDraconicSynastry(t *testing.T) {
-	mux := NewMux(ServerConfig{
-		StaticFS: nil,
-		Compute: mockCompute,
-		Aspects: mockAspects,
-		Timing: mockTiming,
-		Transits: mockTransits,
-		Synastry: mockSynastry,
-		Relocation: mockRelocation,
-		Chart: mockChart,
-		Patterns: mockPatterns,
-		Draconic: mockDraconic,
-		DraconicSynastry: mockDraconicSynastry,
-		DraconicSynastryFull: mockDraconicSynastryFull,
-		DraconicTransits: mockDraconicTransits,
-		ProgressedDraconic: mockProgressedDraconic,
-		DraconicSolarReturn: mockDraconicSolarReturn,
-		Stars: mockStars,
-		DraconicTransitsCross: mockDraconicTransitsCross,
-		ProgressedCross: mockProgressedCross,
-		Directions: mockDirections,
-		Interpretation: mockInterpretation,
-		AstroCartography: mockAstroCartography,
-		AstroCartographyCompare: mockAstroCartographyCompare,
-		Electional: mockElectional,
-		MansionConvergence: mockMansionConvergence,
-		ArabicParts: mockArabicParts,
-		SolarReturn: mockSolarReturn,
-		Composite: mockComposite,
-		StarsCross: mockStarsCross,
-		Traditional: mockTraditional,
-		Uranian: mockUranian,
-		Harmonic: mockHarmonic,
-		Divisional: mockDivisional,
-		Parans: mockParans,
-		Declination: mockDeclination,
-		Firdaria: mockFirdaria,
-	})
+	mux := NewMux(testConfig())
 	ts := httptest.NewServer(mux)
 	defer ts.Close()
 
@@ -1302,43 +552,7 @@ func TestServerDraconicSynastry(t *testing.T) {
 }
 
 func TestServerDraconicSynastryFull(t *testing.T) {
-	mux := NewMux(ServerConfig{
-		StaticFS: nil,
-		Compute: mockCompute,
-		Aspects: mockAspects,
-		Timing: mockTiming,
-		Transits: mockTransits,
-		Synastry: mockSynastry,
-		Relocation: mockRelocation,
-		Chart: mockChart,
-		Patterns: mockPatterns,
-		Draconic: mockDraconic,
-		DraconicSynastry: mockDraconicSynastry,
-		DraconicSynastryFull: mockDraconicSynastryFull,
-		DraconicTransits: mockDraconicTransits,
-		ProgressedDraconic: mockProgressedDraconic,
-		DraconicSolarReturn: mockDraconicSolarReturn,
-		Stars: mockStars,
-		DraconicTransitsCross: mockDraconicTransitsCross,
-		ProgressedCross: mockProgressedCross,
-		Directions: mockDirections,
-		Interpretation: mockInterpretation,
-		AstroCartography: mockAstroCartography,
-		AstroCartographyCompare: mockAstroCartographyCompare,
-		Electional: mockElectional,
-		MansionConvergence: mockMansionConvergence,
-		ArabicParts: mockArabicParts,
-		SolarReturn: mockSolarReturn,
-		Composite: mockComposite,
-		StarsCross: mockStarsCross,
-		Traditional: mockTraditional,
-		Uranian: mockUranian,
-		Harmonic: mockHarmonic,
-		Divisional: mockDivisional,
-		Parans: mockParans,
-		Declination: mockDeclination,
-		Firdaria: mockFirdaria,
-	})
+	mux := NewMux(testConfig())
 	ts := httptest.NewServer(mux)
 	defer ts.Close()
 
@@ -1353,43 +567,7 @@ func TestServerDraconicSynastryFull(t *testing.T) {
 }
 
 func TestServerDraconicTransits(t *testing.T) {
-	mux := NewMux(ServerConfig{
-		StaticFS: nil,
-		Compute: mockCompute,
-		Aspects: mockAspects,
-		Timing: mockTiming,
-		Transits: mockTransits,
-		Synastry: mockSynastry,
-		Relocation: mockRelocation,
-		Chart: mockChart,
-		Patterns: mockPatterns,
-		Draconic: mockDraconic,
-		DraconicSynastry: mockDraconicSynastry,
-		DraconicSynastryFull: mockDraconicSynastryFull,
-		DraconicTransits: mockDraconicTransits,
-		ProgressedDraconic: mockProgressedDraconic,
-		DraconicSolarReturn: mockDraconicSolarReturn,
-		Stars: mockStars,
-		DraconicTransitsCross: mockDraconicTransitsCross,
-		ProgressedCross: mockProgressedCross,
-		Directions: mockDirections,
-		Interpretation: mockInterpretation,
-		AstroCartography: mockAstroCartography,
-		AstroCartographyCompare: mockAstroCartographyCompare,
-		Electional: mockElectional,
-		MansionConvergence: mockMansionConvergence,
-		ArabicParts: mockArabicParts,
-		SolarReturn: mockSolarReturn,
-		Composite: mockComposite,
-		StarsCross: mockStarsCross,
-		Traditional: mockTraditional,
-		Uranian: mockUranian,
-		Harmonic: mockHarmonic,
-		Divisional: mockDivisional,
-		Parans: mockParans,
-		Declination: mockDeclination,
-		Firdaria: mockFirdaria,
-	})
+	mux := NewMux(testConfig())
 	ts := httptest.NewServer(mux)
 	defer ts.Close()
 
@@ -1405,43 +583,7 @@ func TestServerDraconicTransits(t *testing.T) {
 }
 
 func TestServerProgressedDraconic(t *testing.T) {
-	mux := NewMux(ServerConfig{
-		StaticFS: nil,
-		Compute: mockCompute,
-		Aspects: mockAspects,
-		Timing: mockTiming,
-		Transits: mockTransits,
-		Synastry: mockSynastry,
-		Relocation: mockRelocation,
-		Chart: mockChart,
-		Patterns: mockPatterns,
-		Draconic: mockDraconic,
-		DraconicSynastry: mockDraconicSynastry,
-		DraconicSynastryFull: mockDraconicSynastryFull,
-		DraconicTransits: mockDraconicTransits,
-		ProgressedDraconic: mockProgressedDraconic,
-		DraconicSolarReturn: mockDraconicSolarReturn,
-		Stars: mockStars,
-		DraconicTransitsCross: mockDraconicTransitsCross,
-		ProgressedCross: mockProgressedCross,
-		Directions: mockDirections,
-		Interpretation: mockInterpretation,
-		AstroCartography: mockAstroCartography,
-		AstroCartographyCompare: mockAstroCartographyCompare,
-		Electional: mockElectional,
-		MansionConvergence: mockMansionConvergence,
-		ArabicParts: mockArabicParts,
-		SolarReturn: mockSolarReturn,
-		Composite: mockComposite,
-		StarsCross: mockStarsCross,
-		Traditional: mockTraditional,
-		Uranian: mockUranian,
-		Harmonic: mockHarmonic,
-		Divisional: mockDivisional,
-		Parans: mockParans,
-		Declination: mockDeclination,
-		Firdaria: mockFirdaria,
-	})
+	mux := NewMux(testConfig())
 	ts := httptest.NewServer(mux)
 	defer ts.Close()
 
@@ -1456,43 +598,7 @@ func TestServerProgressedDraconic(t *testing.T) {
 }
 
 func TestServerDraconicSolarReturn(t *testing.T) {
-	mux := NewMux(ServerConfig{
-		StaticFS: nil,
-		Compute: mockCompute,
-		Aspects: mockAspects,
-		Timing: mockTiming,
-		Transits: mockTransits,
-		Synastry: mockSynastry,
-		Relocation: mockRelocation,
-		Chart: mockChart,
-		Patterns: mockPatterns,
-		Draconic: mockDraconic,
-		DraconicSynastry: mockDraconicSynastry,
-		DraconicSynastryFull: mockDraconicSynastryFull,
-		DraconicTransits: mockDraconicTransits,
-		ProgressedDraconic: mockProgressedDraconic,
-		DraconicSolarReturn: mockDraconicSolarReturn,
-		Stars: mockStars,
-		DraconicTransitsCross: mockDraconicTransitsCross,
-		ProgressedCross: mockProgressedCross,
-		Directions: mockDirections,
-		Interpretation: mockInterpretation,
-		AstroCartography: mockAstroCartography,
-		AstroCartographyCompare: mockAstroCartographyCompare,
-		Electional: mockElectional,
-		MansionConvergence: mockMansionConvergence,
-		ArabicParts: mockArabicParts,
-		SolarReturn: mockSolarReturn,
-		Composite: mockComposite,
-		StarsCross: mockStarsCross,
-		Traditional: mockTraditional,
-		Uranian: mockUranian,
-		Harmonic: mockHarmonic,
-		Divisional: mockDivisional,
-		Parans: mockParans,
-		Declination: mockDeclination,
-		Firdaria: mockFirdaria,
-	})
+	mux := NewMux(testConfig())
 	ts := httptest.NewServer(mux)
 	defer ts.Close()
 
@@ -1504,43 +610,7 @@ func TestServerDraconicSolarReturn(t *testing.T) {
 }
 
 func TestServerDraconicTransitsCross(t *testing.T) {
-	mux := NewMux(ServerConfig{
-		StaticFS: nil,
-		Compute: mockCompute,
-		Aspects: mockAspects,
-		Timing: mockTiming,
-		Transits: mockTransits,
-		Synastry: mockSynastry,
-		Relocation: mockRelocation,
-		Chart: mockChart,
-		Patterns: mockPatterns,
-		Draconic: mockDraconic,
-		DraconicSynastry: mockDraconicSynastry,
-		DraconicSynastryFull: mockDraconicSynastryFull,
-		DraconicTransits: mockDraconicTransits,
-		ProgressedDraconic: mockProgressedDraconic,
-		DraconicSolarReturn: mockDraconicSolarReturn,
-		Stars: mockStars,
-		DraconicTransitsCross: mockDraconicTransitsCross,
-		ProgressedCross: mockProgressedCross,
-		Directions: mockDirections,
-		Interpretation: mockInterpretation,
-		AstroCartography: mockAstroCartography,
-		AstroCartographyCompare: mockAstroCartographyCompare,
-		Electional: mockElectional,
-		MansionConvergence: mockMansionConvergence,
-		ArabicParts: mockArabicParts,
-		SolarReturn: mockSolarReturn,
-		Composite: mockComposite,
-		StarsCross: mockStarsCross,
-		Traditional: mockTraditional,
-		Uranian: mockUranian,
-		Harmonic: mockHarmonic,
-		Divisional: mockDivisional,
-		Parans: mockParans,
-		Declination: mockDeclination,
-		Firdaria: mockFirdaria,
-	})
+	mux := NewMux(testConfig())
 	ts := httptest.NewServer(mux)
 	defer ts.Close()
 
@@ -1552,43 +622,7 @@ func TestServerDraconicTransitsCross(t *testing.T) {
 }
 
 func TestServerMansionConvergence(t *testing.T) {
-	mux := NewMux(ServerConfig{
-		StaticFS: nil,
-		Compute: mockCompute,
-		Aspects: mockAspects,
-		Timing: mockTiming,
-		Transits: mockTransits,
-		Synastry: mockSynastry,
-		Relocation: mockRelocation,
-		Chart: mockChart,
-		Patterns: mockPatterns,
-		Draconic: mockDraconic,
-		DraconicSynastry: mockDraconicSynastry,
-		DraconicSynastryFull: mockDraconicSynastryFull,
-		DraconicTransits: mockDraconicTransits,
-		ProgressedDraconic: mockProgressedDraconic,
-		DraconicSolarReturn: mockDraconicSolarReturn,
-		Stars: mockStars,
-		DraconicTransitsCross: mockDraconicTransitsCross,
-		ProgressedCross: mockProgressedCross,
-		Directions: mockDirections,
-		Interpretation: mockInterpretation,
-		AstroCartography: mockAstroCartography,
-		AstroCartographyCompare: mockAstroCartographyCompare,
-		Electional: mockElectional,
-		MansionConvergence: mockMansionConvergence,
-		ArabicParts: mockArabicParts,
-		SolarReturn: mockSolarReturn,
-		Composite: mockComposite,
-		StarsCross: mockStarsCross,
-		Traditional: mockTraditional,
-		Uranian: mockUranian,
-		Harmonic: mockHarmonic,
-		Divisional: mockDivisional,
-		Parans: mockParans,
-		Declination: mockDeclination,
-		Firdaria: mockFirdaria,
-	})
+	mux := NewMux(testConfig())
 	ts := httptest.NewServer(mux)
 	defer ts.Close()
 
@@ -1603,43 +637,7 @@ func TestServerMansionConvergence(t *testing.T) {
 }
 
 func TestServerArabicParts(t *testing.T) {
-	mux := NewMux(ServerConfig{
-		StaticFS: nil,
-		Compute: mockCompute,
-		Aspects: mockAspects,
-		Timing: mockTiming,
-		Transits: mockTransits,
-		Synastry: mockSynastry,
-		Relocation: mockRelocation,
-		Chart: mockChart,
-		Patterns: mockPatterns,
-		Draconic: mockDraconic,
-		DraconicSynastry: mockDraconicSynastry,
-		DraconicSynastryFull: mockDraconicSynastryFull,
-		DraconicTransits: mockDraconicTransits,
-		ProgressedDraconic: mockProgressedDraconic,
-		DraconicSolarReturn: mockDraconicSolarReturn,
-		Stars: mockStars,
-		DraconicTransitsCross: mockDraconicTransitsCross,
-		ProgressedCross: mockProgressedCross,
-		Directions: mockDirections,
-		Interpretation: mockInterpretation,
-		AstroCartography: mockAstroCartography,
-		AstroCartographyCompare: mockAstroCartographyCompare,
-		Electional: mockElectional,
-		MansionConvergence: mockMansionConvergence,
-		ArabicParts: mockArabicParts,
-		SolarReturn: mockSolarReturn,
-		Composite: mockComposite,
-		StarsCross: mockStarsCross,
-		Traditional: mockTraditional,
-		Uranian: mockUranian,
-		Harmonic: mockHarmonic,
-		Divisional: mockDivisional,
-		Parans: mockParans,
-		Declination: mockDeclination,
-		Firdaria: mockFirdaria,
-	})
+	mux := NewMux(testConfig())
 	ts := httptest.NewServer(mux)
 	defer ts.Close()
 
@@ -1654,43 +652,7 @@ func TestServerArabicParts(t *testing.T) {
 }
 
 func TestServerSolarReturn(t *testing.T) {
-	mux := NewMux(ServerConfig{
-		StaticFS: nil,
-		Compute: mockCompute,
-		Aspects: mockAspects,
-		Timing: mockTiming,
-		Transits: mockTransits,
-		Synastry: mockSynastry,
-		Relocation: mockRelocation,
-		Chart: mockChart,
-		Patterns: mockPatterns,
-		Draconic: mockDraconic,
-		DraconicSynastry: mockDraconicSynastry,
-		DraconicSynastryFull: mockDraconicSynastryFull,
-		DraconicTransits: mockDraconicTransits,
-		ProgressedDraconic: mockProgressedDraconic,
-		DraconicSolarReturn: mockDraconicSolarReturn,
-		Stars: mockStars,
-		DraconicTransitsCross: mockDraconicTransitsCross,
-		ProgressedCross: mockProgressedCross,
-		Directions: mockDirections,
-		Interpretation: mockInterpretation,
-		AstroCartography: mockAstroCartography,
-		AstroCartographyCompare: mockAstroCartographyCompare,
-		Electional: mockElectional,
-		MansionConvergence: mockMansionConvergence,
-		ArabicParts: mockArabicParts,
-		SolarReturn: mockSolarReturn,
-		Composite: mockComposite,
-		StarsCross: mockStarsCross,
-		Traditional: mockTraditional,
-		Uranian: mockUranian,
-		Harmonic: mockHarmonic,
-		Divisional: mockDivisional,
-		Parans: mockParans,
-		Declination: mockDeclination,
-		Firdaria: mockFirdaria,
-	})
+	mux := NewMux(testConfig())
 	ts := httptest.NewServer(mux)
 	defer ts.Close()
 
@@ -1702,43 +664,7 @@ func TestServerSolarReturn(t *testing.T) {
 }
 
 func TestServerComposite(t *testing.T) {
-	mux := NewMux(ServerConfig{
-		StaticFS: nil,
-		Compute: mockCompute,
-		Aspects: mockAspects,
-		Timing: mockTiming,
-		Transits: mockTransits,
-		Synastry: mockSynastry,
-		Relocation: mockRelocation,
-		Chart: mockChart,
-		Patterns: mockPatterns,
-		Draconic: mockDraconic,
-		DraconicSynastry: mockDraconicSynastry,
-		DraconicSynastryFull: mockDraconicSynastryFull,
-		DraconicTransits: mockDraconicTransits,
-		ProgressedDraconic: mockProgressedDraconic,
-		DraconicSolarReturn: mockDraconicSolarReturn,
-		Stars: mockStars,
-		DraconicTransitsCross: mockDraconicTransitsCross,
-		ProgressedCross: mockProgressedCross,
-		Directions: mockDirections,
-		Interpretation: mockInterpretation,
-		AstroCartography: mockAstroCartography,
-		AstroCartographyCompare: mockAstroCartographyCompare,
-		Electional: mockElectional,
-		MansionConvergence: mockMansionConvergence,
-		ArabicParts: mockArabicParts,
-		SolarReturn: mockSolarReturn,
-		Composite: mockComposite,
-		StarsCross: mockStarsCross,
-		Traditional: mockTraditional,
-		Uranian: mockUranian,
-		Harmonic: mockHarmonic,
-		Divisional: mockDivisional,
-		Parans: mockParans,
-		Declination: mockDeclination,
-		Firdaria: mockFirdaria,
-	})
+	mux := NewMux(testConfig())
 	ts := httptest.NewServer(mux)
 	defer ts.Close()
 
@@ -1753,43 +679,7 @@ func TestServerComposite(t *testing.T) {
 }
 
 func TestServerStarsCross(t *testing.T) {
-	mux := NewMux(ServerConfig{
-		StaticFS: nil,
-		Compute: mockCompute,
-		Aspects: mockAspects,
-		Timing: mockTiming,
-		Transits: mockTransits,
-		Synastry: mockSynastry,
-		Relocation: mockRelocation,
-		Chart: mockChart,
-		Patterns: mockPatterns,
-		Draconic: mockDraconic,
-		DraconicSynastry: mockDraconicSynastry,
-		DraconicSynastryFull: mockDraconicSynastryFull,
-		DraconicTransits: mockDraconicTransits,
-		ProgressedDraconic: mockProgressedDraconic,
-		DraconicSolarReturn: mockDraconicSolarReturn,
-		Stars: mockStars,
-		DraconicTransitsCross: mockDraconicTransitsCross,
-		ProgressedCross: mockProgressedCross,
-		Directions: mockDirections,
-		Interpretation: mockInterpretation,
-		AstroCartography: mockAstroCartography,
-		AstroCartographyCompare: mockAstroCartographyCompare,
-		Electional: mockElectional,
-		MansionConvergence: mockMansionConvergence,
-		ArabicParts: mockArabicParts,
-		SolarReturn: mockSolarReturn,
-		Composite: mockComposite,
-		StarsCross: mockStarsCross,
-		Traditional: mockTraditional,
-		Uranian: mockUranian,
-		Harmonic: mockHarmonic,
-		Divisional: mockDivisional,
-		Parans: mockParans,
-		Declination: mockDeclination,
-		Firdaria: mockFirdaria,
-	})
+	mux := NewMux(testConfig())
 	ts := httptest.NewServer(mux)
 	defer ts.Close()
 
@@ -1804,43 +694,7 @@ func TestServerStarsCross(t *testing.T) {
 }
 
 func TestServerCORS(t *testing.T) {
-	mux := NewMux(ServerConfig{
-		StaticFS: nil,
-		Compute: mockCompute,
-		Aspects: mockAspects,
-		Timing: mockTiming,
-		Transits: mockTransits,
-		Synastry: mockSynastry,
-		Relocation: mockRelocation,
-		Chart: mockChart,
-		Patterns: mockPatterns,
-		Draconic: mockDraconic,
-		DraconicSynastry: mockDraconicSynastry,
-		DraconicSynastryFull: mockDraconicSynastryFull,
-		DraconicTransits: mockDraconicTransits,
-		ProgressedDraconic: mockProgressedDraconic,
-		DraconicSolarReturn: mockDraconicSolarReturn,
-		Stars: mockStars,
-		DraconicTransitsCross: mockDraconicTransitsCross,
-		ProgressedCross: mockProgressedCross,
-		Directions: mockDirections,
-		Interpretation: mockInterpretation,
-		AstroCartography: mockAstroCartography,
-		AstroCartographyCompare: mockAstroCartographyCompare,
-		Electional: mockElectional,
-		MansionConvergence: mockMansionConvergence,
-		ArabicParts: mockArabicParts,
-		SolarReturn: mockSolarReturn,
-		Composite: mockComposite,
-		StarsCross: mockStarsCross,
-		Traditional: mockTraditional,
-		Uranian: mockUranian,
-		Harmonic: mockHarmonic,
-		Divisional: mockDivisional,
-		Parans: mockParans,
-		Declination: mockDeclination,
-		Firdaria: mockFirdaria,
-	})
+	mux := NewMux(testConfig())
 	ts := httptest.NewServer(mux)
 	defer ts.Close()
 
@@ -1856,43 +710,9 @@ func TestServerCORS(t *testing.T) {
 
 func TestServerNilFunctionReturns501(t *testing.T) {
 	// When a function is nil, the handler should return 501
-	mux := NewMux(ServerConfig{
-		StaticFS: nil,
-		Compute: mockCompute,
-		Aspects: nil,
-		Timing: mockTiming,
-		Transits: mockTransits,
-		Synastry: mockSynastry,
-		Relocation: mockRelocation,
-		Chart: mockChart,
-		Patterns: mockPatterns,
-		Draconic: mockDraconic,
-		DraconicSynastry: mockDraconicSynastry,
-		DraconicSynastryFull: mockDraconicSynastryFull,
-		DraconicTransits: mockDraconicTransits,
-		ProgressedDraconic: mockProgressedDraconic,
-		DraconicSolarReturn: mockDraconicSolarReturn,
-		Stars: mockStars,
-		DraconicTransitsCross: mockDraconicTransitsCross,
-		ProgressedCross: mockProgressedCross,
-		Directions: mockDirections,
-		Interpretation: mockInterpretation,
-		AstroCartography: mockAstroCartography,
-		AstroCartographyCompare: mockAstroCartographyCompare,
-		Electional: mockElectional,
-		MansionConvergence: mockMansionConvergence,
-		ArabicParts: mockArabicParts,
-		SolarReturn: mockSolarReturn,
-		Composite: mockComposite,
-		StarsCross: mockStarsCross,
-		Traditional: mockTraditional,
-		Uranian: mockUranian,
-		Harmonic: mockHarmonic,
-		Divisional: mockDivisional,
-		Parans: mockParans,
-		Declination: mockDeclination,
-		Firdaria: mockFirdaria,
-	})
+	cfg := testConfig()
+	cfg.Aspects = nil
+	mux := NewMux(cfg)
 	ts := httptest.NewServer(mux)
 	defer ts.Close()
 
@@ -1903,43 +723,7 @@ func TestServerNilFunctionReturns501(t *testing.T) {
 }
 
 func TestServerOptions(t *testing.T) {
-	mux := NewMux(ServerConfig{
-		StaticFS: nil,
-		Compute: mockCompute,
-		Aspects: mockAspects,
-		Timing: mockTiming,
-		Transits: mockTransits,
-		Synastry: mockSynastry,
-		Relocation: mockRelocation,
-		Chart: mockChart,
-		Patterns: mockPatterns,
-		Draconic: mockDraconic,
-		DraconicSynastry: mockDraconicSynastry,
-		DraconicSynastryFull: mockDraconicSynastryFull,
-		DraconicTransits: mockDraconicTransits,
-		ProgressedDraconic: mockProgressedDraconic,
-		DraconicSolarReturn: mockDraconicSolarReturn,
-		Stars: mockStars,
-		DraconicTransitsCross: mockDraconicTransitsCross,
-		ProgressedCross: mockProgressedCross,
-		Directions: mockDirections,
-		Interpretation: mockInterpretation,
-		AstroCartography: mockAstroCartography,
-		AstroCartographyCompare: mockAstroCartographyCompare,
-		Electional: mockElectional,
-		MansionConvergence: mockMansionConvergence,
-		ArabicParts: mockArabicParts,
-		SolarReturn: mockSolarReturn,
-		Composite: mockComposite,
-		StarsCross: mockStarsCross,
-		Traditional: mockTraditional,
-		Uranian: mockUranian,
-		Harmonic: mockHarmonic,
-		Divisional: mockDivisional,
-		Parans: mockParans,
-		Declination: mockDeclination,
-		Firdaria: mockFirdaria,
-	})
+	mux := NewMux(testConfig())
 	ts := httptest.NewServer(mux)
 	defer ts.Close()
 

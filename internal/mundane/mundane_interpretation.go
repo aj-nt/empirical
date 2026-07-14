@@ -338,8 +338,8 @@ type MundaneChartInterpretation struct {
 // InterpretMundaneChartFull produces a complete mundane interpretation
 // of a chart, using the collective-voice interpretive layer.
 func InterpretMundaneChartFull(name, chartType string, chart *MundaneChart, orbDeg float64) *MundaneChartInterpretation {
-	ascSign := signName(chart.ASC)
-	mcSign := signName(chart.MC)
+	ascSign := dignity.SignForLongitude(chart.ASC)
+	mcSign := dignity.SignForLongitude(chart.MC)
 
 	report := &MundaneChartInterpretation{
 		Name:              name,

@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"io/fs"
 	"net/http"
+
+	"github.com/aj-nt/empirical/internal/dignity"
 )
 
 // Default orb values for endpoints that accept an optional orb parameter.
@@ -18,31 +20,31 @@ const (
 
 // ComputeFunc computes a full multi-phase recovery report for birth data
 // and returns the result as JSON bytes.
-type ComputeFunc func(name string, year, month, day, hour, minute int, tzOffset, lat, lng float64) ([]byte, error)
+type ComputeFunc func(bd dignity.BirthData) ([]byte, error)
 
 // AspectFunc returns the aspect catalog as JSON bytes.
 type AspectFunc func() ([]byte, error)
 
 // TimingFunc computes timing layer convergence for a target date.
-type TimingFunc func(name string, year, month, day, hour, minute int, tzOff, lat, lng float64, targetDate string) ([]byte, error)
+type TimingFunc func(bd dignity.BirthData, targetDate string) ([]byte, error)
 
 // TransitFunc computes transits for a natal chart over a date range.
-type TransitFunc func(name string, year, month, day, hour, minute int, tzOff, lat, lng float64, startDate, endDate string, orbDeg float64, sidereal bool) ([]byte, error)
+type TransitFunc func(bd dignity.BirthData, startDate, endDate string, orbDeg float64, sidereal bool) ([]byte, error)
 
 // SynastryFunc computes inter-aspects between two natal charts.
 type SynastryFunc func(name1 string, y1, mo1, d1, h1, mi1 int, tz1, la1, lo1 float64, name2 string, y2, mo2, d2, h2, mi2 int, tz2, la2, lo2 float64, orbDeg float64) ([]byte, error)
 
 // RelocationFunc computes a cross-validated relocation comparison between two locations.
-type RelocationFunc func(name string, year, month, day, hour, minute int, tzOff, lat, lng float64, locA LatLng, locB LatLng, targetDate string) ([]byte, error)
+type RelocationFunc func(bd dignity.BirthData, locA LatLng, locB LatLng, targetDate string) ([]byte, error)
 
 // ChartFunc renders a natal chart wheel as SVG.
-type ChartFunc func(name string, year, month, day, hour, minute int, tzOff, lat, lng float64, houseSystem string, sidereal bool, showAspects bool, outerPlanets bool, highlightPatterns bool, patternOrb float64) (string, error)
+type ChartFunc func(bd dignity.BirthData, houseSystem string, sidereal bool, showAspects bool, outerPlanets bool, highlightPatterns bool, patternOrb float64) (string, error)
 
 // PatternFunc detects geometric patterns in a natal chart.
-type PatternFunc func(name string, year, month, day, hour, minute int, tzOff, lat, lng float64, orbDeg float64) ([]byte, error)
+type PatternFunc func(bd dignity.BirthData, orbDeg float64) ([]byte, error)
 
 // DraconicFunc computes the draconic chart, sign shifts, and bridges.
-type DraconicFunc func(name string, year, month, day, hour, minute int, tzOff, lat, lng float64, orbDeg float64) ([]byte, error)
+type DraconicFunc func(bd dignity.BirthData, orbDeg float64) ([]byte, error)
 
 // DraconicSynastryFunc computes draconic synastry between two charts.
 type DraconicSynastryFunc func(name1 string, y1, mo1, d1, h1, mi1 int, tz1, la1, lo1 float64, name2 string, y2, mo2, d2, h2, mi2 int, tz2, la2, lo2 float64, orbDeg float64) ([]byte, error)
@@ -51,74 +53,75 @@ type DraconicSynastryFunc func(name1 string, y1, mo1, d1, h1, mi1 int, tz1, la1,
 type DraconicSynastryFullFunc func(name1 string, y1, mo1, d1, h1, mi1 int, tz1, la1, lo1 float64, name2 string, y2, mo2, d2, h2, mi2 int, tz2, la2, lo2 float64, orbDeg float64) ([]byte, error)
 
 // DraconicTransitFunc computes draconic transits: transiting planets → draconic chart.
-type DraconicTransitFunc func(name string, year, month, day, hour, minute int, tzOff, lat, lng float64, startDate, endDate string, orbDeg float64) ([]byte, error)
+type DraconicTransitFunc func(bd dignity.BirthData, startDate, endDate string, orbDeg float64) ([]byte, error)
 
 // ProgressedDraconicFunc computes the progressed draconic chart using the current transiting NN.
-type ProgressedDraconicFunc func(name string, year, month, day, hour, minute int, tzOff, lat, lng float64, targetDate string) ([]byte, error)
+type ProgressedDraconicFunc func(bd dignity.BirthData, targetDate string) ([]byte, error)
 
 // DraconicSolarReturnFunc computes the draconic solar return for a target year.
-type DraconicSolarReturnFunc func(name string, year, month, day, hour, minute int, tzOff, lat, lng float64, targetYear int) ([]byte, error)
+type DraconicSolarReturnFunc func(bd dignity.BirthData, targetYear int) ([]byte, error)
 
 // StarsFunc computes fixed star conjunctions for a natal chart.
-type StarsFunc func(name string, year, month, day, hour, minute int, tzOff, lat, lng float64, orbDeg float64) ([]byte, error)
+type StarsFunc func(bd dignity.BirthData, orbDeg float64) ([]byte, error)
 
 // DraconicTransitsCrossFunc compares draconic transits in tropical vs sidereal.
-type DraconicTransitsCrossFunc func(name string, year, month, day, hour, minute int, tzOff, lat, lng float64, startDate, endDate string, orbDeg float64) ([]byte, error)
+type DraconicTransitsCrossFunc func(bd dignity.BirthData, startDate, endDate string, orbDeg float64) ([]byte, error)
 
 // ProgressedCrossFunc compares progressed-to-natal aspects in tropical vs sidereal.
-type ProgressedCrossFunc func(name string, year, month, day, hour, minute int, tzOff, lat, lng float64, targetDate string, orbDeg float64) ([]byte, error)
+type ProgressedCrossFunc func(bd dignity.BirthData, targetDate string, orbDeg float64) ([]byte, error)
 
 // DirectionsFunc computes primary directions (Ptolemy) for a given age.
-type DirectionsFunc func(name string, year, month, day, hour, minute int, tzOff, lat, lng float64, age float64, orbDeg float64) ([]byte, error)
+type DirectionsFunc func(bd dignity.BirthData, age float64, orbDeg float64) ([]byte, error)
 
 // InterpretationFunc produces natural-language chart interpretation.
-type InterpretationFunc func(name string, year, month, day, hour, minute int, tzOff, lat, lng float64, houseSystem string, orbDeg float64) ([]byte, error)
+// system: SystemKoiné (Hellenistic, default) or SystemWestern (modern).
+type InterpretationFunc func(bd dignity.BirthData, houseSystem string, orbDeg float64, system string) ([]byte, error)
 
 // AstroCartographyFunc computes planetary lines for a world map.
-// frame: "tropical", "draconic", or "cross".
-type AstroCartographyFunc func(name string, year, month, day, hour, minute int, tzOff, lat, lng float64, latStep float64, frame string) ([]byte, error)
+// frame: FrameTropical, FrameDraconic, or FrameCross.
+type AstroCartographyFunc func(bd dignity.BirthData, latStep float64, frame string) ([]byte, error)
 
 // AstroCartographyCompareFunc returns three-way comparison at a target location.
-type AstroCartographyCompareFunc func(name string, year, month, day, hour, minute int, tzOff, lat, lng float64, latStep, targetLat, targetLng, orb float64) ([]byte, error)
+type AstroCartographyCompareFunc func(bd dignity.BirthData, latStep, targetLat, targetLng, orb float64) ([]byte, error)
 
 // ElectionalFunc scores dates in a range for launch/event timing.
-type ElectionalFunc func(name string, year, month, day, hour, minute int, tzOff, lat, lng float64, startDate, endDate string, orbDeg float64) ([]byte, error)
+type ElectionalFunc func(bd dignity.BirthData, startDate, endDate string, orbDeg float64) ([]byte, error)
 
 // MansionConvergenceFunc computes nakshatra/xiu mansion placements per chart.
-type MansionConvergenceFunc func(name string, year, month, day, hour, minute int, tzOff, lat, lng float64) ([]byte, error)
+type MansionConvergenceFunc func(bd dignity.BirthData) ([]byte, error)
 
 // ArabicPartsFunc computes Arabic Parts and cross-system comparison.
-type ArabicPartsFunc func(name string, year, month, day, hour, minute int, tzOff, lat, lng float64, orbDeg float64) ([]byte, error)
+type ArabicPartsFunc func(bd dignity.BirthData, orbDeg float64) ([]byte, error)
 
 // SolarReturnFunc computes a tropical solar return chart.
-type SolarReturnFunc func(name string, year, month, day, hour, minute int, tzOff, lat, lng float64, targetYear int) ([]byte, error)
+type SolarReturnFunc func(bd dignity.BirthData, targetYear int) ([]byte, error)
 
 // CompositeFunc computes a midpoint composite chart for two people.
 type CompositeFunc func(name1 string, y1, m1, d1, h1, min1 int, tz1, lat1, lng1 float64, name2 string, y2, m2, d2, h2, min2 int, tz2, lat2, lng2 float64, orbDeg float64) ([]byte, error)
 
 // StarsCrossFunc compares star conjunctions in tropical vs sidereal frames.
-type StarsCrossFunc func(name string, year, month, day, hour, minute int, tzOff, lat, lng float64, orbDeg float64) ([]byte, error)
+type StarsCrossFunc func(bd dignity.BirthData, orbDeg float64) ([]byte, error)
 
 // TraditionalFunc computes traditional astrology interpretive data.
-type TraditionalFunc func(name string, year, month, day, hour, minute int, tzOff, lat, lng float64) ([]byte, error)
+type TraditionalFunc func(bd dignity.BirthData) ([]byte, error)
 
 // UranianFunc computes Uranian/Hamburg School midpoint analysis.
-type UranianFunc func(name string, year, month, day, hour, minute int, tzOff, lat, lng float64) ([]byte, error)
+type UranianFunc func(bd dignity.BirthData) ([]byte, error)
 
 // HarmonicFunc computes Addey-style harmonic charts.
-type HarmonicFunc func(name string, year, month, day, hour, minute int, tzOff, lat, lng float64, harmonics []int, orb float64) ([]byte, error)
+type HarmonicFunc func(bd dignity.BirthData, harmonics []int, orb float64) ([]byte, error)
 
 // DivisionalFunc computes Vedic divisional charts (navamsha D9, nakshatras, dasha).
-type DivisionalFunc func(name string, year, month, day, hour, minute int, tzOff, lat, lng float64) ([]byte, error)
+type DivisionalFunc func(bd dignity.BirthData) ([]byte, error)
 
 // ParansFunc computes fixed star parans (star-planet angle contacts).
-type ParansFunc func(name string, year, month, day, hour, minute int, tzOff, lat, lng float64, orb float64) ([]byte, error)
+type ParansFunc func(bd dignity.BirthData, orb float64) ([]byte, error)
 
 // DeclinationFunc computes declination parallels and contraparallels.
-type DeclinationFunc func(name string, year, month, day, hour, minute int, tzOff, lat, lng float64, orb float64) ([]byte, error)
+type DeclinationFunc func(bd dignity.BirthData, orb float64) ([]byte, error)
 
 // FirdariaFunc computes Persian firdaria planetary periods.
-type FirdariaFunc func(name string, year, month, day, hour, minute int, tzOff, lat, lng float64) ([]byte, error)
+type FirdariaFunc func(bd dignity.BirthData) ([]byte, error)
 
 // LatLng holds a named geographic location.
 type LatLng struct {
@@ -209,7 +212,17 @@ func NewMux(cfg ServerConfig) *http.ServeMux {
 	}
 
 	mux.HandleFunc("/api/recover", handleJSON(func(req ChartRequest) ([]byte, error) {
-		return cfg.Compute(req.Name, req.Year, req.Month, req.Day, req.Hour, req.Minute, req.TzOffset, req.Lat, req.Lng)
+		return cfg.Compute(dignity.BirthData{
+		Name:     req.Name,
+		Year:     req.Year,
+		Month:    req.Month,
+		Day:      req.Day,
+		Hour:     req.Hour,
+		Minute:   req.Minute,
+		TZOffset: req.TzOffset,
+		Lat:      req.Lat,
+		Lng:      req.Lng,
+	})
 	}))
 
 	mux.HandleFunc("/api/aspect-catalog", func(w http.ResponseWriter, r *http.Request) {
@@ -231,37 +244,59 @@ func NewMux(cfg ServerConfig) *http.ServeMux {
 		if cfg.Timing == nil {
 			return nil, ErrNotAvailable
 		}
-		return cfg.Timing(req.Name, req.Year, req.Month, req.Day, req.Hour, req.Minute, req.TzOffset, req.Lat, req.Lng, req.TargetDate)
+		return cfg.Timing(dignity.BirthData{
+		Name:     req.Name,
+		Year:     req.Year,
+		Month:    req.Month,
+		Day:      req.Day,
+		Hour:     req.Hour,
+		Minute:   req.Minute,
+		TZOffset: req.TzOffset,
+		Lat:      req.Lat,
+		Lng:      req.Lng,
+	}, req.TargetDate)
 	}))
 
 	mux.HandleFunc("/api/transits", handleJSON(func(req TransitRequest) ([]byte, error) {
 		if cfg.Transits == nil {
 			return nil, ErrNotAvailable
 		}
-		orb := req.Orb
-		if orb <= 0 {
-			orb = OrbStandard
-		}
-		return cfg.Transits(req.Name, req.Year, req.Month, req.Day, req.Hour, req.Minute, req.TzOffset, req.Lat, req.Lng, req.StartDate, req.EndDate, orb, req.Sidereal)
+		return cfg.Transits(dignity.BirthData{
+		Name:     req.Name,
+		Year:     req.Year,
+		Month:    req.Month,
+		Day:      req.Day,
+		Hour:     req.Hour,
+		Minute:   req.Minute,
+		TZOffset: req.TzOffset,
+		Lat:      req.Lat,
+		Lng:      req.Lng,
+	}, req.StartDate, req.EndDate, defaultOrb(req.Orb, OrbStandard), req.Sidereal)
 	}))
 
 	mux.HandleFunc("/api/synastry", handleJSON(func(req SynastryRequest) ([]byte, error) {
 		if cfg.Synastry == nil {
 			return nil, ErrNotAvailable
 		}
-		orb := req.Orb
-		if orb <= 0 {
-			orb = OrbWide
-		}
 		return cfg.Synastry(req.Name1, req.Year1, req.Month1, req.Day1, req.Hour1, req.Min1, req.Tz1, req.Lat1, req.Lng1,
-			req.Name2, req.Year2, req.Month2, req.Day2, req.Hour2, req.Min2, req.Tz2, req.Lat2, req.Lng2, orb)
+			req.Name2, req.Year2, req.Month2, req.Day2, req.Hour2, req.Min2, req.Tz2, req.Lat2, req.Lng2, defaultOrb(req.Orb, OrbWide))
 	}))
 
 	mux.HandleFunc("/api/relocation-compare", handleJSON(func(req RelocationRequest) ([]byte, error) {
 		if cfg.Relocation == nil {
 			return nil, ErrNotAvailable
 		}
-		return cfg.Relocation(req.Name, req.Year, req.Month, req.Day, req.Hour, req.Minute, req.TzOffset, req.Lat, req.Lng,
+		return cfg.Relocation(dignity.BirthData{
+		Name:     req.Name,
+		Year:     req.Year,
+		Month:    req.Month,
+		Day:      req.Day,
+		Hour:     req.Hour,
+		Minute:   req.Minute,
+		TZOffset: req.TzOffset,
+		Lat:      req.Lat,
+		Lng:      req.Lng,
+	},
 			req.LocationA, req.LocationB, req.TargetDate)
 	}))
 
@@ -283,7 +318,17 @@ func NewMux(cfg ServerConfig) *http.ServeMux {
 		if hs == "" {
 			hs = "placidus"
 		}
-		result, err := cfg.Chart(req.Name, req.Year, req.Month, req.Day, req.Hour, req.Minute, req.TzOffset, req.Lat, req.Lng, hs, req.Sidereal, req.ShowAspects, req.OuterPlanets, req.HighlightPatterns, req.PatternOrb)
+		result, err := cfg.Chart(dignity.BirthData{
+		Name:     req.Name,
+		Year:     req.Year,
+		Month:    req.Month,
+		Day:      req.Day,
+		Hour:     req.Hour,
+		Minute:   req.Minute,
+		TZOffset: req.TzOffset,
+		Lat:      req.Lat,
+		Lng:      req.Lng,
+	}, hs, req.Sidereal, req.ShowAspects, req.OuterPlanets, req.HighlightPatterns, req.PatternOrb)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -297,206 +342,275 @@ func NewMux(cfg ServerConfig) *http.ServeMux {
 		if cfg.Patterns == nil {
 			return nil, ErrNotAvailable
 		}
-		orb := req.Orb
-		if orb <= 0 {
-			orb = OrbWide
-		}
-		return cfg.Patterns(req.Name, req.Year, req.Month, req.Day, req.Hour, req.Minute, req.TzOffset, req.Lat, req.Lng, orb)
+		return cfg.Patterns(dignity.BirthData{
+		Name:     req.Name,
+		Year:     req.Year,
+		Month:    req.Month,
+		Day:      req.Day,
+		Hour:     req.Hour,
+		Minute:   req.Minute,
+		TZOffset: req.TzOffset,
+		Lat:      req.Lat,
+		Lng:      req.Lng,
+	}, defaultOrb(req.Orb, OrbWide))
 	}))
 
 	mux.HandleFunc("/api/draconic", handleJSON(func(req ChartRequest) ([]byte, error) {
 		if cfg.Draconic == nil {
 			return nil, ErrNotAvailable
 		}
-		orb := req.Orb
-		if orb <= 0 {
-			orb = OrbStandard
-		}
-		return cfg.Draconic(req.Name, req.Year, req.Month, req.Day, req.Hour, req.Minute, req.TzOffset, req.Lat, req.Lng, orb)
+		return cfg.Draconic(dignity.BirthData{
+		Name:     req.Name,
+		Year:     req.Year,
+		Month:    req.Month,
+		Day:      req.Day,
+		Hour:     req.Hour,
+		Minute:   req.Minute,
+		TZOffset: req.TzOffset,
+		Lat:      req.Lat,
+		Lng:      req.Lng,
+	}, defaultOrb(req.Orb, OrbStandard))
 	}))
 
 	mux.HandleFunc("/api/draconic-synastry", handleJSON(func(req SynastryRequest) ([]byte, error) {
 		if cfg.DraconicSynastry == nil {
 			return nil, ErrNotAvailable
 		}
-		orb := req.Orb
-		if orb <= 0 {
-			orb = OrbStandard
-		}
 		return cfg.DraconicSynastry(req.Name1, req.Year1, req.Month1, req.Day1, req.Hour1, req.Min1, req.Tz1, req.Lat1, req.Lng1,
-			req.Name2, req.Year2, req.Month2, req.Day2, req.Hour2, req.Min2, req.Tz2, req.Lat2, req.Lng2, orb)
+			req.Name2, req.Year2, req.Month2, req.Day2, req.Hour2, req.Min2, req.Tz2, req.Lat2, req.Lng2, defaultOrb(req.Orb, OrbStandard))
 	}))
 
 	mux.HandleFunc("/api/draconic-synastry-full", handleJSON(func(req SynastryRequest) ([]byte, error) {
 		if cfg.DraconicSynastryFull == nil {
 			return nil, ErrNotAvailable
 		}
-		orb := req.Orb
-		if orb <= 0 {
-			orb = OrbStandard
-		}
 		return cfg.DraconicSynastryFull(req.Name1, req.Year1, req.Month1, req.Day1, req.Hour1, req.Min1, req.Tz1, req.Lat1, req.Lng1,
-			req.Name2, req.Year2, req.Month2, req.Day2, req.Hour2, req.Min2, req.Tz2, req.Lat2, req.Lng2, orb)
+			req.Name2, req.Year2, req.Month2, req.Day2, req.Hour2, req.Min2, req.Tz2, req.Lat2, req.Lng2, defaultOrb(req.Orb, OrbStandard))
 	}))
 
 	mux.HandleFunc("/api/draconic-transits", handleJSON(func(req TransitRequest) ([]byte, error) {
 		if cfg.DraconicTransits == nil {
 			return nil, ErrNotAvailable
 		}
-		orb := req.Orb
-		if orb <= 0 {
-			orb = OrbStandard
-		}
-		return cfg.DraconicTransits(req.Name, req.Year, req.Month, req.Day, req.Hour, req.Minute, req.TzOffset, req.Lat, req.Lng, req.StartDate, req.EndDate, orb)
+		return cfg.DraconicTransits(dignity.BirthData{
+		Name:     req.Name,
+		Year:     req.Year,
+		Month:    req.Month,
+		Day:      req.Day,
+		Hour:     req.Hour,
+		Minute:   req.Minute,
+		TZOffset: req.TzOffset,
+		Lat:      req.Lat,
+		Lng:      req.Lng,
+	}, req.StartDate, req.EndDate, defaultOrb(req.Orb, OrbStandard))
 	}))
 
 	mux.HandleFunc("/api/progressed-draconic", handleJSON(func(req TimingRequest) ([]byte, error) {
 		if cfg.ProgressedDraconic == nil {
 			return nil, ErrNotAvailable
 		}
-		return cfg.ProgressedDraconic(req.Name, req.Year, req.Month, req.Day, req.Hour, req.Minute, req.TzOffset, req.Lat, req.Lng, req.TargetDate)
+		return cfg.ProgressedDraconic(dignity.BirthData{
+		Name:     req.Name,
+		Year:     req.Year,
+		Month:    req.Month,
+		Day:      req.Day,
+		Hour:     req.Hour,
+		Minute:   req.Minute,
+		TZOffset: req.TzOffset,
+		Lat:      req.Lat,
+		Lng:      req.Lng,
+	}, req.TargetDate)
 	}))
 
-	mux.HandleFunc("/api/draconic-solar-return", handleJSON(func(req struct {
-		ChartRequest
-		TargetYear int `json:"target_year"`
-	}) ([]byte, error) {
+	mux.HandleFunc("/api/draconic-solar-return", handleJSON(func(req DraconicSolarReturnRequest) ([]byte, error) {
 		if cfg.DraconicSolarReturn == nil {
 			return nil, ErrNotAvailable
 		}
-		return cfg.DraconicSolarReturn(req.Name, req.Year, req.Month, req.Day, req.Hour, req.Minute, req.TzOffset, req.Lat, req.Lng, req.TargetYear)
+		return cfg.DraconicSolarReturn(dignity.BirthData{
+		Name:     req.Name,
+		Year:     req.Year,
+		Month:    req.Month,
+		Day:      req.Day,
+		Hour:     req.Hour,
+		Minute:   req.Minute,
+		TZOffset: req.TzOffset,
+		Lat:      req.Lat,
+		Lng:      req.Lng,
+	}, req.TargetYear)
 	}))
 
 	mux.HandleFunc("/api/stars", handleJSON(func(req ChartRequest) ([]byte, error) {
 		if cfg.Stars == nil {
 			return nil, ErrNotAvailable
 		}
-		orb := req.Orb
-		if orb <= 0 {
-			orb = OrbNarrow
-		}
-		return cfg.Stars(req.Name, req.Year, req.Month, req.Day, req.Hour, req.Minute, req.TzOffset, req.Lat, req.Lng, orb)
+		return cfg.Stars(dignity.BirthData{
+		Name:     req.Name,
+		Year:     req.Year,
+		Month:    req.Month,
+		Day:      req.Day,
+		Hour:     req.Hour,
+		Minute:   req.Minute,
+		TZOffset: req.TzOffset,
+		Lat:      req.Lat,
+		Lng:      req.Lng,
+	}, defaultOrb(req.Orb, OrbNarrow))
 	}))
 
 	mux.HandleFunc("/api/draconic-transits-cross", handleJSON(func(req TransitRequest) ([]byte, error) {
 		if cfg.DraconicTransitsCross == nil {
 			return nil, ErrNotAvailable
 		}
-		orb := req.Orb
-		if orb <= 0 {
-			orb = OrbStandard
-		}
-		return cfg.DraconicTransitsCross(req.Name, req.Year, req.Month, req.Day, req.Hour, req.Minute, req.TzOffset, req.Lat, req.Lng, req.StartDate, req.EndDate, orb)
+		return cfg.DraconicTransitsCross(dignity.BirthData{
+		Name:     req.Name,
+		Year:     req.Year,
+		Month:    req.Month,
+		Day:      req.Day,
+		Hour:     req.Hour,
+		Minute:   req.Minute,
+		TZOffset: req.TzOffset,
+		Lat:      req.Lat,
+		Lng:      req.Lng,
+	}, req.StartDate, req.EndDate, defaultOrb(req.Orb, OrbStandard))
 	}))
 
 	mux.HandleFunc("/api/progressed-cross", handleJSON(func(req TimingRequest) ([]byte, error) {
 		if cfg.ProgressedCross == nil {
 			return nil, ErrNotAvailable
 		}
-		orb := req.Orb
-		if orb <= 0 {
-			orb = OrbStandard
-		}
-		return cfg.ProgressedCross(req.Name, req.Year, req.Month, req.Day, req.Hour, req.Minute, req.TzOffset, req.Lat, req.Lng, req.TargetDate, orb)
+		return cfg.ProgressedCross(dignity.BirthData{
+		Name:     req.Name,
+		Year:     req.Year,
+		Month:    req.Month,
+		Day:      req.Day,
+		Hour:     req.Hour,
+		Minute:   req.Minute,
+		TZOffset: req.TzOffset,
+		Lat:      req.Lat,
+		Lng:      req.Lng,
+	}, req.TargetDate, defaultOrb(req.Orb, OrbStandard))
 	}))
 
-	mux.HandleFunc("/api/directions", handleJSON(func(req struct {
-		ChartRequest
-		Age float64 `json:"age"`
-		Orb float64 `json:"orb"`
-	}) ([]byte, error) {
+	mux.HandleFunc("/api/directions", handleJSON(func(req DirectionsRequest) ([]byte, error) {
 		if cfg.Directions == nil {
 			return nil, ErrNotAvailable
 		}
-		orb := req.Orb
-		if orb <= 0 {
-			orb = OrbTight
-		}
-		return cfg.Directions(req.Name, req.Year, req.Month, req.Day, req.Hour, req.Minute, req.TzOffset, req.Lat, req.Lng, req.Age, orb)
+		return cfg.Directions(dignity.BirthData{
+		Name:     req.Name,
+		Year:     req.Year,
+		Month:    req.Month,
+		Day:      req.Day,
+		Hour:     req.Hour,
+		Minute:   req.Minute,
+		TZOffset: req.TzOffset,
+		Lat:      req.Lat,
+		Lng:      req.Lng,
+	}, req.Age, defaultOrb(req.Orb, OrbTight))
 	}))
 
 	mux.HandleFunc("/api/interpretation", handleJSON(func(req ChartRequest) ([]byte, error) {
 		if cfg.Interpretation == nil {
 			return nil, ErrNotAvailable
 		}
-		orb := req.Orb
-		if orb <= 0 {
-			orb = OrbStandard
+		system := req.System
+		if system == "" {
+			system = "koiné"
 		}
-		return cfg.Interpretation(req.Name, req.Year, req.Month, req.Day, req.Hour, req.Minute, req.TzOffset, req.Lat, req.Lng, req.HouseSystem, orb)
+		return cfg.Interpretation(dignity.BirthData{
+		Name:     req.Name,
+		Year:     req.Year,
+		Month:    req.Month,
+		Day:      req.Day,
+		Hour:     req.Hour,
+		Minute:   req.Minute,
+		TZOffset: req.TzOffset,
+		Lat:      req.Lat,
+		Lng:      req.Lng,
+	}, req.HouseSystem, defaultOrb(req.Orb, OrbStandard), system)
 	}))
 
-	mux.HandleFunc("/api/astrocartography", handleJSON(func(req struct {
-		ChartRequest
-		LatStep float64 `json:"lat_step"`
-		Frame   string  `json:"frame"`
-	}) ([]byte, error) {
+	mux.HandleFunc("/api/astrocartography", handleJSON(func(req AstroCartographyRequest) ([]byte, error) {
 		if cfg.AstroCartography == nil {
 			return nil, ErrNotAvailable
 		}
-		ls := req.LatStep
-		if ls <= 0 {
-			ls = 2.0
-		}
-		return cfg.AstroCartography(req.Name, req.Year, req.Month, req.Day, req.Hour, req.Minute, req.TzOffset, req.Lat, req.Lng, ls, req.Frame)
+		return cfg.AstroCartography(dignity.BirthData{
+		Name:     req.Name,
+		Year:     req.Year,
+		Month:    req.Month,
+		Day:      req.Day,
+		Hour:     req.Hour,
+		Minute:   req.Minute,
+		TZOffset: req.TzOffset,
+		Lat:      req.Lat,
+		Lng:      req.Lng,
+	}, defaultOrb(req.LatStep, 2.0), req.Frame)
 	}))
 
-	mux.HandleFunc("/api/astrocartography-compare", handleJSON(func(req struct {
-		ChartRequest
-		LatStep   float64 `json:"lat_step"`
-		TargetLat float64 `json:"target_lat"`
-		TargetLng float64 `json:"target_lng"`
-		Orb       float64 `json:"orb"`
-	}) ([]byte, error) {
+	mux.HandleFunc("/api/astrocartography-compare", handleJSON(func(req AstroCartographyCompareRequest) ([]byte, error) {
 		if cfg.AstroCartographyCompare == nil {
 			return nil, ErrNotAvailable
 		}
-		ls := req.LatStep
-		if ls <= 0 {
-			ls = 2.0
-		}
-		orb := req.Orb
-		if orb <= 0 {
-			orb = OrbStandard
-		}
-		return cfg.AstroCartographyCompare(req.Name, req.Year, req.Month, req.Day, req.Hour, req.Minute, req.TzOffset, req.Lat, req.Lng, ls, req.TargetLat, req.TargetLng, orb)
+		return cfg.AstroCartographyCompare(dignity.BirthData{
+		Name:     req.Name,
+		Year:     req.Year,
+		Month:    req.Month,
+		Day:      req.Day,
+		Hour:     req.Hour,
+		Minute:   req.Minute,
+		TZOffset: req.TzOffset,
+		Lat:      req.Lat,
+		Lng:      req.Lng,
+	}, defaultOrb(req.LatStep, 2.0), req.TargetLat, req.TargetLng, defaultOrb(req.Orb, OrbStandard))
 	}))
 
-	mux.HandleFunc("/api/electional", handleJSON(func(req struct {
-		ChartRequest
-		StartDate string  `json:"start_date"`
-		EndDate   string  `json:"end_date"`
-		Orb       float64 `json:"orb"`
-	}) ([]byte, error) {
+	mux.HandleFunc("/api/electional", handleJSON(func(req ElectionalRequest) ([]byte, error) {
 		if cfg.Electional == nil {
 			return nil, ErrNotAvailable
 		}
-		orb := req.Orb
-		if orb <= 0 {
-			orb = OrbStandard
-		}
-		return cfg.Electional(req.Name, req.Year, req.Month, req.Day, req.Hour, req.Minute, req.TzOffset, req.Lat, req.Lng, req.StartDate, req.EndDate, orb)
+		return cfg.Electional(dignity.BirthData{
+		Name:     req.Name,
+		Year:     req.Year,
+		Month:    req.Month,
+		Day:      req.Day,
+		Hour:     req.Hour,
+		Minute:   req.Minute,
+		TZOffset: req.TzOffset,
+		Lat:      req.Lat,
+		Lng:      req.Lng,
+	}, req.StartDate, req.EndDate, defaultOrb(req.Orb, OrbStandard))
 	}))
 
 	mux.HandleFunc("/api/mansion-convergence", handleJSON(func(req ChartRequest) ([]byte, error) {
 		if cfg.MansionConvergence == nil {
 			return nil, ErrNotAvailable
 		}
-		return cfg.MansionConvergence(req.Name, req.Year, req.Month, req.Day, req.Hour, req.Minute, req.TzOffset, req.Lat, req.Lng)
+		return cfg.MansionConvergence(dignity.BirthData{
+		Name:     req.Name,
+		Year:     req.Year,
+		Month:    req.Month,
+		Day:      req.Day,
+		Hour:     req.Hour,
+		Minute:   req.Minute,
+		TZOffset: req.TzOffset,
+		Lat:      req.Lat,
+		Lng:      req.Lng,
+	})
 	}))
 
-	mux.HandleFunc("/api/arabic-parts", handleJSON(func(req struct {
-		ChartRequest
-		Orb float64 `json:"orb"`
-	}) ([]byte, error) {
+	mux.HandleFunc("/api/arabic-parts", handleJSON(func(req ArabicPartsRequest) ([]byte, error) {
 		if cfg.ArabicParts == nil {
 			return nil, ErrNotAvailable
 		}
-		orb := req.Orb
-		if orb <= 0 {
-			orb = OrbStandard
-		}
-		return cfg.ArabicParts(req.Name, req.Year, req.Month, req.Day, req.Hour, req.Minute, req.TzOffset, req.Lat, req.Lng, orb)
+		return cfg.ArabicParts(dignity.BirthData{
+		Name:     req.Name,
+		Year:     req.Year,
+		Month:    req.Month,
+		Day:      req.Day,
+		Hour:     req.Hour,
+		Minute:   req.Minute,
+		TZOffset: req.TzOffset,
+		Lat:      req.Lat,
+		Lng:      req.Lng,
+	}, defaultOrb(req.Orb, OrbStandard))
 	}))
 
 	mux.HandleFunc("/api/solar-return", handleJSON(func(req struct {
@@ -509,7 +623,17 @@ func NewMux(cfg ServerConfig) *http.ServeMux {
 		if req.TargetYear == 0 {
 			req.TargetYear = req.Year + 1
 		}
-		return cfg.SolarReturn(req.Name, req.Year, req.Month, req.Day, req.Hour, req.Minute, req.TzOffset, req.Lat, req.Lng, req.TargetYear)
+		return cfg.SolarReturn(dignity.BirthData{
+		Name:     req.Name,
+		Year:     req.Year,
+		Month:    req.Month,
+		Day:      req.Day,
+		Hour:     req.Hour,
+		Minute:   req.Minute,
+		TZOffset: req.TzOffset,
+		Lat:      req.Lat,
+		Lng:      req.Lng,
+	}, req.TargetYear)
 	}))
 
 	mux.HandleFunc("/api/composite", handleJSON(func(req struct {
@@ -536,11 +660,7 @@ func NewMux(cfg ServerConfig) *http.ServeMux {
 		if cfg.Composite == nil {
 			return nil, ErrNotAvailable
 		}
-		orb := req.Orb
-		if orb <= 0 {
-			orb = OrbStandard
-		}
-		return cfg.Composite(req.Name1, req.Year1, req.Month1, req.Day1, req.Hour1, req.Min1, req.Tz1, req.Lat1, req.Lng1, req.Name2, req.Year2, req.Month2, req.Day2, req.Hour2, req.Min2, req.Tz2, req.Lat2, req.Lng2, orb)
+		return cfg.Composite(req.Name1, req.Year1, req.Month1, req.Day1, req.Hour1, req.Min1, req.Tz1, req.Lat1, req.Lng1, req.Name2, req.Year2, req.Month2, req.Day2, req.Hour2, req.Min2, req.Tz2, req.Lat2, req.Lng2, defaultOrb(req.Orb, OrbStandard))
 	}))
 
 	mux.HandleFunc("/api/stars-cross", handleJSON(func(req struct {
@@ -550,25 +670,51 @@ func NewMux(cfg ServerConfig) *http.ServeMux {
 		if cfg.StarsCross == nil {
 			return nil, ErrNotAvailable
 		}
-		orb := req.Orb
-		if orb <= 0 {
-			orb = OrbNarrow
-		}
-		return cfg.StarsCross(req.Name, req.Year, req.Month, req.Day, req.Hour, req.Minute, req.TzOffset, req.Lat, req.Lng, orb)
+		return cfg.StarsCross(dignity.BirthData{
+		Name:     req.Name,
+		Year:     req.Year,
+		Month:    req.Month,
+		Day:      req.Day,
+		Hour:     req.Hour,
+		Minute:   req.Minute,
+		TZOffset: req.TzOffset,
+		Lat:      req.Lat,
+		Lng:      req.Lng,
+	}, defaultOrb(req.Orb, OrbNarrow))
 	}))
 
 	mux.HandleFunc("/api/traditional", handleJSON(func(req ChartRequest) ([]byte, error) {
 		if cfg.Traditional == nil {
 			return nil, ErrNotAvailable
 		}
-		return cfg.Traditional(req.Name, req.Year, req.Month, req.Day, req.Hour, req.Minute, req.TzOffset, req.Lat, req.Lng)
+		return cfg.Traditional(dignity.BirthData{
+		Name:     req.Name,
+		Year:     req.Year,
+		Month:    req.Month,
+		Day:      req.Day,
+		Hour:     req.Hour,
+		Minute:   req.Minute,
+		TZOffset: req.TzOffset,
+		Lat:      req.Lat,
+		Lng:      req.Lng,
+	})
 	}))
 
 	mux.HandleFunc("/api/uranian", handleJSON(func(req ChartRequest) ([]byte, error) {
 		if cfg.Uranian == nil {
 			return nil, ErrNotAvailable
 		}
-		return cfg.Uranian(req.Name, req.Year, req.Month, req.Day, req.Hour, req.Minute, req.TzOffset, req.Lat, req.Lng)
+		return cfg.Uranian(dignity.BirthData{
+		Name:     req.Name,
+		Year:     req.Year,
+		Month:    req.Month,
+		Day:      req.Day,
+		Hour:     req.Hour,
+		Minute:   req.Minute,
+		TZOffset: req.TzOffset,
+		Lat:      req.Lat,
+		Lng:      req.Lng,
+	})
 	}))
 
 	mux.HandleFunc("/api/harmonic", handleJSON(func(req struct {
@@ -582,47 +728,85 @@ func NewMux(cfg ServerConfig) *http.ServeMux {
 		if len(req.Harmonics) == 0 {
 			req.Harmonics = []int{4, 5, 7, 9}
 		}
-		orb := req.Orb
-		if orb <= 0 {
-			orb = OrbNarrow
-		}
-		return cfg.Harmonic(req.Name, req.Year, req.Month, req.Day, req.Hour, req.Minute, req.TzOffset, req.Lat, req.Lng, req.Harmonics, orb)
+		return cfg.Harmonic(dignity.BirthData{
+		Name:     req.Name,
+		Year:     req.Year,
+		Month:    req.Month,
+		Day:      req.Day,
+		Hour:     req.Hour,
+		Minute:   req.Minute,
+		TZOffset: req.TzOffset,
+		Lat:      req.Lat,
+		Lng:      req.Lng,
+	}, req.Harmonics, defaultOrb(req.Orb, OrbNarrow))
 	}))
 
 	mux.HandleFunc("/api/divisional", handleJSON(func(req ChartRequest) ([]byte, error) {
 		if cfg.Divisional == nil {
 			return nil, ErrNotAvailable
 		}
-		return cfg.Divisional(req.Name, req.Year, req.Month, req.Day, req.Hour, req.Minute, req.TzOffset, req.Lat, req.Lng)
+		return cfg.Divisional(dignity.BirthData{
+		Name:     req.Name,
+		Year:     req.Year,
+		Month:    req.Month,
+		Day:      req.Day,
+		Hour:     req.Hour,
+		Minute:   req.Minute,
+		TZOffset: req.TzOffset,
+		Lat:      req.Lat,
+		Lng:      req.Lng,
+	})
 	}))
 
 	mux.HandleFunc("/api/parans", handleJSON(func(req ChartRequest) ([]byte, error) {
 		if cfg.Parans == nil {
 			return nil, ErrNotAvailable
 		}
-		orb := req.Orb
-		if orb <= 0 {
-			orb = OrbNarrow
-		}
-		return cfg.Parans(req.Name, req.Year, req.Month, req.Day, req.Hour, req.Minute, req.TzOffset, req.Lat, req.Lng, orb)
+		return cfg.Parans(dignity.BirthData{
+		Name:     req.Name,
+		Year:     req.Year,
+		Month:    req.Month,
+		Day:      req.Day,
+		Hour:     req.Hour,
+		Minute:   req.Minute,
+		TZOffset: req.TzOffset,
+		Lat:      req.Lat,
+		Lng:      req.Lng,
+	}, defaultOrb(req.Orb, OrbNarrow))
 	}))
 
 	mux.HandleFunc("/api/declination", handleJSON(func(req ChartRequest) ([]byte, error) {
 		if cfg.Declination == nil {
 			return nil, ErrNotAvailable
 		}
-		orb := req.Orb
-		if orb <= 0 {
-			orb = OrbTight
-		}
-		return cfg.Declination(req.Name, req.Year, req.Month, req.Day, req.Hour, req.Minute, req.TzOffset, req.Lat, req.Lng, orb)
+		return cfg.Declination(dignity.BirthData{
+		Name:     req.Name,
+		Year:     req.Year,
+		Month:    req.Month,
+		Day:      req.Day,
+		Hour:     req.Hour,
+		Minute:   req.Minute,
+		TZOffset: req.TzOffset,
+		Lat:      req.Lat,
+		Lng:      req.Lng,
+	}, defaultOrb(req.Orb, OrbTight))
 	}))
 
 	mux.HandleFunc("/api/firdaria", handleJSON(func(req ChartRequest) ([]byte, error) {
 		if cfg.Firdaria == nil {
 			return nil, ErrNotAvailable
 		}
-		return cfg.Firdaria(req.Name, req.Year, req.Month, req.Day, req.Hour, req.Minute, req.TzOffset, req.Lat, req.Lng)
+		return cfg.Firdaria(dignity.BirthData{
+		Name:     req.Name,
+		Year:     req.Year,
+		Month:    req.Month,
+		Day:      req.Day,
+		Hour:     req.Hour,
+		Minute:   req.Minute,
+		TZOffset: req.TzOffset,
+		Lat:      req.Lat,
+		Lng:      req.Lng,
+	})
 	}))
 
 	mux.HandleFunc("/api/", func(w http.ResponseWriter, r *http.Request) {
@@ -649,6 +833,57 @@ func Run(port int, cfg ServerConfig) error {
 	return http.ListenAndServe(addr, mux)
 }
 
+// DraconicSolarReturnRequest is the request for /api/draconic-solar-return.
+type DraconicSolarReturnRequest struct {
+	ChartRequest
+	TargetYear int `json:"target_year"`
+}
+
+// DirectionsRequest is the request for /api/directions.
+type DirectionsRequest struct {
+	ChartRequest
+	Age float64 `json:"age"`
+	Orb float64 `json:"orb"`
+}
+
+// AstroCartographyRequest is the request for /api/astrocartography.
+type AstroCartographyRequest struct {
+	ChartRequest
+	LatStep float64 `json:"lat_step"`
+	Frame   string  `json:"frame"`
+}
+
+// AstroCartographyCompareRequest is the request for /api/astrocartography-compare.
+type AstroCartographyCompareRequest struct {
+	ChartRequest
+	LatStep   float64 `json:"lat_step"`
+	TargetLat float64 `json:"target_lat"`
+	TargetLng float64 `json:"target_lng"`
+	Orb       float64 `json:"orb"`
+}
+
+// ElectionalRequest is the request for /api/electional.
+type ElectionalRequest struct {
+	ChartRequest
+	StartDate string  `json:"start_date"`
+	EndDate   string  `json:"end_date"`
+	Orb       float64 `json:"orb"`
+}
+
+// ArabicPartsRequest is the request for /api/arabic-parts.
+type ArabicPartsRequest struct {
+	ChartRequest
+	Orb float64 `json:"orb"`
+}
+
+// defaultOrb returns orb if > 0, otherwise returns defaultVal.
+func defaultOrb(orb, defaultVal float64) float64 {
+	if orb <= 0 {
+		return defaultVal
+	}
+	return orb
+}
+
 type ChartRequest struct {
 	Name        string  `json:"name"`
 	Year        int     `json:"year"`
@@ -666,6 +901,7 @@ type ChartRequest struct {
 	Orb         float64 `json:"orb"`
 	HighlightPatterns bool    `json:"highlight_patterns"`
 	PatternOrb        float64 `json:"pattern_orb"`
+	System      string  `json:"system"`
 }
 
 type TimingRequest struct {

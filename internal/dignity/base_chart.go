@@ -55,13 +55,11 @@ type BaseChart struct {
 // ComputeBaseChart computes all astrological positions for a birth chart.
 // This is the single entry point — every system extracts from the returned
 // BaseChart. Caller must have already called swe.SetEphePath and swe.SetSidMode.
-func ComputeBaseChart(
-	name string,
-	year, month, day, hour, minute, second int,
-	tzOff, lat, lng float64,
-) (*BaseChart, error) {
-	utHour := float64(hour) + float64(minute)/60.0 + float64(second)/3600.0 - tzOff
-	jd := swe.Julday(year, month, day, utHour, true)
+func ComputeBaseChart(bd BirthData) (*BaseChart, error) {
+	validateStarCatalog() // one-time consistency check on StarNames/StarMeanings
+
+	utHour := float64(bd.Hour) + float64(bd.Minute)/60.0 + float64(bd.Second)/3600.0 - bd.TZOffset
+	jd := swe.Julday(bd.Year, bd.Month, bd.Day, utHour, true)
 	ayan := swe.GetAyanamsaUT(jd)
 
 	// ── Planet positions (tropical + sidereal) ──────────────────────────
@@ -97,7 +95,7 @@ func ComputeBaseChart(
 		{"porphyry", 'O'},
 		{"koch", 'K'},
 	} {
-		cusps, ascmc := swe.Houses(jd, lat, lng, hs.code)
+		cusps, ascmc := swe.Houses(jd, bd.Lat, bd.Lng, hs.code)
 		houseCusps := make([]float64, 13) // 1-indexed
 		copy(houseCusps[1:], cusps[1:13])
 		houses[hs.name] = houseCusps
@@ -145,16 +143,16 @@ func ComputeBaseChart(
 	gmst := ComputeGMST(jd)
 
 	return &BaseChart{
-		Name:        name,
-		Year:        year,
-		Month:       month,
-		Day:         day,
-		Hour:        hour,
-		Minute:      minute,
-		Second:      second,
-		TZOffset:    tzOff,
-		Lat:         lat,
-		Lng:         lng,
+		Name:        bd.Name,
+		Year:        bd.Year,
+		Month:       bd.Month,
+		Day:         bd.Day,
+		Hour:        bd.Hour,
+		Minute:      bd.Minute,
+		Second:      bd.Second,
+		TZOffset:    bd.TZOffset,
+		Lat:         bd.Lat,
+		Lng:         bd.Lng,
 		Tropical:    tropical,
 		Sidereal:    sidereal,
 		Ayanamsa:    ayan,

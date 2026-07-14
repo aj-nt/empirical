@@ -94,31 +94,7 @@ var koinePairDynamics = map[string]string{
 	"Jupiter,Saturn": "fortune and the limit — the great cycle, expansion and contraction in rhythm",
 }
 
-// ── Hellenistic dignity tables (classical planets only) ────────────────
 
-var koineDomicile = map[string]string{
-	"Sun": "Leo", "Moon": "Cancer", "Mercury": "Gemini,Virgo",
-	"Venus": "Taurus,Libra", "Mars": "Aries,Scorpio",
-	"Jupiter": "Sagittarius,Pisces", "Saturn": "Capricorn,Aquarius",
-}
-
-var koineExaltation = map[string]string{
-	"Sun": "Aries", "Moon": "Taurus", "Mercury": "Virgo",
-	"Venus": "Pisces", "Mars": "Capricorn", "Jupiter": "Cancer",
-	"Saturn": "Libra",
-}
-
-var koineFall = map[string]string{
-	"Sun": "Libra", "Moon": "Scorpio", "Mercury": "Pisces",
-	"Venus": "Virgo", "Mars": "Cancer", "Jupiter": "Capricorn",
-	"Saturn": "Aries",
-}
-
-var koineDetriment = map[string]string{
-	"Sun": "Aquarius", "Moon": "Capricorn", "Mercury": "Sagittarius,Pisces",
-	"Venus": "Aries,Scorpio", "Mars": "Taurus,Libra",
-	"Jupiter": "Gemini,Virgo", "Saturn": "Cancer,Leo",
-}
 
 // ── Hellenistic triplicity rulers (Dorothean) ──────────────────────────
 
@@ -187,14 +163,35 @@ type KoineDignityLevel struct {
 func AssessKoineDignity(planet, sign string, isDayChart bool) KoineDignityLevel {
 	d := KoineDignityLevel{}
 
-	// Domicile
-	if strings.Contains(koineDomicile[planet], sign) {
-		d.Domicile = true
-	}
+	// Look up the planet's dignity table entry once.
+	r, ok := westernDignityTable[planet]
 
-	// Exaltation
-	if koineExaltation[planet] == sign {
-		d.Exaltation = true
+	// Domicile, Exaltation, Detriment, Fall — all from the same lookup.
+	if ok {
+		for _, s := range r.Domicile {
+			if s == sign {
+				d.Domicile = true
+				break
+			}
+		}
+		for _, s := range r.Exaltation {
+			if s == sign {
+				d.Exaltation = true
+				break
+			}
+		}
+		for _, s := range r.Detriment {
+			if s == sign {
+				d.Detriment = true
+				break
+			}
+		}
+		for _, s := range r.Fall {
+			if s == sign {
+				d.Fall = true
+				break
+			}
+		}
 	}
 
 	// Triplicity
@@ -205,16 +202,6 @@ func AssessKoineDignity(planet, sign string, isDayChart bool) KoineDignityLevel 
 				break
 			}
 		}
-	}
-
-	// Detriment
-	if strings.Contains(koineDetriment[planet], sign) {
-		d.Detriment = true
-	}
-
-	// Fall
-	if koineFall[planet] == sign {
-		d.Fall = true
 	}
 
 	// Peregrine: no essential dignity at all
@@ -376,14 +363,18 @@ func KoineInterpretChart(
 	return report
 }
 
+// classicalSet is a set of the seven classical planets for O(1) lookup.
+var classicalSet = func() map[string]bool {
+	m := make(map[string]bool, len(ClassicalPlanets))
+	for _, cp := range ClassicalPlanets {
+		m[cp] = true
+	}
+	return m
+}()
+
 // isClassicalPlanet returns true if the planet is one of the seven classical planets.
 func isClassicalPlanet(name string) bool {
-	for _, cp := range ClassicalPlanets {
-		if name == cp {
-			return true
-		}
-	}
-	return false
+	return classicalSet[name]
 }
 
 // ordinal returns the English ordinal for a number (1st, 2nd, etc.).

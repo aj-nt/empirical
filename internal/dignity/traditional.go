@@ -115,11 +115,6 @@ func ComputeAntiscia(positions map[string]float64) []AntiscionPoint {
 // ── Decans (Faces) ───────────────────────────────────────────────────────
 
 var chaldeanOrder = []string{"Mars", "Sun", "Venus", "Mercury", "Moon", "Saturn", "Jupiter"}
-var signOrder = []string{
-	"Aries", "Taurus", "Gemini", "Cancer", "Leo", "Virgo",
-	"Libra", "Scorpio", "Sagittarius", "Capricorn", "Aquarius", "Pisces",
-}
-
 type DecanInfo struct {
 	Planet string `json:"planet"`
 	Sign   string `json:"sign"`
@@ -140,7 +135,7 @@ func ComputeDecans(positions map[string]float64) []DecanInfo {
 			}
 			decan := int(degInSign/10) + 1
 			signIdx := -1
-			for i, s := range signOrder {
+			for i, s := range Signs {
 				if s == sign {
 					signIdx = i
 					break
@@ -155,7 +150,7 @@ func ComputeDecans(positions map[string]float64) []DecanInfo {
 }
 
 func signStart(sign string) float64 {
-	for i, s := range signOrder {
+	for i, s := range Signs {
 		if s == sign {
 			return float64(i * 30)
 		}
@@ -357,13 +352,13 @@ func ComputeVOCMoon(positions map[string]float64) VOCMoon {
 		degRemaining += 360
 	}
 	signIdx := -1
-	for i, s := range signOrder {
+	for i, s := range Signs {
 		if s == moonSign {
 			signIdx = i
 			break
 		}
 	}
-	nextSign := signOrder[(signIdx+1)%12]
+	nextSign := Signs[(signIdx+1)%12]
 	moonSpeed := 13.2
 	aspects := DefaultAspects()
 	orb := 3.0

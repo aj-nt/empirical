@@ -46,15 +46,6 @@ type TransitHit struct {
 	Orb        float64 `json:"orb"`
 }
 
-func signName(deg float64) string {
-	signs := []string{"Aries", "Taurus", "Gemini", "Cancer", "Leo", "Virgo",
-		"Libra", "Scorpio", "Sagittarius", "Capricorn", "Aquarius", "Pisces"}
-	idx := int(deg/30) % 12
-	if idx < 0 {
-		idx += 12
-	}
-	return signs[idx]
-}
 
 func aspectName(orb float64) string {
 	abs := orb

@@ -1,12 +1,14 @@
 package dignity
 
 import (
+	_ "embed"
 	"encoding/json"
 	"fmt"
 	"math"
 	"math/rand"
 	"sort"
 	"strings"
+	"sync"
 )
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -43,110 +45,62 @@ type StarEntry struct {
 	ManazilNum     int     // Manazil number 1-28 (0 if not manazil)
 }
 
-// NakshatraStars returns the 27 nakshatra determinative stars.
+//go:embed data/nakshatra_stars.json
+var nakshatraJSON []byte
+
+//go:embed data/xiu_stars.json
+var xiuJSON []byte
+
+//go:embed data/manazil_stars.json
+var manazilJSON []byte
+
+var (
+	nakshatraOnce sync.Once
+	nakshatraCache []StarEntry
+
+	xiuOnce sync.Once
+	xiuCache []StarEntry
+
+	manazilOnce sync.Once
+	manazilCache []StarEntry
+)
+
+// NakshatraStars returns the 27 nakshatra determinative stars, loaded from embedded JSON.
+// Results are cached after the first call via sync.Once.
 func NakshatraStars() []StarEntry {
-	return []StarEntry{
-		{Key: "Beta Arietis", StarName: "Sheratan", Bayer: "Beta Arietis", Magnitude: 2.65, EclipticLon: 33.97, EclipticLat: 8.49, NakshatraName: "Ashwini", NakshatraNum: 1},
-		{Key: "35 Arietis", StarName: "35 Arietis", Magnitude: 4.60, EclipticLon: 46.93, EclipticLat: 11.31, NakshatraName: "Bharani", NakshatraNum: 2},
-		{Key: "Eta Tauri", StarName: "Alcyone", Bayer: "Eta Tauri", Magnitude: 2.87, EclipticLon: 59.99, EclipticLat: 4.05, NakshatraName: "Krittika", NakshatraNum: 3},
-		{Key: "Alpha Tauri", StarName: "Aldebaran", Bayer: "Alpha Tauri", Magnitude: 0.87, EclipticLon: 69.79, EclipticLat: -5.47, NakshatraName: "Rohini", NakshatraNum: 4},
-		{Key: "Lambda Orionis", StarName: "Meissa", Bayer: "Lambda Orionis", Magnitude: 3.66, EclipticLon: 83.71, EclipticLat: -13.37, NakshatraName: "Mrigashira", NakshatraNum: 5},
-		{Key: "Alpha Orionis", StarName: "Betelgeuse", Bayer: "Alpha Orionis", Magnitude: 0.42, EclipticLon: 88.75, EclipticLat: -16.03, NakshatraName: "Ardra", NakshatraNum: 6},
-		{Key: "Alpha Geminorum", StarName: "Castor", Bayer: "Alpha Geminorum", Magnitude: 1.58, EclipticLon: 110.24, EclipticLat: 10.10, NakshatraName: "Punarvasu", NakshatraNum: 7},
-		{Key: "Gamma Cancri", StarName: "Asellus Borealis", Bayer: "Gamma Cancri", Magnitude: 4.65, EclipticLon: 127.54, EclipticLat: 3.19, NakshatraName: "Pushya", NakshatraNum: 8},
-		{Key: "Delta Hydrae", StarName: "Delta Hydrae", Magnitude: 4.14, EclipticLon: 130.30, EclipticLat: -12.39, NakshatraName: "Ashlesha", NakshatraNum: 9},
-		{Key: "Alpha Leonis", StarName: "Regulus", Bayer: "Alpha Leonis", Magnitude: 1.40, EclipticLon: 149.83, EclipticLat: 0.46, NakshatraName: "Magha", NakshatraNum: 10},
-		{Key: "Delta Leonis", StarName: "Zosma", Bayer: "Delta Leonis", Magnitude: 2.53, EclipticLon: 161.32, EclipticLat: 14.33, NakshatraName: "Purva Phalguni", NakshatraNum: 11},
-		{Key: "Beta Leonis", StarName: "Denebola", Bayer: "Beta Leonis", Magnitude: 2.13, EclipticLon: 171.62, EclipticLat: 12.27, NakshatraName: "Uttara Phalguni", NakshatraNum: 12},
-		{Key: "Alpha Corvi", StarName: "Alchiba", Bayer: "Alpha Corvi", Magnitude: 4.00, EclipticLon: 172.17, EclipticLat: 22.08, NakshatraName: "Hasta", NakshatraNum: 13},
-		{Key: "Alpha Virginis", StarName: "Spica", Bayer: "Alpha Virginis", Magnitude: 0.97, EclipticLon: 195.43, EclipticLat: 18.33, NakshatraName: "Chitra", NakshatraNum: 14},
-		{Key: "Alpha Bootis", StarName: "Arcturus", Bayer: "Alpha Bootis", Magnitude: -0.05, EclipticLon: 204.23, EclipticLat: 30.74, NakshatraName: "Swati", NakshatraNum: 15},
-		{Key: "Alpha Librae", StarName: "Zubenelgenubi", Bayer: "Alpha Librae", Magnitude: 2.75, EclipticLon: 214.70, EclipticLat: 30.78, NakshatraName: "Vishakha", NakshatraNum: 16},
-		{Key: "Beta Scorpii", StarName: "Acrab", Bayer: "Beta Scorpii", Magnitude: 2.62, EclipticLon: 234.60, EclipticLat: 38.18, NakshatraName: "Anuradha", NakshatraNum: 17},
-		{Key: "Alpha Scorpii", StarName: "Antares", Bayer: "Alpha Scorpii", Magnitude: 0.91, EclipticLon: 239.60, EclipticLat: 46.65, NakshatraName: "Jyeshtha", NakshatraNum: 18},
-		{Key: "Epsilon Scorpii", StarName: "Epsilon Scorpii", Magnitude: 2.29, EclipticLon: 243.80, EclipticLat: 55.57, NakshatraName: "Mula", NakshatraNum: 19},
-		{Key: "Delta Sagittarii", StarName: "Kaus Media", Bayer: "Delta Sagittarii", Magnitude: 2.67, EclipticLon: 277.44, EclipticLat: 51.48, NakshatraName: "Purva Ashadha", NakshatraNum: 20},
-		{Key: "Zeta Sagittarii", StarName: "Ascella", Bayer: "Zeta Sagittarii", Magnitude: 2.59, EclipticLon: 291.91, EclipticLat: 50.38, NakshatraName: "Uttara Ashadha", NakshatraNum: 21},
-		{Key: "Alpha Aquilae", StarName: "Altair", Bayer: "Alpha Aquilae", Magnitude: 0.76, EclipticLon: 301.78, EclipticLat: 29.30, NakshatraName: "Shravana", NakshatraNum: 22},
-		{Key: "Alpha Delphini", StarName: "Sualocin", Bayer: "Alpha Delphini", Magnitude: 3.80, EclipticLon: 317.38, EclipticLat: 33.02, NakshatraName: "Dhanishta", NakshatraNum: 23},
-		{Key: "Lambda Aquarii", StarName: "Lambda Aquarii", Magnitude: 3.73, EclipticLon: 346.99, EclipticLat: 12.54, NakshatraName: "Shatabhisha", NakshatraNum: 24},
-		{Key: "Alpha Pegasi", StarName: "Markab", Bayer: "Alpha Pegasi", Magnitude: 2.48, EclipticLon: 353.49, EclipticLat: 19.41, NakshatraName: "Purva Bhadrapada", NakshatraNum: 25},
-		{Key: "Gamma Pegasi", StarName: "Algenib", Bayer: "Gamma Pegasi", Magnitude: 2.84, EclipticLon: 9.16, EclipticLat: 12.60, NakshatraName: "Uttara Bhadrapada", NakshatraNum: 26},
-		{Key: "Zeta Piscium", StarName: "Zeta Piscium", Magnitude: 5.21, EclipticLon: 19.88, EclipticLat: -0.21, NakshatraName: "Revati", NakshatraNum: 27},
-	}
+	nakshatraOnce.Do(func() {
+		nakshatraCache = mustLoadStars(nakshatraJSON)
+	})
+	return nakshatraCache
 }
 
-// XiuStars returns the 28 Chinese xiu determinative stars.
+// XiuStars returns the 28 Chinese xiu determinative stars, loaded from embedded JSON.
+// Results are cached after the first call via sync.Once.
 func XiuStars() []StarEntry {
-	return []StarEntry{
-		{Key: "Alpha Virginis", StarName: "Spica", Bayer: "Alpha Virginis", Magnitude: 0.97, EclipticLon: 195.43, EclipticLat: 18.33, XiuName: "Horn", XiuNum: 1, XiuPinyin: "Jiao"},
-		{Key: "Kappa Virginis", StarName: "Kappa Virginis", Magnitude: 4.18, EclipticLon: 207.45, EclipticLat: 21.70, XiuName: "Neck", XiuNum: 2, XiuPinyin: "Kang"},
-		{Key: "Alpha Librae", StarName: "Zubenelgenubi", Bayer: "Alpha Librae", Magnitude: 2.75, EclipticLon: 214.70, EclipticLat: 30.78, XiuName: "Root", XiuNum: 3, XiuPinyin: "Di"},
-		{Key: "Pi Scorpii", StarName: "Pi Scorpii", Magnitude: 2.89, EclipticLon: 229.91, EclipticLat: 45.20, XiuName: "Room", XiuNum: 4, XiuPinyin: "Fang"},
-		{Key: "Alpha Scorpii", StarName: "Antares", Bayer: "Alpha Scorpii", Magnitude: 0.91, EclipticLon: 239.60, EclipticLat: 46.65, XiuName: "Heart", XiuNum: 5, XiuPinyin: "Xin"},
-		{Key: "Mu-1 Scorpii", StarName: "Mu-1 Scorpii", Magnitude: 2.98, EclipticLon: 242.68, EclipticLat: 59.79, XiuName: "Tail", XiuNum: 6, XiuPinyin: "Wei"},
-		{Key: "Gamma Sagittarii", StarName: "Gamma Sagittarii", Magnitude: 2.98, EclipticLon: 272.10, EclipticLat: 53.00, XiuName: "Winnowing Basket", XiuNum: 7, XiuPinyin: "Ji"},
-		{Key: "Phi Sagittarii", StarName: "Phi Sagittarii", Magnitude: 3.17, EclipticLon: 285.50, EclipticLat: 47.84, XiuName: "Dipper", XiuNum: 8, XiuPinyin: "Dou"},
-		{Key: "Beta Capricorni", StarName: "Dabih", Bayer: "Beta Capricorni", Magnitude: 3.08, EclipticLon: 311.35, EclipticLat: 31.74, XiuName: "Ox", XiuNum: 9, XiuPinyin: "Niu"},
-		{Key: "Epsilon Aquarii", StarName: "Epsilon Aquarii", Magnitude: 3.78, EclipticLon: 316.99, EclipticLat: 25.37, XiuName: "Girl", XiuNum: 10, XiuPinyin: "Nu"},
-		{Key: "Beta Aquarii", StarName: "Beta Aquarii", Magnitude: 2.89, EclipticLon: 326.75, EclipticLat: 18.07, XiuName: "Emptiness", XiuNum: 11, XiuPinyin: "Xu"},
-		{Key: "Alpha Aquarii", StarName: "Alpha Aquarii", Magnitude: 2.94, EclipticLon: 333.35, EclipticLat: 10.66, XiuName: "Rooftop", XiuNum: 12, XiuPinyin: "Wei"},
-		{Key: "Alpha Pegasi", StarName: "Markab", Bayer: "Alpha Pegasi", Magnitude: 2.48, EclipticLon: 353.49, EclipticLat: 19.41, XiuName: "Encampment", XiuNum: 13, XiuPinyin: "Shi"},
-		{Key: "Gamma Pegasi", StarName: "Algenib", Bayer: "Gamma Pegasi", Magnitude: 2.84, EclipticLon: 9.16, EclipticLat: 12.60, XiuName: "Wall", XiuNum: 14, XiuPinyin: "Bi"},
-		{Key: "Eta Andromedae", StarName: "Eta Andromedae", Magnitude: 4.40, EclipticLon: 22.38, EclipticLat: 15.93, XiuName: "Legs", XiuNum: 15, XiuPinyin: "Kui"},
-		{Key: "Beta Arietis", StarName: "Sheratan", Bayer: "Beta Arietis", Magnitude: 2.65, EclipticLon: 33.97, EclipticLat: 8.49, XiuName: "Bond", XiuNum: 16, XiuPinyin: "Lou"},
-		{Key: "35 Arietis", StarName: "35 Arietis", Magnitude: 4.60, EclipticLon: 46.93, EclipticLat: 11.31, XiuName: "Stomach", XiuNum: 17, XiuPinyin: "Wei"},
-		{Key: "17 Tauri", StarName: "Electra", Bayer: "17 Tauri", Magnitude: 3.70, EclipticLon: 59.41, EclipticLat: 4.19, XiuName: "Hairy Head", XiuNum: 18, XiuPinyin: "Mao"},
-		{Key: "Epsilon Tauri", StarName: "Ain", Bayer: "Epsilon Tauri", Magnitude: 3.53, EclipticLon: 68.47, EclipticLat: -2.57, XiuName: "Net", XiuNum: 19, XiuPinyin: "Bi"},
-		{Key: "Lambda Orionis", StarName: "Meissa", Bayer: "Lambda Orionis", Magnitude: 3.66, EclipticLon: 83.71, EclipticLat: -13.37, XiuName: "Turtle Beak", XiuNum: 20, XiuPinyin: "Zi"},
-		{Key: "Zeta Orionis", StarName: "Alnitak", Bayer: "Zeta Orionis", Magnitude: 1.79, EclipticLon: 84.76, EclipticLat: -23.29, XiuName: "Three Stars", XiuNum: 21, XiuPinyin: "Shen"},
-		{Key: "Mu Geminorum", StarName: "Tejat Posterior", Bayer: "Mu Geminorum", Magnitude: 2.87, EclipticLon: 95.30, EclipticLat: -0.82, XiuName: "Well", XiuNum: 22, XiuPinyin: "Jing"},
-		{Key: "Theta Cancri", StarName: "Theta Cancri", Magnitude: 5.33, EclipticLon: 125.73, EclipticLat: -0.77, XiuName: "Ghost", XiuNum: 23, XiuPinyin: "Gui"},
-		{Key: "Delta Hydrae", StarName: "Delta Hydrae", Magnitude: 4.14, EclipticLon: 130.30, EclipticLat: -12.39, XiuName: "Willow", XiuNum: 24, XiuPinyin: "Liu"},
-		{Key: "Alpha Hydrae", StarName: "Alphard", Bayer: "Alpha Hydrae", Magnitude: 1.97, EclipticLon: 141.88, EclipticLat: -7.25, XiuName: "Star", XiuNum: 25, XiuPinyin: "Xing"},
-		{Key: "Upsilon-1 Hydrae", StarName: "Upsilon-1 Hydrae", Magnitude: 4.11, EclipticLon: 145.53, EclipticLat: 0.22, XiuName: "Extended Net", XiuNum: 26, XiuPinyin: "Zhang"},
-		{Key: "Alpha Crateris", StarName: "Alkes", Bayer: "Alpha Crateris", Magnitude: 4.07, EclipticLon: 159.28, EclipticLat: 10.40, XiuName: "Wings", XiuNum: 27, XiuPinyin: "Yi"},
-		{Key: "Gamma Corvi", StarName: "Gienah", Bayer: "Gamma Corvi", Magnitude: 2.58, EclipticLon: 176.89, EclipticLat: 16.63, XiuName: "Chariot", XiuNum: 28, XiuPinyin: "Zhen"},
-	}
+	xiuOnce.Do(func() {
+		xiuCache = mustLoadStars(xiuJSON)
+	})
+	return xiuCache
 }
-// ManazilStars returns the 28 Arabic manazil al-qamar determinative stars.
-// Data from Wikipedia "Lunar mansion" page, magnitudes from Swiss Ephemeris.
-// Where a mansion lists multiple stars, the brightest or first-listed is used
-// as the primary determinant, following the same convention as nakshatra/xiu.
+
+// ManazilStars returns the 28 Arabic manazil al-qamar determinative stars, loaded from embedded JSON.
+// Results are cached after the first call via sync.Once.
 func ManazilStars() []StarEntry {
-	return []StarEntry{
-		{Key: "Beta Arietis", StarName: "Sheratan", Bayer: "Beta Arietis", Magnitude: 2.65, EclipticLon: 33.97, EclipticLat: 8.49, ManazilName: "ash-Sharatan", ManazilNum: 1},
-		{Key: "41 Arietis", StarName: "41 Arietis", Magnitude: 4.36, EclipticLon: 22.68, EclipticLat: 27.15, ManazilName: "al-Butayn", ManazilNum: 2},
-		{Key: "Eta Tauri", StarName: "Alcyone", Bayer: "Eta Tauri", Magnitude: 2.87, EclipticLon: 59.99, EclipticLat: 4.05, ManazilName: "ath-Thuraya", ManazilNum: 3},
-		{Key: "Alpha Tauri", StarName: "Aldebaran", Bayer: "Alpha Tauri", Magnitude: 0.86, EclipticLon: 69.79, EclipticLat: -5.47, ManazilName: "ad-Dabaran", ManazilNum: 4},
-		{Key: "Lambda Orionis", StarName: "Meissa", Bayer: "Lambda Orionis", Magnitude: 3.66, EclipticLon: 83.71, EclipticLat: -13.37, ManazilName: "al-Haq'a", ManazilNum: 5},
-		{Key: "Alhena", StarName: "Alhena", Bayer: "Gamma Geminorum", Magnitude: 1.92, EclipticLon: 99.11, EclipticLat: -6.74, ManazilName: "al-Han'a", ManazilNum: 6},
-		{Key: "Alpha Geminorum", StarName: "Castor", Bayer: "Alpha Geminorum", Magnitude: 1.58, EclipticLon: 110.24, EclipticLat: 10.10, ManazilName: "adh-Dhira'a", ManazilNum: 7},
-		{Key: "Praesepe", StarName: "Praesepe", Magnitude: 3.70, EclipticLon: 127.20, EclipticLat: 1.56, ManazilName: "an-Nathra", ManazilNum: 8},
-		{Key: "Alterf", StarName: "Alterf", Bayer: "Lambda Leonis", Magnitude: 4.31, EclipticLon: 137.87, EclipticLat: 7.89, ManazilName: "at-Tarf", ManazilNum: 9},
-		{Key: "Alpha Leonis", StarName: "Regulus", Bayer: "Alpha Leonis", Magnitude: 1.40, EclipticLon: 149.83, EclipticLat: 0.46, ManazilName: "al-Jabha", ManazilNum: 10},
-		{Key: "Delta Leonis", StarName: "Zosma", Bayer: "Delta Leonis", Magnitude: 2.53, EclipticLon: 161.32, EclipticLat: 14.33, ManazilName: "az-Zubra", ManazilNum: 11},
-		{Key: "Beta Leonis", StarName: "Denebola", Bayer: "Beta Leonis", Magnitude: 2.13, EclipticLon: 171.62, EclipticLat: 12.27, ManazilName: "as-Sarfa", ManazilNum: 12},
-		{Key: "Zavijava", StarName: "Zavijava", Bayer: "Beta Virginis", Magnitude: 3.60, EclipticLon: 177.16, EclipticLat: 0.69, ManazilName: "al-'Awa'", ManazilNum: 13},
-		{Key: "Alpha Virginis", StarName: "Spica", Bayer: "Alpha Virginis", Magnitude: 0.97, EclipticLon: 195.43, EclipticLat: 18.33, ManazilName: "as-Simak al-A'zal", ManazilNum: 14},
-		{Key: "Kappa Virginis", StarName: "Kappa Virginis", Magnitude: 4.18, EclipticLon: 207.45, EclipticLat: 21.70, ManazilName: "al-Ghafr", ManazilNum: 15},
-		{Key: "Alpha Librae", StarName: "Zubenelgenubi", Bayer: "Alpha Librae", Magnitude: 2.75, EclipticLon: 214.70, EclipticLat: 30.78, ManazilName: "az-Zubana", ManazilNum: 16},
-		{Key: "Beta Scorpii", StarName: "Acrab", Bayer: "Beta Scorpii", Magnitude: 2.62, EclipticLon: 234.60, EclipticLat: 38.18, ManazilName: "al-Iklil", ManazilNum: 17},
-		{Key: "Alpha Scorpii", StarName: "Antares", Bayer: "Alpha Scorpii", Magnitude: 0.91, EclipticLon: 239.60, EclipticLat: 46.65, ManazilName: "al-Qalb", ManazilNum: 18},
-		{Key: "Shaula", StarName: "Shaula", Bayer: "Lambda Scorpii", Magnitude: 1.62, EclipticLon: 264.58, EclipticLat: -13.79, ManazilName: "ash-Shawla", ManazilNum: 19},
-		{Key: "Gamma Sagittarii", StarName: "Gamma Sagittarii", Magnitude: 2.98, EclipticLon: 272.10, EclipticLat: 53.00, ManazilName: "an-Na'a'im", ManazilNum: 20},
-		{Key: "Albaldah", StarName: "Albaldah", Bayer: "Pi Sagittarii", Magnitude: 2.88, EclipticLon: 286.24, EclipticLat: 1.44, ManazilName: "al-Balda", ManazilNum: 21},
-		{Key: "Algedi", StarName: "Algedi", Bayer: "Alpha Capricorni", Magnitude: 4.27, EclipticLon: 303.76, EclipticLat: 6.99, ManazilName: "Sa'd adh-Dhabih", ManazilNum: 22},
-		{Key: "Epsilon Aquarii", StarName: "Epsilon Aquarii", Magnitude: 3.78, EclipticLon: 316.99, EclipticLat: 25.37, ManazilName: "Sa'd Bul'", ManazilNum: 23},
-		{Key: "Beta Aquarii", StarName: "Beta Aquarii", Magnitude: 2.89, EclipticLon: 326.75, EclipticLat: 18.07, ManazilName: "Sa'd as-Su'ud", ManazilNum: 24},
-		{Key: "Sadachbia", StarName: "Sadachbia", Bayer: "Gamma Aquarii", Magnitude: 3.83, EclipticLon: 336.71, EclipticLat: 8.24, ManazilName: "Sa'd al-Akhbiya", ManazilNum: 25},
-		{Key: "Alpha Pegasi", StarName: "Markab", Bayer: "Alpha Pegasi", Magnitude: 2.48, EclipticLon: 353.49, EclipticLat: 19.41, ManazilName: "al-Fargh al-Awal", ManazilNum: 26},
-		{Key: "Alpheratz", StarName: "Alpheratz", Bayer: "Alpha Andromedae", Magnitude: 2.06, EclipticLon: 14.31, EclipticLat: 25.68, ManazilName: "al-Fargh ath-Thani", ManazilNum: 27},
-		{Key: "Mirach", StarName: "Mirach", Bayer: "Beta Andromedae", Magnitude: 2.05, EclipticLon: 30.40, EclipticLat: 25.95, ManazilName: "al-Hut", ManazilNum: 28},
-	}
+	manazilOnce.Do(func() {
+		manazilCache = mustLoadStars(manazilJSON)
+	})
+	return manazilCache
 }
 
-
+// mustLoadStars unmarshals embedded star JSON data, panicking on any error.
+// Validation happens at first call time (via sync.Once), not on every invocation.
+func mustLoadStars(data []byte) []StarEntry {
+	var stars []StarEntry
+	if err := json.Unmarshal(data, &stars); err != nil {
+		panic("failed to unmarshal embedded star data: " + err.Error())
+	}
+	return stars
+}
 
 // ── Shared Star Identification ────────────────────────────────────────────
 

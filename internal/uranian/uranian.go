@@ -3,6 +3,8 @@ package uranian
 import (
 	"math"
 	"sort"
+
+	"github.com/aj-nt/empirical/internal/dignity"
 )
 
 // ── Midpoint / Half-Sum ─────────────────────────────────────────────────
@@ -51,18 +53,12 @@ type DialPosition struct {
 	OriginalLon float64 `json:"original_lon"`
 }
 
-var zodiacSigns = []string{
-	"Aries", "Taurus", "Gemini", "Cancer",
-	"Leo", "Virgo", "Libra", "Scorpio",
-	"Sagittarius", "Capricorn", "Aquarius", "Pisces",
-}
-
 func GetDialPosition(lon float64) DialPosition {
 	signIdx := int(lon / 30) % 12
 	signDeg := math.Mod(lon, 30)
 	return DialPosition{
 		DialDeg:     ToDial(lon),
-		Sign:        zodiacSigns[signIdx],
+		Sign:        dignity.Signs[signIdx],
 		SignDeg:     math.Round(signDeg*1e4) / 1e4,
 		OriginalLon: math.Round(lon*1e4) / 1e4,
 	}

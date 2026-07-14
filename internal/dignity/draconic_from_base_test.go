@@ -26,7 +26,7 @@ func initEpheForDFB(t *testing.T) {
 func TestDraconicFromBase_KnownChart(t *testing.T) {
 	initEpheForDFB(t)
 
-	bc, err := ComputeBaseChart("AJ", 1969, 2, 15, 23, 10, 0, -8, 47.038, -122.901)
+	bc, err := ComputeBaseChart(BirthData{Name: "AJ", Year: 1969, Month: 2, Day: 15, Hour: 23, Minute: 10, Second: 0, TZOffset: -8, Lat: 47.038, Lng: -122.901})
 	if err != nil {
 		t.Fatalf("ComputeBaseChart failed: %v", err)
 	}
@@ -63,7 +63,7 @@ func TestDraconicFromBase_KnownChart(t *testing.T) {
 func TestDraconicFromBase_MatchesDirect(t *testing.T) {
 	initEpheForDFB(t)
 
-	bc, err := ComputeBaseChart("Test", 2000, 1, 1, 12, 0, 0, 0, 51.5, -0.12)
+	bc, err := ComputeBaseChart(BirthData{Name: "Test", Year: 2000, Month: 1, Day: 1, Hour: 12, Minute: 0, Second: 0, TZOffset: 0, Lat: 51.5, Lng: -0.12})
 	if err != nil {
 		t.Fatalf("ComputeBaseChart failed: %v", err)
 	}
@@ -102,7 +102,7 @@ func TestDraconicFromBase_MatchesDirect(t *testing.T) {
 func TestDraconicFromBase_EmptyName(t *testing.T) {
 	initEpheForDFB(t)
 
-	bc, err := ComputeBaseChart("", 2000, 1, 1, 12, 0, 0, 0, 51.5, -0.12)
+	bc, err := ComputeBaseChart(BirthData{Name: "", Year: 2000, Month: 1, Day: 1, Hour: 12, Minute: 0, Second: 0, TZOffset: 0, Lat: 51.5, Lng: -0.12})
 	if err != nil {
 		t.Fatalf("ComputeBaseChart failed: %v", err)
 	}

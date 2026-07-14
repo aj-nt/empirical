@@ -14,11 +14,18 @@ func main() {
 	swe.SetEphePath("ephe")
 	swe.SetSidMode(swe.SIDM_LAHIRI, 0, 0)
 
-	bc, err := dignity.ComputeBaseChart(
-		"AJ",
-		1969, 2, 15, 23, 10, 0,
-		-8.0, 47.038, -122.901,
-	)
+	bc, err := dignity.ComputeBaseChart(dignity.BirthData{
+		Name:     "AJ",
+		Year:     1969,
+		Month:    2,
+		Day:      15,
+		Hour:     23,
+		Minute:   10,
+		Second:   0,
+		TZOffset: -8.0,
+		Lat:      47.038,
+		Lng:      -122.901,
+	})
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error: %v\n", err)
 		os.Exit(1)

@@ -195,11 +195,18 @@ func TestCompareStarConjunctionsCrossSystem_NoConjunctions(t *testing.T) {
 func TestFindStarAspects_AJ_Regulus(t *testing.T) {
 	initEphe(t)
 
-	bc, err := ComputeBaseChart(
-		"AJ",
-		1969, 2, 15, 23, 10, 0,
-		-8.0, 47.038, -122.901,
-	)
+	bc, err := ComputeBaseChart(BirthData{
+		Name:     "AJ",
+		Year:     1969,
+		Month:    2,
+		Day:      15,
+		Hour:     23,
+		Minute:   10,
+		Second:   0,
+		TZOffset: -8.0,
+		Lat:      47.038,
+		Lng:      -122.901,
+	})
 	if err != nil {
 		t.Fatalf("ComputeBaseChart: %v", err)
 	}
@@ -253,4 +260,56 @@ func TestFindStarAspects_AJ_Regulus(t *testing.T) {
 	if math.Abs(hits[2].Orb-3.60) > 0.02 {
 		t.Errorf("Mars square orb: want 3.60, got %.2f", hits[2].Orb)
 	}
+}
+
+// ── Star Catalog Validation ─────────────────────────────────────────────
+
+func TestCheckStarCatalog_Valid(t *testing.T) {
+	// Should not panic with consistent catalog
+	names := []string{"Sirius", "Vega", "Spica"}
+	meanings := map[string]string{
+		"Sirius": "bright",
+		"Vega":   "harp star",
+		"Spica":  "wheat",
+	}
+	// This should not panic
+	checkStarCatalog(names, meanings)
+}
+
+func TestCheckStarCatalog_LengthMismatch(t *testing.T) {
+	names := []string{"Sirius", "Vega"}
+	meanings := map[string]string{"Sirius": "bright"}
+	defer func() {
+		if r := recover(); r == nil {
+			t.Error("expected panic for length mismatch")
+		}
+	}()
+	checkStarCatalog(names, meanings)
+}
+
+func TestCheckStarCatalog_MissingMeaning(t *testing.T) {
+	names := []string{"Sirius", "Vega"}
+	meanings := map[string]string{"Sirius": "bright"}
+	defer func() {
+		if r := recover(); r == nil {
+			t.Error("expected panic for missing meaning")
+		}
+	}()
+	checkStarCatalog(names, meanings)
+}
+
+func TestCheckStarCatalog_ExtraMeaning(t *testing.T) {
+	names := []string{"Sirius"}
+	meanings := map[string]string{"Sirius": "bright", "Vega": "harp star"}
+	defer func() {
+		if r := recover(); r == nil {
+			t.Error("expected panic for extra meaning")
+		}
+	}()
+	checkStarCatalog(names, meanings)
+}
+
+func TestValidateStarCatalog_DoesNotPanic(t *testing.T) {
+	// The real catalog should validate without panicking
+	validateStarCatalog()
 }

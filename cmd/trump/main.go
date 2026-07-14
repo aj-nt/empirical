@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/aj-nt/empirical/internal/dignity"
 	"github.com/aj-nt/empirical/internal/mundane"
 	"github.com/aj-nt/empirical/internal/swe"
 )
@@ -24,27 +25,8 @@ func realHouses(jd, lat, lon float64, hsys byte) ([13]float64, [10]float64) {
 	return swe.Houses(jd, lat, lon, hsys)
 }
 
-func signName(lon float64) string {
-	names := []string{"Aries", "Taurus", "Gemini", "Cancer", "Leo", "Virgo",
-		"Libra", "Scorpio", "Sagittarius", "Capricorn", "Aquarius", "Pisces"}
-	lon = math.Mod(lon, 360)
-	if lon < 0 {
-		lon += 360
-	}
-	return names[int(lon/30)]
-}
 
-func angleDist(a, b float64) float64 {
-	d := a - b
-	if d < 0 {
-		d = -d
-	}
-	d = math.Mod(d, 360)
-	if d > 180 {
-		d = 360 - d
-	}
-	return d
-}
+
 
 func main() {
 	// Donald Trump: June 14, 1946, 10:54 AM EDT = 14:54 UT, Queens NY
@@ -60,7 +42,7 @@ func main() {
 	fmt.Println("=== DONALD TRUMP NATAL CHART ===")
 	fmt.Printf("Date: June 14, 1946 14:54 UT  |  Queens, NY\n")
 	fmt.Printf("ASC: %.2f° (%s)  MC: %.2f° (%s)\n",
-		natalChart.ASC, signName(natalChart.ASC), natalChart.MC, signName(natalChart.MC))
+		natalChart.ASC, dignity.SignForLongitude(natalChart.ASC), natalChart.MC, dignity.SignForLongitude(natalChart.MC))
 
 	var planetNames []string
 	for n := range natalChart.Planets {
@@ -70,7 +52,7 @@ func main() {
 
 	fmt.Println("\nPlanets:")
 	for _, n := range planetNames {
-		fmt.Printf("  %-8s %7.2f° %-12s\n", n, natalChart.Planets[n], signName(natalChart.Planets[n]))
+		fmt.Printf("  %-8s %7.2f° %-12s\n", n, natalChart.Planets[n], dignity.SignForLongitude(natalChart.Planets[n]))
 	}
 
 	houses := mundane.PlanetHouses(natalChart)
@@ -128,7 +110,7 @@ func main() {
 				tLon, _, _, _ := realCompute(y, m, d, 12.0, tp.id)
 				for _, np := range planetNames {
 					nLon := natalChart.Planets[np]
-					dist := angleDist(tLon, nLon)
+					dist := dignity.AngleDist(tLon, nLon)
 					for _, asp := range aspects {
 						diff := dist - asp.angle
 						if diff < 0 {
