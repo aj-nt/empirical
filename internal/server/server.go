@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/fs"
 	"net/http"
+	"strings"
 
 	"github.com/aj-nt/empirical/internal/dignity"
 )
@@ -17,6 +18,9 @@ const (
 	OrbStandard = 3.0 // transits, draconic, interpretation, electional, composite, arabic-parts, progressed-cross
 	OrbWide     = 5.0 // synastry, patterns
 )
+
+// BaseChartFunc computes a BaseChart and returns it as XML bytes.
+type BaseChartFunc func(bd dignity.BirthData) ([]byte, error)
 
 // ComputeFunc computes a full multi-phase recovery report for birth data
 // and returns the result as JSON bytes.
@@ -84,6 +88,9 @@ type AstroCartographyFunc func(bd dignity.BirthData, latStep float64, frame stri
 // AstroCartographyCompareFunc returns three-way comparison at a target location.
 type AstroCartographyCompareFunc func(bd dignity.BirthData, latStep, targetLat, targetLng, orb float64) ([]byte, error)
 
+// AstroCartographyParansFunc finds MC/IC × ASC/DSC line intersections.
+type AstroCartographyParansFunc func(bd dignity.BirthData, latStep float64, frame string) ([]byte, error)
+
 // ElectionalFunc scores dates in a range for launch/event timing.
 type ElectionalFunc func(bd dignity.BirthData, startDate, endDate string, orbDeg float64) ([]byte, error)
 
@@ -134,6 +141,7 @@ type LatLng struct {
 // Use this struct instead of passing 35 individual parameters to NewMux and Run.
 type ServerConfig struct {
 	StaticFS              fs.FS
+	BaseChart             BaseChartFunc
 	Compute               ComputeFunc
 	Aspects               AspectFunc
 	Timing                TimingFunc
@@ -155,6 +163,7 @@ type ServerConfig struct {
 	Interpretation        InterpretationFunc
 	AstroCartography      AstroCartographyFunc
 	AstroCartographyCompare AstroCartographyCompareFunc
+	AstroCartographyParans AstroCartographyParansFunc
 	Electional            ElectionalFunc
 	MansionConvergence    MansionConvergenceFunc
 	ArabicParts           ArabicPartsFunc
@@ -213,17 +222,51 @@ func NewMux(cfg ServerConfig) *http.ServeMux {
 
 	mux.HandleFunc("/api/recover", handleJSON(func(req ChartRequest) ([]byte, error) {
 		return cfg.Compute(dignity.BirthData{
-		Name:     req.Name,
-		Year:     req.Year,
-		Month:    req.Month,
-		Day:      req.Day,
-		Hour:     req.Hour,
-		Minute:   req.Minute,
-		TZOffset: req.TzOffset,
-		Lat:      req.Lat,
-		Lng:      req.Lng,
-	})
+			Name:     req.Name,
+			Year:     req.Year,
+			Month:    req.Month,
+			Day:      req.Day,
+			Hour:     req.Hour,
+			Minute:   req.Minute,
+			TZOffset: req.TzOffset,
+			Lat:      req.Lat,
+			Lng:      req.Lng,
+		})
 	}))
+
+	mux.HandleFunc("/api/base-chart", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			http.Error(w, "POST only", http.StatusMethodNotAllowed)
+			return
+		}
+		if cfg.BaseChart == nil {
+			http.Error(w, "not available", http.StatusNotImplemented)
+			return
+		}
+		var req ChartRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			http.Error(w, "invalid JSON: "+err.Error(), http.StatusBadRequest)
+			return
+		}
+		result, err := cfg.BaseChart(dignity.BirthData{
+			Name:     req.Name,
+			Year:     req.Year,
+			Month:    req.Month,
+			Day:      req.Day,
+			Hour:     req.Hour,
+			Minute:   req.Minute,
+			TZOffset: req.TzOffset,
+			Lat:      req.Lat,
+			Lng:      req.Lng,
+		})
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		w.Header().Set("Content-Type", "application/xml")
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Write(result)
+	})
 
 	mux.HandleFunc("/api/aspect-catalog", func(w http.ResponseWriter, r *http.Request) {
 		if cfg.Aspects == nil {
@@ -562,6 +605,37 @@ func NewMux(cfg ServerConfig) *http.ServeMux {
 	}, defaultOrb(req.LatStep, 2.0), req.TargetLat, req.TargetLng, defaultOrb(req.Orb, OrbStandard))
 	}))
 
+	mux.HandleFunc("/api/astrocartography-parans", handleJSON(func(req AstroCartographyRequest) ([]byte, error) {
+		if cfg.AstroCartographyParans == nil {
+			return nil, ErrNotAvailable
+		}
+		raw, err := cfg.AstroCartographyParans(dignity.BirthData{
+		Name:     req.Name,
+		Year:     req.Year,
+		Month:    req.Month,
+		Day:      req.Day,
+		Hour:     req.Hour,
+		Minute:   req.Minute,
+		TZOffset: req.TzOffset,
+		Lat:      req.Lat,
+		Lng:      req.Lng,
+	}, defaultOrb(req.LatStep, 2.0), req.Frame)
+		if err != nil {
+			return nil, err
+		}
+
+		// Apply optional filters
+		if req.Planets != "" || req.MinLat != 0 || req.MaxLat != 0 || req.MinLng != 0 || req.MaxLng != 0 {
+			var resp AstroCartographyParansResponse
+			if err := json.Unmarshal(raw, &resp); err != nil {
+				return nil, err
+			}
+			resp.Intersections = filterParans(resp.Intersections, req.Planets, req.MinLat, req.MaxLat, req.MinLng, req.MaxLng)
+			return json.Marshal(resp)
+		}
+		return raw, nil
+	}))
+
 	mux.HandleFunc("/api/electional", handleJSON(func(req ElectionalRequest) ([]byte, error) {
 		if cfg.Electional == nil {
 			return nil, ErrNotAvailable
@@ -851,6 +925,12 @@ type AstroCartographyRequest struct {
 	ChartRequest
 	LatStep float64 `json:"lat_step"`
 	Frame   string  `json:"frame"`
+	// Optional filters for /api/astrocartography-parans
+	Planets string  `json:"planets"`  // comma-separated planet names, e.g. "Sun,Moon,Venus"
+	MinLat  float64 `json:"min_lat"`  // minimum latitude for geographic filter
+	MaxLat  float64 `json:"max_lat"`  // maximum latitude for geographic filter
+	MinLng  float64 `json:"min_lng"`  // minimum longitude for geographic filter
+	MaxLng  float64 `json:"max_lng"`  // maximum longitude for geographic filter
 }
 
 // AstroCartographyCompareRequest is the request for /api/astrocartography-compare.
@@ -944,4 +1024,64 @@ type RelocationRequest struct {
 	LocationA  LatLng `json:"location_a"`
 	LocationB  LatLng `json:"location_b"`
 	TargetDate string `json:"target_date"`
+}
+
+// AstroCartographyParansResponse is the JSON response for /api/astrocartography-parans.
+type AstroCartographyParansResponse struct {
+	Name          string                      `json:"name"`
+	Frame         string                      `json:"frame"`
+	Intersections []dignity.ParanIntersection `json:"intersections"`
+}
+
+// filterParans filters paran intersections by planet names and geographic bounds.
+// planets: comma-separated list, e.g. "Sun,Moon,Venus". Empty means no filter.
+// minLat/maxLat/minLng/maxLng: zero means no bound on that axis.
+func filterParans(intersections []dignity.ParanIntersection, planets string, minLat, maxLat, minLng, maxLng float64) []dignity.ParanIntersection {
+	// Build planet set
+	planetSet := make(map[string]bool)
+	if planets != "" {
+		for _, p := range splitComma(planets) {
+			planetSet[p] = true
+		}
+	}
+
+	// Determine if geo filter is active
+	hasGeo := minLat != 0 || maxLat != 0 || minLng != 0 || maxLng != 0
+
+	out := make([]dignity.ParanIntersection, 0)
+	for _, p := range intersections {
+		// Planet filter: intersection must involve at least one of the specified planets
+		if len(planetSet) > 0 && !planetSet[p.Planet1] && !planetSet[p.Planet2] {
+			continue
+		}
+		// Geographic filter
+		if hasGeo {
+			if minLat != 0 && p.Lat < minLat {
+				continue
+			}
+			if maxLat != 0 && p.Lat > maxLat {
+				continue
+			}
+			if minLng != 0 && p.Lon < minLng {
+				continue
+			}
+			if maxLng != 0 && p.Lon > maxLng {
+				continue
+			}
+		}
+		out = append(out, p)
+	}
+	return out
+}
+
+// splitComma splits a comma-separated string, trimming whitespace.
+func splitComma(s string) []string {
+	var parts []string
+	for _, p := range strings.Split(s, ",") {
+		p = strings.TrimSpace(p)
+		if p != "" {
+			parts = append(parts, p)
+		}
+	}
+	return parts
 }

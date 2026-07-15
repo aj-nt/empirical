@@ -52,6 +52,14 @@ func main() {
 			return result.FullReportJSON()
 		}
 
+		baseChart := func(bd dignity.BirthData) ([]byte, error) {
+			bc, err := dignity.ComputeBaseChart(bd)
+			if err != nil {
+				return nil, err
+			}
+			return bc.ToXML()
+		}
+
 		aspects := func() ([]byte, error) {
 			catalog := dignity.AspectCatalog()
 			return dignity.FormatAspectJSON(catalog)
@@ -166,6 +174,11 @@ func main() {
 			return marshalResult(computeAstroCartographyCompare(bd.Name, cd, latStep, targetLat, targetLng, orb, cacheDir))
 		}
 
+		astroCartographyParans := func(bd dignity.BirthData, latStep float64, frame string) ([]byte, error) {
+			cd := computePositions(bd.Year, bd.Month, bd.Day, bd.Hour, bd.Minute, bd.TZOffset, bd.Lat, bd.Lng, cacheDir)
+			return marshalResult(computeAstroCartographyParans(bd.Name, cd, latStep, frame, cacheDir))
+		}
+
 		electional := func(bd dignity.BirthData, startDate, endDate string, orbDeg float64) ([]byte, error) {
 			cd := computePositions(bd.Year, bd.Month, bd.Day, bd.Hour, bd.Minute, bd.TZOffset, bd.Lat, bd.Lng, cacheDir)
 			return marshalResult(computeElectional(bd.Name, cd, bd.Lat, bd.Lng, startDate, endDate, orbDeg, cacheDir))
@@ -241,6 +254,7 @@ func main() {
 
 		if err := server.Run(port, server.ServerConfig{
 			StaticFS:              staticFS,
+			BaseChart:             baseChart,
 			Compute:               compute,
 			Aspects:               aspects,
 			Timing:                timing,
@@ -262,6 +276,7 @@ func main() {
 			Interpretation:        interpretation,
 			AstroCartography:      astroCartography,
 			AstroCartographyCompare: astroCartographyCompare,
+			AstroCartographyParans: astroCartographyParans,
 			Electional:            electional,
 			MansionConvergence:    mansionConvergence,
 			ArabicParts:           arabicParts,
@@ -311,6 +326,127 @@ func main() {
 		result, err := computeTransits(name, year, month, day, hour, minute, tzOff, lat, lng, startDate, endDate, *orbDeg, false, "")
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Transit error: %v\n", err)
+			os.Exit(1)
+		}
+		js, _ := json.Marshal(result)
+		if *jsonOut {
+			fmt.Println(string(js))
+		} else {
+			fmt.Print(string(js))
+		}
+		return
+	}
+
+	// ── parans subcommand ──────────────────────────────────────────
+	if len(os.Args) >= 2 && os.Args[1] == "parans" {
+		fs := flag.NewFlagSet("parans", flag.ExitOnError)
+		jsonOut := fs.Bool("json", false, "output as JSON")
+		frame := fs.String("frame", "tropical", "frame: tropical, draconic, or cross")
+		fs.Parse(os.Args[2:])
+		args := fs.Args()
+
+		if len(args) < 9 {
+			fmt.Fprintf(os.Stderr, "Usage: empirical parans [--json] [--frame tropical|draconic|cross] NAME Y M D H MIN TZ LAT LNG\n")
+			fmt.Fprintf(os.Stderr, "Example: empirical parans --frame cross \"AJ\" 1969 2 15 23 10 -8 47.038 -122.901\n")
+			os.Exit(1)
+		}
+
+		name := args[0]
+		year, _ := strconv.Atoi(args[1])
+		month, _ := strconv.Atoi(args[2])
+		day, _ := strconv.Atoi(args[3])
+		hour, _ := strconv.Atoi(args[4])
+		minute, _ := strconv.Atoi(args[5])
+		tzOff, _ := strconv.ParseFloat(args[6], 64)
+		lat, _ := strconv.ParseFloat(args[7], 64)
+		lng, _ := strconv.ParseFloat(args[8], 64)
+
+		cd := computePositions(year, month, day, hour, minute, tzOff, lat, lng, "")
+		result, err := computeAstroCartographyParans(name, cd, 2.0, *frame, "")
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Parans error: %v\n", err)
+			os.Exit(1)
+		}
+		js, _ := json.Marshal(result)
+		if *jsonOut {
+			fmt.Println(string(js))
+		} else {
+			fmt.Print(string(js))
+		}
+		return
+	}
+
+	// ── astrocartography subcommand ──────────────────────────────────
+	if len(os.Args) >= 2 && os.Args[1] == "astrocartography" {
+		fs := flag.NewFlagSet("astrocartography", flag.ExitOnError)
+		jsonOut := fs.Bool("json", false, "output as JSON")
+		frame := fs.String("frame", "tropical", "frame: tropical, draconic, or cross")
+		latStep := fs.Float64("lat-step", 2.0, "latitude step in degrees")
+		fs.Parse(os.Args[2:])
+		args := fs.Args()
+
+		if len(args) < 9 {
+			fmt.Fprintf(os.Stderr, "Usage: empirical astrocartography [--json] [--frame tropical|draconic|cross] [--lat-step 2] NAME Y M D H MIN TZ LAT LNG\n")
+			fmt.Fprintf(os.Stderr, "Example: empirical astrocartography --frame cross \"AJ\" 1969 2 15 23 10 -8 47.038 -122.901\n")
+			os.Exit(1)
+		}
+
+		name := args[0]
+		year, _ := strconv.Atoi(args[1])
+		month, _ := strconv.Atoi(args[2])
+		day, _ := strconv.Atoi(args[3])
+		hour, _ := strconv.Atoi(args[4])
+		minute, _ := strconv.Atoi(args[5])
+		tzOff, _ := strconv.ParseFloat(args[6], 64)
+		lat, _ := strconv.ParseFloat(args[7], 64)
+		lng, _ := strconv.ParseFloat(args[8], 64)
+
+		cd := computePositions(year, month, day, hour, minute, tzOff, lat, lng, "")
+		result, err := computeAstroCartography(name, cd, *latStep, *frame, "")
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Astrocartography error: %v\n", err)
+			os.Exit(1)
+		}
+		js, _ := json.Marshal(result)
+		if *jsonOut {
+			fmt.Println(string(js))
+		} else {
+			fmt.Print(string(js))
+		}
+		return
+	}
+
+	// ── astrocartography-compare subcommand ──────────────────────────
+	if len(os.Args) >= 2 && os.Args[1] == "astrocartography-compare" {
+		fs := flag.NewFlagSet("astrocartography-compare", flag.ExitOnError)
+		jsonOut := fs.Bool("json", false, "output as JSON")
+		orb := fs.Float64("orb", 2.0, "max orb in degrees")
+		latStep := fs.Float64("lat-step", 2.0, "latitude step in degrees")
+		fs.Parse(os.Args[2:])
+		args := fs.Args()
+
+		if len(args) < 11 {
+			fmt.Fprintf(os.Stderr, "Usage: empirical astrocartography-compare [--json] [--orb 2] [--lat-step 2] NAME Y M D H MIN TZ LAT LNG TARGET_LAT TARGET_LNG\n")
+			fmt.Fprintf(os.Stderr, "Example: empirical astrocartography-compare --orb 2 \"AJ\" 1969 2 15 23 10 -8 47.038 -122.901 7.88 98.40\n")
+			os.Exit(1)
+		}
+
+		name := args[0]
+		year, _ := strconv.Atoi(args[1])
+		month, _ := strconv.Atoi(args[2])
+		day, _ := strconv.Atoi(args[3])
+		hour, _ := strconv.Atoi(args[4])
+		minute, _ := strconv.Atoi(args[5])
+		tzOff, _ := strconv.ParseFloat(args[6], 64)
+		lat, _ := strconv.ParseFloat(args[7], 64)
+		lng, _ := strconv.ParseFloat(args[8], 64)
+		targetLat, _ := strconv.ParseFloat(args[9], 64)
+		targetLng, _ := strconv.ParseFloat(args[10], 64)
+
+		cd := computePositions(year, month, day, hour, minute, tzOff, lat, lng, "")
+		result, err := computeAstroCartographyCompare(name, cd, *latStep, targetLat, targetLng, *orb, "")
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Astrocartography compare error: %v\n", err)
 			os.Exit(1)
 		}
 		js, _ := json.Marshal(result)

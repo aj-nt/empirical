@@ -241,6 +241,13 @@ type AstroCartographyCompareResponse struct {
 	Hits      []dignity.ThreeWayHit `json:"hits"`
 }
 
+// AstroCartographyParansResponse is the JSON response for /api/astrocartography-parans.
+type AstroCartographyParansResponse struct {
+	Name        string                      `json:"name"`
+	Frame       string                      `json:"frame"`
+	Intersections []dignity.ParanIntersection `json:"intersections"`
+}
+
 // ElectionalDayScore is a single day's score in electional output.
 type ElectionalDayScore struct {
 	Date      string   `json:"date"`
@@ -648,17 +655,14 @@ func computeAstroCartography(name string, bc *dignity.BaseChart, latStep float64
 			Points: dignity.ComputeICLine(ra, gmst, latStep),
 		})
 
-		// ASC and DSC lines
-		ascPoints := computeASCLineSWE(ascLon, bc.JD, latStep)
+		// ASC and DSC lines — use corrected binary search from dignity package
+		ascPoints := dignity.ComputeASCLine(ascLon, bc.JD, latStep, swe.Houses)
 		lines = append(lines, AstroCartographyLineJSON{
 			Planet: planet,
 			Angle:  "ASC",
 			Points: ascPoints,
 		})
-		dscPoints := make([]dignity.GeoPoint, len(ascPoints))
-		for i, p := range ascPoints {
-			dscPoints[i] = dignity.GeoPoint{Lat: p.Lat, Lon: dignity.NormalizeGeo(p.Lon + 180)}
-		}
+		dscPoints := dignity.ComputeDSCLine(ascLon, bc.JD, latStep, swe.Houses)
 		lines = append(lines, AstroCartographyLineJSON{
 			Planet: planet,
 			Angle:  "DSC",
@@ -707,59 +711,43 @@ func computeAstroCartographyCompare(name string, bc *dignity.BaseChart, latStep 
 	}, nil
 }
 
-// computeASCLineSWE finds the ASC line using SWE houses for accurate ASC computation.
-func computeASCLineSWE(planetLon, jd, latStep float64) []dignity.GeoPoint {
-	var points []dignity.GeoPoint
-	for lat := -80.0; lat <= 80.0; lat += latStep {
-		lon := findASCLonSWE(planetLon, jd, lat)
-		if lon != nil {
-			points = append(points, dignity.GeoPoint{Lat: lat, Lon: *lon})
+// computeAstroCartographyParans finds MC/IC × ASC/DSC line intersections.
+func computeAstroCartographyParans(name string, bc *dignity.BaseChart, latStep float64, frame string, cacheDir string) (*AstroCartographyParansResponse, error) {
+	gmst := dignity.ComputeGMST(bc.JD)
+
+	// Determine planet positions based on frame
+	tropPositions := dignity.TropicalToLonMap(bc.Tropical)
+	nnLon := bc.NorthNode
+
+	var intersections []dignity.ParanIntersection
+
+	switch frame {
+	case string(dignity.FrameDraconic):
+		dracPositions := make(map[string]float64)
+		for p, lon := range tropPositions {
+			dracPositions[p] = dignity.NormalizeLon(lon - nnLon)
 		}
-	}
-	return points
-}
+		intersections = dignity.FindParans(dracPositions, bc.JD, gmst, swe.Houses)
 
-// findASCLonSWE binary-searches geographic longitude where ASC = planetLon.
-func findASCLonSWE(planetLon, jd, lat float64) *float64 {
-	lo := -180.0
-	hi := 180.0
-
-	for i := 0; i < 60; i++ {
-		mid := (lo + hi) / 2
-		_, ascmc := swe.Houses(jd, lat, mid, 'P')
-		asc := ascmc[0]
-
-		diff := dignity.AngleDist(asc, planetLon)
-		if diff < 1e-8 {
-			return &mid
+	case string(dignity.FrameCross):
+		// Cross: tropical positions for MC/IC, draconic for ASC/DSC.
+		dracPositions := make(map[string]float64)
+		for p, lon := range tropPositions {
+			dracPositions[p] = dignity.NormalizeLon(lon - nnLon)
 		}
+		intersections = dignity.FindParansCross(tropPositions, dracPositions, bc.JD, gmst, swe.Houses)
 
-		testLon := mid + 0.01
-		if testLon > 180 {
-			testLon = 180
-		}
-		_, testAscmc := swe.Houses(jd, lat, testLon, 'P')
-		testASC := testAscmc[0]
-
-		ascMovesToward := dignity.AngleDist(testASC, planetLon) < diff
-
-		if ascMovesToward {
-			if asc < planetLon {
-				lo = mid
-			} else {
-				hi = mid
-			}
-		} else {
-			if asc > planetLon {
-				lo = mid
-			} else {
-				hi = mid
-			}
-		}
+	default: // tropical
+		intersections = dignity.FindParans(tropPositions, bc.JD, gmst, swe.Houses)
 	}
 
-	mid := (lo + hi) / 2
-	return &mid
+	dignity.GeocodeParans(intersections)
+
+	return &AstroCartographyParansResponse{
+		Name:         name,
+		Frame:        frame,
+		Intersections: intersections,
+	}, nil
 }
 
 // computeElectional scores dates in a range for launch/event timing.
