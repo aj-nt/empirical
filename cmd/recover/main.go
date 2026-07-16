@@ -60,6 +60,18 @@ func main() {
 			return bc.ToXML()
 		}
 
+		transitChart := func(bd dignity.BirthData, year, month, day, hour, minute int, tzOff, lat, lng float64) ([]byte, error) {
+			bc, err := dignity.ComputeBaseChart(bd)
+			if err != nil {
+				return nil, err
+			}
+			tc, err := dignity.ComputeTransitChart(bc, year, month, day, hour, minute, 0, tzOff, lat, lng)
+			if err != nil {
+				return nil, err
+			}
+			return tc.ToXML()
+		}
+
 		aspects := func() ([]byte, error) {
 			catalog := dignity.AspectCatalog()
 			return dignity.FormatAspectJSON(catalog)
@@ -290,6 +302,7 @@ func main() {
 			Parans:                parans,
 			Declination:           declination,
 			Firdaria:              firdaria,
+			TransitChart:          transitChart,
 		}); err != nil {
 			fmt.Fprintf(os.Stderr, "Server error: %v\n", err)
 			os.Exit(1)

@@ -9,8 +9,9 @@ import (
 // These mirror BaseChart but use XML-tagged structs that encoding/xml can
 // marshal/unmarshal directly. Maps are converted to ordered slices.
 
-type xmlBaseChart struct {
-	XMLName     xml.Name        `xml:"BaseChart"`
+// xmlBaseChartBody holds all BaseChart fields without an XMLName, so it can
+// be embedded as a child element (e.g. <Natal>) in TransitChart XML.
+type xmlBaseChartBody struct {
 	Version     string          `xml:"version,attr"`
 	Identity    xmlIdentity     `xml:"Identity"`
 	Time        xmlTime         `xml:"Time"`
@@ -22,6 +23,11 @@ type xmlBaseChart struct {
 	FixedStars  xmlFixedStars   `xml:"FixedStars,omitempty"`
 	ArabicParts xmlArabicParts  `xml:"ArabicParts,omitempty"`
 	Aspects     xmlAspects      `xml:"Aspects,omitempty"`
+}
+
+type xmlBaseChart struct {
+	XMLName xml.Name `xml:"BaseChart"`
+	xmlBaseChartBody
 }
 
 type xmlIdentity struct {
@@ -120,44 +126,46 @@ type xmlAspectHit struct {
 // ToXML serializes the BaseChart to an XML byte slice.
 func (bc *BaseChart) ToXML() ([]byte, error) {
 	x := xmlBaseChart{
-		Version: "1.0",
-		Identity: xmlIdentity{
-			Name: bc.Name,
+		xmlBaseChartBody: xmlBaseChartBody{
+			Version: "1.0",
+			Identity: xmlIdentity{
+				Name: bc.Name,
+			},
+			Time: xmlTime{
+				Year:     bc.Year,
+				Month:    bc.Month,
+				Day:      bc.Day,
+				Hour:     bc.Hour,
+				Minute:   bc.Minute,
+				Second:   bc.Second,
+				TZOffset: bc.TZOffset,
+				JD:       bc.JD,
+				DayJD:    bc.DayJD,
+				GMST:     bc.GMST,
+			},
+			Location: xmlLocation{
+				Lat: bc.Lat,
+				Lng: bc.Lng,
+			},
+			Positions: xmlPositions{
+				Ayanamsa: bc.Ayanamsa,
+				Planets:  positionsToXML(bc.Tropical, bc.Sidereal),
+			},
+			Angles: xmlAngles{
+				ASC: bc.ASC,
+				MC:  bc.MC,
+				DSC: bc.DSC,
+				IC:  bc.IC,
+			},
+			Nodes: xmlNodes{
+				NorthNode: bc.NorthNode,
+				SouthNode: bc.SouthNode,
+			},
+			Houses:      housesToXML(bc.Houses),
+			FixedStars:  starsToXML(bc.FixedStars),
+			ArabicParts: partsToXML(bc.ArabicParts),
+			Aspects:     aspectsToXML(bc.Aspects),
 		},
-		Time: xmlTime{
-			Year:     bc.Year,
-			Month:    bc.Month,
-			Day:      bc.Day,
-			Hour:     bc.Hour,
-			Minute:   bc.Minute,
-			Second:   bc.Second,
-			TZOffset: bc.TZOffset,
-			JD:       bc.JD,
-			DayJD:    bc.DayJD,
-			GMST:     bc.GMST,
-		},
-		Location: xmlLocation{
-			Lat: bc.Lat,
-			Lng: bc.Lng,
-		},
-		Positions: xmlPositions{
-			Ayanamsa: bc.Ayanamsa,
-			Planets:  positionsToXML(bc.Tropical, bc.Sidereal),
-		},
-		Angles: xmlAngles{
-			ASC: bc.ASC,
-			MC:  bc.MC,
-			DSC: bc.DSC,
-			IC:  bc.IC,
-		},
-		Nodes: xmlNodes{
-			NorthNode: bc.NorthNode,
-			SouthNode: bc.SouthNode,
-		},
-		Houses:     housesToXML(bc.Houses),
-		FixedStars: starsToXML(bc.FixedStars),
-		ArabicParts: partsToXML(bc.ArabicParts),
-		Aspects:     aspectsToXML(bc.Aspects),
 	}
 
 	output, err := xml.MarshalIndent(x, "", "  ")

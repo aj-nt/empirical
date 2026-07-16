@@ -130,6 +130,10 @@ type DeclinationFunc func(bd dignity.BirthData, orb float64) ([]byte, error)
 // FirdariaFunc computes Persian firdaria planetary periods.
 type FirdariaFunc func(bd dignity.BirthData) ([]byte, error)
 
+// TransitChartFunc computes a TransitChart (natal + transit positions) and
+// returns it as XML bytes. Each system's XSLT does the interpretation.
+type TransitChartFunc func(bd dignity.BirthData, year, month, day, hour, minute int, tzOff, lat, lng float64) ([]byte, error)
+
 // LatLng holds a named geographic location.
 type LatLng struct {
 	Name string  `json:"name"`
@@ -177,6 +181,7 @@ type ServerConfig struct {
 	Parans                ParansFunc
 	Declination           DeclinationFunc
 	Firdaria              FirdariaFunc
+	TransitChart          TransitChartFunc
 }
 
 // ErrNotAvailable is returned by handler functions when an endpoint is not configured.
@@ -259,6 +264,40 @@ func NewMux(cfg ServerConfig) *http.ServeMux {
 			Lat:      req.Lat,
 			Lng:      req.Lng,
 		})
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		w.Header().Set("Content-Type", "application/xml")
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Write(result)
+	})
+
+	mux.HandleFunc("/api/transit-chart", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			http.Error(w, "POST only", http.StatusMethodNotAllowed)
+			return
+		}
+		if cfg.TransitChart == nil {
+			http.Error(w, "not available", http.StatusNotImplemented)
+			return
+		}
+		var req TransitChartRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			http.Error(w, "invalid JSON: "+err.Error(), http.StatusBadRequest)
+			return
+		}
+		result, err := cfg.TransitChart(dignity.BirthData{
+			Name:     req.Name,
+			Year:     req.Year,
+			Month:    req.Month,
+			Day:      req.Day,
+			Hour:     req.Hour,
+			Minute:   req.Minute,
+			TZOffset: req.TzOffset,
+			Lat:      req.Lat,
+			Lng:      req.Lng,
+		}, req.TransitYear, req.TransitMonth, req.TransitDay, req.TransitHour, req.TransitMinute, req.TransitTZ, req.TransitLat, req.TransitLng)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -995,6 +1034,20 @@ type TransitRequest struct {
 	EndDate   string  `json:"end_date"`
 	Orb       float64 `json:"orb"`
 	Sidereal  bool    `json:"sidereal"`
+}
+
+// TransitChartRequest is the JSON body for /api/transit-chart.
+// It includes birth data + transit moment datetime + location.
+type TransitChartRequest struct {
+	ChartRequest
+	TransitYear   int     `json:"transit_year"`
+	TransitMonth  int     `json:"transit_month"`
+	TransitDay    int     `json:"transit_day"`
+	TransitHour   int     `json:"transit_hour"`
+	TransitMinute int     `json:"transit_minute"`
+	TransitTZ     float64 `json:"transit_tz"`
+	TransitLat    float64 `json:"transit_lat"`
+	TransitLng    float64 `json:"transit_lng"`
 }
 
 type SynastryRequest struct {
