@@ -37,6 +37,7 @@ type xmlTime struct {
 	Second   int     `xml:"Second"`
 	TZOffset float64 `xml:"TZOffset"`
 	JD       float64 `xml:"JD"`
+	DayJD    int     `xml:"DayJD"` // Julian Day at midnight UTC (for Ba Zi day pillar)
 	GMST     float64 `xml:"GMST"`
 }
 
@@ -132,6 +133,7 @@ func (bc *BaseChart) ToXML() ([]byte, error) {
 			Second:   bc.Second,
 			TZOffset: bc.TZOffset,
 			JD:       bc.JD,
+			DayJD:    bc.DayJD,
 			GMST:     bc.GMST,
 		},
 		Location: xmlLocation{
@@ -197,6 +199,7 @@ func FromXML(data []byte) (*BaseChart, error) {
 		NorthNode: x.Nodes.NorthNode,
 		SouthNode: x.Nodes.SouthNode,
 		JD:        x.Time.JD,
+		DayJD:     x.Time.DayJD,
 		GMST:      x.Time.GMST,
 		Tropical:  positionsFromXML(x.Positions.Planets, false),
 		Sidereal:  positionsFromXML(x.Positions.Planets, true),

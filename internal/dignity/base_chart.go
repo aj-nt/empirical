@@ -43,7 +43,8 @@ type BaseChart struct {
 	Houses map[string][]float64 // "placidus" → [13]cusps (1-indexed), etc.
 
 	// Julian Day
-	JD float64
+	JD    float64
+	DayJD int // Julian Day at midnight UTC (for Ba Zi day pillar)
 
 	// Pre-computed derivatives
 	Aspects     []AspectHit       // all natal aspects
@@ -164,6 +165,7 @@ func ComputeBaseChart(bd BirthData) (*BaseChart, error) {
 		SouthNode:   snLon,
 		Houses:      houses,
 		JD:          jd,
+		DayJD:       int(swe.Julday(bd.Year, bd.Month, bd.Day, 0, true)),
 		Aspects:     aspects,
 		FixedStars:  stars,
 		ArabicParts: parts,
