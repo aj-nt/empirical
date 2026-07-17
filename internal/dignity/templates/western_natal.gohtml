@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Western Natal Chart — {{.Name}}</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 800px; margin: 0 auto; padding: 2rem; background: #1a1a2e; color: #e0e0e0; }
+    h1 { color: #4a9ee2; border-bottom: 2px solid #4a9ee2; padding-bottom: 0.5rem; }
+    h2 { color: #3a8ed2; margin-top: 2rem; }
+    .section { margin: 1.5rem 0; }
+    .item { padding: 0.5rem 0; border-bottom: 1px solid #2a2a3e; }
+    .planet { color: #4a9ee2; font-weight: bold; }
+    .house { color: #7eb8da; }
+    .aspect { color: #3a8ed2; }
+    .pattern { color: #a07eb8; }
+    .orb { color: #888; font-size: 0.85em; }
+  </style>
+</head>
+<body>
+  <h1>Western Natal Chart — {{.Name}}</h1>
+
+  <h2>Planets in Signs</h2>
+  <div class="section">
+    {{range .PlanetSigns}}
+    <div class="item">{{.}}</div>
+    {{end}}
+  </div>
+
+  <h2>Planets in Houses</h2>
+  <div class="section">
+    {{range .PlanetHouses}}
+    <div class="item">{{.}}</div>
+    {{end}}
+  </div>
+
+  <h2>Aspects</h2>
+  <div class="section">
+    {{range .Aspects}}
+    <div class="item">{{.}}</div>
+    {{end}}
+  </div>
+
+  {{if .Patterns}}
+  <h2>Patterns</h2>
+  <div class="section">
+    {{range .Patterns}}
+    <div class="item">{{.}}</div>
+    {{end}}
+  </div>
+  {{end}}
+
+  {{if .Midpoints}}
+  <h2>Midpoints</h2>
+  <div class="section">
+    {{range .Midpoints}}
+    <div class="item">{{.}}</div>
+    {{end}}
+  </div>
+  {{end}}
+
+  {{if .ElementBalance}}
+  <h2>Element Balance</h2>
+  <div class="section">
+    {{range $el, $count := .ElementBalance}}
+    <div class="item">{{$el}}: {{$count}}</div>
+    {{end}}
+  </div>
+  {{end}}
+
+  {{if .ModalityBalance}}
+  <h2>Modality Balance</h2>
+  <div class="section">
+    {{range $mod, $count := .ModalityBalance}}
+    <div class="item">{{$mod}}: {{$count}}</div>
+    {{end}}
+  </div>
+  {{end}}
+</body>
+</html>

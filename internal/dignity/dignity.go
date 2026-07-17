@@ -224,6 +224,11 @@ func (dc *DignityConvergence) ConvergenceRate() float64 {
 	return float64(dc.SignalCount()) / float64(len(dc.Planets))
 }
 
+// ConvergencePercent returns the convergence rate as a percentage (0-100).
+func (dc *DignityConvergence) ConvergencePercent() float64 {
+	return dc.ConvergenceRate() * 100
+}
+
 // SignalPlanets returns the names of planets where both systems agree.
 func (dc *DignityConvergence) SignalPlanets() []string {
 	var planets []string

@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BaZi Natal Chart</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 800px; margin: 0 auto; padding: 2rem; background: #1a1a2e; color: #e0e0e0; }
+    h1 { color: #e24a4a; border-bottom: 2px solid #e24a4a; padding-bottom: 0.5rem; }
+    h2 { color: #d23a3a; margin-top: 2rem; }
+    .section { margin: 1.5rem 0; }
+    .item { padding: 0.5rem 0; border-bottom: 1px solid #2a2a3e; }
+    .pillar { color: #e24a4a; font-weight: bold; }
+    .stem { color: #e2a04a; }
+    .branch { color: #4ae24a; }
+    .dm { padding: 0.5rem 1rem; border-radius: 4px; margin: 1rem 0; background: #2a1a1a; color: #e24a4a; }
+  </style>
+</head>
+<body>
+  <h1>BaZi (Four Pillars) Natal Chart</h1>
+
+  <div class="dm">
+    Day Master: {{.DayMaster.YinYang}} {{.DayMaster.Element}}
+  </div>
+
+  <h2>Four Pillars</h2>
+  <div class="section">
+    <div class="item">
+      <span class="pillar">Year:</span>
+      <span class="stem">{{.Year.Stem}}</span>
+      <span class="branch">{{.Year.Branch}}</span>
+      ({{.Year.Element}})
+    </div>
+    <div class="item">
+      <span class="pillar">Month:</span>
+      <span class="stem">{{.Month.Stem}}</span>
+      <span class="branch">{{.Month.Branch}}</span>
+      ({{.Month.Element}})
+    </div>
+    <div class="item">
+      <span class="pillar">Day:</span>
+      <span class="stem">{{.Day.Stem}}</span>
+      <span class="branch">{{.Day.Branch}}</span>
+      ({{.Day.Element}})
+    </div>
+    <div class="item">
+      <span class="pillar">Hour:</span>
+      <span class="stem">{{.Hour.Stem}}</span>
+      <span class="branch">{{.Hour.Branch}}</span>
+      ({{.Hour.Element}})
+    </div>
+  </div>
+</body>
+</html>

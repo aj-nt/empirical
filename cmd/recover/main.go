@@ -52,24 +52,57 @@ func main() {
 			return result.FullReportJSON()
 		}
 
-		baseChart := func(bd dignity.BirthData) ([]byte, error) {
+		natalHTML := func(bd dignity.BirthData, system string, orbDeg float64) (string, error) {
 			bc, err := dignity.ComputeBaseChart(bd)
 			if err != nil {
-				return nil, err
+				return "", err
 			}
-			return bc.ToXML()
+			switch system {
+			case "koine":
+				report := dignity.KoinéFromBase(bc, orbDeg)
+				return dignity.RenderKoinéNatal(report)
+			case "western":
+				report := dignity.WesternFromBase(bc, orbDeg)
+				return dignity.RenderWesternNatal(report)
+			case "vedic":
+				report := dignity.VedicFromBase(bc)
+				return dignity.RenderVedicNatal(report)
+			case "bazi":
+				report := dignity.BaZiFromBase(bc)
+				return dignity.RenderBaZiNatal(report)
+			default:
+				return "", fmt.Errorf("unknown system: %s", system)
+			}
 		}
 
-		transitChart := func(bd dignity.BirthData, year, month, day, hour, minute int, tzOff, lat, lng float64) ([]byte, error) {
+		transitHTML := func(bd dignity.BirthData, year, month, day, hour, minute int, tzOff, lat, lng float64, system string, orbDeg float64) (string, error) {
 			bc, err := dignity.ComputeBaseChart(bd)
 			if err != nil {
-				return nil, err
+				return "", err
 			}
-			tc, err := dignity.ComputeTransitChart(bc, year, month, day, hour, minute, 0, tzOff, lat, lng)
+			// Use classical planets for Koiné, all planets for others
+			planets := dignity.ClassicalPlanets
+			aspects := dignity.DefaultAspects()
+			if system == "western" {
+				planets = dignity.AllPlanetNames
+				aspects = dignity.WesternAspects()
+			}
+			report, err := dignity.ComputeTransitReportForDate(bc, year, month, day, hour, minute, tzOff, lat, lng, planets, aspects, orbDeg)
 			if err != nil {
-				return nil, err
+				return "", err
 			}
-			return tc.ToXML()
+			switch system {
+			case "koine":
+				return dignity.RenderKoinéTransit(report)
+			case "western":
+				return dignity.RenderWesternTransit(report)
+			case "vedic":
+				return dignity.RenderVedicTransit(report)
+			case "bazi":
+				return dignity.RenderBaZiTransit(report)
+			default:
+				return "", fmt.Errorf("unknown system: %s", system)
+			}
 		}
 
 		aspects := func() ([]byte, error) {
@@ -266,7 +299,6 @@ func main() {
 
 		if err := server.Run(port, server.ServerConfig{
 			StaticFS:              staticFS,
-			BaseChart:             baseChart,
 			Compute:               compute,
 			Aspects:               aspects,
 			Timing:                timing,
@@ -302,7 +334,8 @@ func main() {
 			Parans:                parans,
 			Declination:           declination,
 			Firdaria:              firdaria,
-			TransitChart:          transitChart,
+			NatalHTML:             natalHTML,
+			TransitHTML:           transitHTML,
 		}); err != nil {
 			fmt.Fprintf(os.Stderr, "Server error: %v\n", err)
 			os.Exit(1)

@@ -42,6 +42,7 @@ type ChartInterpretation struct {
 	Hemisphere       *HemisphereEmphasis `json:"hemisphere,omitempty"`
 	RulershipChains  map[int][]string    `json:"rulership_chains,omitempty"`
 	DispositorTrees  map[string][]string `json:"dispositor_trees,omitempty"`
+	IsDay           bool           `json:"is_day"` // true = day sect, false = night sect
 }
 
 // JSON returns the interpretation as JSON bytes.

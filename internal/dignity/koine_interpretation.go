@@ -313,6 +313,7 @@ func KoineInterpretChart(
 		PlanetHouses: make([]string, 0),
 		Aspects:      make([]string, 0),
 		Patterns:     make([]string, 0),
+		IsDay:        isDayChart,
 	}
 
 	// Planet-in-sign interpretations (classical planets only)

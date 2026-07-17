@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vedic Natal Chart — {{.Name}}</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 800px; margin: 0 auto; padding: 2rem; background: #1a1a2e; color: #e0e0e0; }
+    h1 { color: #e2a04a; border-bottom: 2px solid #e2a04a; padding-bottom: 0.5rem; }
+    h2 { color: #d2903a; margin-top: 2rem; }
+    .section { margin: 1.5rem 0; }
+    .item { padding: 0.5rem 0; border-bottom: 1px solid #2a2a3e; }
+    .planet { color: #e2a04a; font-weight: bold; }
+    .agree { color: #4ae24a; }
+    .diverge { color: #e24a4a; }
+    .ayanamsa { color: #888; font-size: 0.85em; }
+  </style>
+</head>
+<body>
+  <h1>Vedic Natal Chart — {{.Name}}</h1>
+
+  <div class="ayanamsa">Ayanamsa: {{printf "%.2f" .AyanamsaDegrees}}° (Lahiri)</div>
+
+  <h2>Planet Dignities</h2>
+  <div class="section">
+    {{range .Planets}}
+    <div class="item">
+      <span class="planet">{{.Planet}}</span>:
+      Tropical {{.TropSign}} ({{.Western}}) |
+      Sidereal {{.SidSign}} ({{.Vedic}})
+      {{if eq .Convergence "agree"}}
+      <span class="agree">✓ agree</span>
+      {{else}}
+      <span class="diverge">✗ diverge</span>
+      {{end}}
+    </div>
+    {{end}}
+  </div>
+
+  <h2>Summary</h2>
+  <div class="section">
+    <div class="item">Signal (agree): {{.SignalCount}} / {{len .Planets}}</div>
+    <div class="item">Noise (diverge): {{.NoiseCount}} / {{len .Planets}}</div>
+    <div class="item">Convergence rate: {{printf "%.0f" .ConvergencePercent}}%</div>
+  </div>
+</body>
+</html>

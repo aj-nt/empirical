@@ -19,9 +19,6 @@ const (
 	OrbWide     = 5.0 // synastry, patterns
 )
 
-// BaseChartFunc computes a BaseChart and returns it as XML bytes.
-type BaseChartFunc func(bd dignity.BirthData) ([]byte, error)
-
 // ComputeFunc computes a full multi-phase recovery report for birth data
 // and returns the result as JSON bytes.
 type ComputeFunc func(bd dignity.BirthData) ([]byte, error)
@@ -130,9 +127,13 @@ type DeclinationFunc func(bd dignity.BirthData, orb float64) ([]byte, error)
 // FirdariaFunc computes Persian firdaria planetary periods.
 type FirdariaFunc func(bd dignity.BirthData) ([]byte, error)
 
-// TransitChartFunc computes a TransitChart (natal + transit positions) and
-// returns it as XML bytes. Each system's XSLT does the interpretation.
-type TransitChartFunc func(bd dignity.BirthData, year, month, day, hour, minute int, tzOff, lat, lng float64) ([]byte, error)
+// NatalHTMLFunc renders a natal chart interpretation as HTML for a given system.
+// system is one of: "koine", "western", "vedic", "bazi".
+type NatalHTMLFunc func(bd dignity.BirthData, system string, orbDeg float64) (string, error)
+
+// TransitHTMLFunc renders a transit chart interpretation as HTML for a given system.
+// system is one of: "koine", "western", "vedic", "bazi".
+type TransitHTMLFunc func(bd dignity.BirthData, year, month, day, hour, minute int, tzOff, lat, lng float64, system string, orbDeg float64) (string, error)
 
 // LatLng holds a named geographic location.
 type LatLng struct {
@@ -145,7 +146,6 @@ type LatLng struct {
 // Use this struct instead of passing 35 individual parameters to NewMux and Run.
 type ServerConfig struct {
 	StaticFS              fs.FS
-	BaseChart             BaseChartFunc
 	Compute               ComputeFunc
 	Aspects               AspectFunc
 	Timing                TimingFunc
@@ -181,7 +181,8 @@ type ServerConfig struct {
 	Parans                ParansFunc
 	Declination           DeclinationFunc
 	Firdaria              FirdariaFunc
-	TransitChart          TransitChartFunc
+	NatalHTML             NatalHTMLFunc
+	TransitHTML           TransitHTMLFunc
 }
 
 // ErrNotAvailable is returned by handler functions when an endpoint is not configured.
@@ -239,12 +240,12 @@ func NewMux(cfg ServerConfig) *http.ServeMux {
 		})
 	}))
 
-	mux.HandleFunc("/api/base-chart", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/api/natal-html", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
 			http.Error(w, "POST only", http.StatusMethodNotAllowed)
 			return
 		}
-		if cfg.BaseChart == nil {
+		if cfg.NatalHTML == nil {
 			http.Error(w, "not available", http.StatusNotImplemented)
 			return
 		}
@@ -253,7 +254,7 @@ func NewMux(cfg ServerConfig) *http.ServeMux {
 			http.Error(w, "invalid JSON: "+err.Error(), http.StatusBadRequest)
 			return
 		}
-		result, err := cfg.BaseChart(dignity.BirthData{
+		result, err := cfg.NatalHTML(dignity.BirthData{
 			Name:     req.Name,
 			Year:     req.Year,
 			Month:    req.Month,
@@ -263,22 +264,22 @@ func NewMux(cfg ServerConfig) *http.ServeMux {
 			TZOffset: req.TzOffset,
 			Lat:      req.Lat,
 			Lng:      req.Lng,
-		})
+		}, req.System, defaultOrb(req.Orb, OrbStandard))
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		w.Header().Set("Content-Type", "application/xml")
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Write(result)
+		w.Write([]byte(result))
 	})
 
-	mux.HandleFunc("/api/transit-chart", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/api/transit-html", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
 			http.Error(w, "POST only", http.StatusMethodNotAllowed)
 			return
 		}
-		if cfg.TransitChart == nil {
+		if cfg.TransitHTML == nil {
 			http.Error(w, "not available", http.StatusNotImplemented)
 			return
 		}
@@ -287,7 +288,7 @@ func NewMux(cfg ServerConfig) *http.ServeMux {
 			http.Error(w, "invalid JSON: "+err.Error(), http.StatusBadRequest)
 			return
 		}
-		result, err := cfg.TransitChart(dignity.BirthData{
+		result, err := cfg.TransitHTML(dignity.BirthData{
 			Name:     req.Name,
 			Year:     req.Year,
 			Month:    req.Month,
@@ -297,14 +298,14 @@ func NewMux(cfg ServerConfig) *http.ServeMux {
 			TZOffset: req.TzOffset,
 			Lat:      req.Lat,
 			Lng:      req.Lng,
-		}, req.TransitYear, req.TransitMonth, req.TransitDay, req.TransitHour, req.TransitMinute, req.TransitTZ, req.TransitLat, req.TransitLng)
+		}, req.TransitYear, req.TransitMonth, req.TransitDay, req.TransitHour, req.TransitMinute, req.TransitTZ, req.TransitLat, req.TransitLng, req.System, defaultOrb(req.Orb, OrbStandard))
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		w.Header().Set("Content-Type", "application/xml")
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Write(result)
+		w.Write([]byte(result))
 	})
 
 	mux.HandleFunc("/api/aspect-catalog", func(w http.ResponseWriter, r *http.Request) {

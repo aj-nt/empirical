@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Koiné Transit — {{.Name}} — {{.TransitDate}}</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 800px; margin: 0 auto; padding: 2rem; background: #1a1a2e; color: #e0e0e0; }
+    h1 { color: #e2b04a; border-bottom: 2px solid #e2b04a; padding-bottom: 0.5rem; }
+    h2 { color: #c9a03a; margin-top: 2rem; }
+    .section { margin: 1.5rem 0; }
+    .item { padding: 0.5rem 0; border-bottom: 1px solid #2a2a3e; }
+    .planet { color: #e2b04a; font-weight: bold; }
+    .aspect { color: #c9a03a; }
+    .house { color: #7eb8da; }
+    .orb { color: #888; font-size: 0.85em; }
+    .sect { padding: 0.5rem 1rem; border-radius: 4px; margin: 1rem 0; }
+    .day { background: #3a2a0a; color: #e2b04a; }
+    .night { background: #0a1a3a; color: #7eb8da; }
+  </style>
+</head>
+<body>
+  <h1>Koiné Transit — {{.Name}}</h1>
+  <div class="date" style="color:#888;font-size:0.9em">{{.TransitDate}}</div>
+
+  <div class="sect {{if .IsDay}}day{{else}}night{{end}}">
+    {{if .IsDay}}☀️ Day chart — Sun above horizon, diurnal sect{{else}}🌙 Night chart — Sun below horizon, nocturnal sect{{end}}
+  </div>
+
+  <h2>Transit-to-Natal Aspects</h2>
+  <div class="section">
+    {{if .Aspects}}
+    {{range .Aspects}}
+    <div class="item">
+      <span class="planet">{{.TransitPlanet}}</span>
+      <span class="aspect">{{.Aspect}}</span>
+      <span class="planet">{{.NatalPlanet}}</span>
+      <span class="orb">(orb {{printf "%.1f" .Orb}}°)</span>
+    </div>
+    {{end}}
+    {{else}}
+    <div class="item">No significant transits at this orb.</div>
+    {{end}}
+  </div>
+
+  <h2>Transit House Overlays</h2>
+  <div class="section">
+    {{range $planet, $house := .HouseOverlays}}
+    <div class="item">
+      <span class="planet">{{$planet}}</span> transiting
+      <span class="house">{{$house}}{{ordinalSuffix $house}}</span>
+    </div>
+    {{end}}
+  </div>
+</body>
+</html>
