@@ -10,6 +10,9 @@ import (
 
 // ── Geometric Pattern Detection ──────────────────────────────────────────
 
+// DefaultPatternOrb is the default maximum orb (in degrees) for pattern detection.
+const DefaultPatternOrb = 3.0
+
 // PatternKind names a known geometric configuration.
 type PatternKind string
 
@@ -36,10 +39,13 @@ type Pattern struct {
 
 // PatternAspect is one edge in the pattern.
 type PatternAspect struct {
-	Planet1 string  `json:"planet1"`
-	Planet2 string  `json:"planet2"`
-	Aspect  string  `json:"aspect"`
-	Orb     float64 `json:"orb"`
+	Planet1   string  `json:"planet1"`
+	Planet2   string  `json:"planet2"`
+	Aspect    string  `json:"aspect"`
+	Orb       float64 `json:"orb"`
+	StartDate string  `json:"start_date,omitempty"`
+	EndDate   string  `json:"end_date,omitempty"`
+	PeakOrb   float64 `json:"peak_orb,omitempty"`
 }
 
 // PatternReport holds all detected patterns for a chart.
@@ -50,40 +56,121 @@ type PatternReport struct {
 
 // DetectPatterns finds all geometric configurations in a set of planet longitudes.
 // planets: planet name → ecliptic longitude (0-360)
-// orbDeg: max orb for aspect matching (default 5°)
+// orbDeg: max orb for aspect matching (default 3°)
 func DetectPatterns(planets map[string]float64, orbDeg float64) *PatternReport {
 	if orbDeg <= 0 {
-		orbDeg = 5.0
+		orbDeg = DefaultPatternOrb
 	}
 
-	// Build planet list
-	var names []string
+	names, edges, adj := buildEdges(planets, nil, orbDeg, false)
+	patterns := detectPatternsFromEdges(names, edges, adj, planets)
+
+	return &PatternReport{
+		Name:     "",
+		Patterns: patterns,
+	}
+}
+
+// DetectPatternsWithStars finds geometric configurations that may include
+// fixed stars as additional nodes. Stars aspect planets via conjunction,
+// opposition, square, and trine only (matching FindStarConjunctions).
+// Stars do not aspect each other. Planet-planet aspects use the full
+// 6-aspect set (conjunction, sextile, square, trine, quincunx, opposition).
+func DetectPatternsWithStars(planets, stars map[string]float64, orbDeg float64) *PatternReport {
+	if orbDeg <= 0 {
+		orbDeg = DefaultPatternOrb
+	}
+
+	names, edges, adj := buildEdges(planets, stars, orbDeg, true)
+	// Build combined position map for stellium detection
+	combined := make(map[string]float64)
+	for k, v := range planets {
+		combined[k] = v
+	}
+	for k, v := range stars {
+		combined[k] = v
+	}
+	patterns := detectPatternsFromEdges(names, edges, adj, combined)
+
+	return &PatternReport{
+		Name:     "",
+		Patterns: patterns,
+	}
+}
+
+type edge struct {
+	p1, p2 string
+	aspect string
+	orb    float64
+	angle  float64 // actual angular separation
+}
+
+// buildEdges computes all pairwise aspects and builds the adjacency map.
+// When includeStars is true, star positions are added as nodes that aspect
+// planets via the 4 universal aspects (conjunction, opposition, square, trine)
+// and do not aspect each other.
+func buildEdges(planets, stars map[string]float64, orbDeg float64, includeStars bool) (names []string, edges []edge, adj map[string][]edge) {
 	for n := range planets {
 		names = append(names, n)
 	}
+	if includeStars {
+		for n := range stars {
+			names = append(names, n)
+		}
+	}
 	sort.Strings(names)
 
-	// Compute all pairwise aspects
-	type edge struct {
-		p1, p2 string
-		aspect string
-		orb    float64
-		angle  float64 // actual angular separation
+	// Build a lookup: is this name a star?
+	isStar := make(map[string]bool)
+	if includeStars {
+		for n := range stars {
+			isStar[n] = true
+		}
 	}
-	var edges []edge
-	aspectDefs := []struct {
+
+	// Full 6-aspect set for planet-planet
+	allAspectDefs := []struct {
 		angle float64
 		name  string
 	}{
-		{0, "conjunction"}, {30, "semi-sextile"}, {45, "semi-square"},
-		{60, "sextile"}, {90, "square"}, {120, "trine"},
-		{135, "sesquiquadrate"}, {150, "quincunx"}, {180, "opposition"},
+		{0, "conjunction"}, {60, "sextile"}, {90, "square"},
+		{120, "trine"}, {150, "quincunx"}, {180, "opposition"},
+	}
+
+	// 4-aspect set for star-planet (matches FindStarConjunctions)
+	starAspectDefs := []struct {
+		angle float64
+		name  string
+	}{
+		{0, "conjunction"}, {90, "square"}, {120, "trine"}, {180, "opposition"},
+	}
+
+	// Build combined position map
+	allPos := make(map[string]float64)
+	for k, v := range planets {
+		allPos[k] = v
+	}
+	for k, v := range stars {
+		allPos[k] = v
 	}
 
 	for i := 0; i < len(names); i++ {
 		for j := i + 1; j < len(names); j++ {
 			a, b := names[i], names[j]
-			dist := angleDist(planets[a], planets[b])
+
+			// Stars don't aspect each other
+			if isStar[a] && isStar[b] {
+				continue
+			}
+
+			dist := angleDist(allPos[a], allPos[b])
+
+			// Choose aspect set: star-involved pairs use 4 aspects
+			aspectDefs := allAspectDefs
+			if isStar[a] || isStar[b] {
+				aspectDefs = starAspectDefs
+			}
+
 			for _, ad := range aspectDefs {
 				orb := math.Abs(dist - ad.angle)
 				if orb <= orbDeg {
@@ -94,12 +181,19 @@ func DetectPatterns(planets map[string]float64, orbDeg float64) *PatternReport {
 		}
 	}
 
-	// Build adjacency: planet → list of (other planet, aspect, orb)
-	adj := make(map[string][]edge)
+	// Build adjacency
+	adj = make(map[string][]edge)
 	for _, e := range edges {
 		adj[e.p1] = append(adj[e.p1], e)
 		adj[e.p2] = append(adj[e.p2], edge{e.p2, e.p1, e.aspect, e.orb, e.angle})
 	}
+
+	return
+}
+
+// detectPatternsFromEdges runs pattern detection given pre-computed edges and adjacency.
+// allPos is the full position map (needed for stellium sign grouping).
+func detectPatternsFromEdges(names []string, edges []edge, adj map[string][]edge, allPos map[string]float64) []Pattern {
 
 	// Helper: does edge exist between two planets with a specific aspect?
 	hasAspect := func(p1, p2, aspect string) (bool, float64) {
@@ -113,68 +207,43 @@ func DetectPatterns(planets map[string]float64, orbDeg float64) *PatternReport {
 
 	var patterns []Pattern
 
-	// ── Stellium: 3+ planets within 8° in same sign ──────────────────
-	stelliumOrb := 8.0
-	// Group planets by sign
+	// ── Stellium: 3+ bodies in same sign ──────────────────────────────
+	// Group everything except stars by sign (stars don't count toward stelliums)
+	starSet := make(map[string]bool, len(StarNames))
+	for _, s := range StarNames {
+		starSet[s] = true
+	}
 	signGroups := make(map[string][]string)
 	for _, n := range names {
-		sign := SignForLongitude(planets[n])
+		if starSet[n] {
+			continue
+		}
+		sign := SignForLongitude(allPos[n])
 		signGroups[sign] = append(signGroups[sign], n)
 	}
 	for sign, group := range signGroups {
 		if len(group) < 3 {
 			continue
 		}
-		// Check if they're within stelliumOrb of each other
-		// Sort by longitude within sign
+		// Sort by longitude within sign for consistent ordering
 		sort.Slice(group, func(i, j int) bool {
-			return math.Mod(planets[group[i]], 30) < math.Mod(planets[group[j]], 30)
+			return math.Mod(allPos[group[i]], 30) < math.Mod(allPos[group[j]], 30)
 		})
-		// Find maximal connected clusters
-		visited := make(map[string]bool)
-		for _, seed := range group {
-			if visited[seed] {
-				continue
-			}
-			cluster := []string{seed}
-			visited[seed] = true
-			for _, other := range group {
-				if visited[other] {
-					continue
-				}
-				// Check if other is within 8° of any planet in cluster
-				for _, c := range cluster {
-					if angleDist(planets[c], planets[other]) <= stelliumOrb {
-						cluster = append(cluster, other)
-						visited[other] = true
-						break
-					}
-				}
-			}
-			if len(cluster) >= 3 {
-				// Build aspect list for the stellium
-				var paspects []PatternAspect
-				for i := 0; i < len(cluster); i++ {
-					for j := i + 1; j < len(cluster); j++ {
-						ok, orb := hasAspect(cluster[i], cluster[j], "conjunction")
-						if ok {
-							paspects = append(paspects, PatternAspect{cluster[i], cluster[j], "conjunction", orb})
-						} else {
-							// Within orb but not classified as conjunction by our aspect defs
-							dist := angleDist(planets[cluster[i]], planets[cluster[j]])
-							paspects = append(paspects, PatternAspect{cluster[i], cluster[j], "conjunction", math.Round(dist*100) / 100})
-						}
-					}
-				}
-				patterns = append(patterns, Pattern{
-					Kind:        Stellium,
-					Name:        fmt.Sprintf("Stellium in %s", sign),
-					Planets:     cluster,
-					Description: fmt.Sprintf("%d planets clustered within %.0f° in %s — concentrated energy in one sign.", len(cluster), stelliumOrb, sign),
-					Aspects:     paspects,
-				})
+		// Build aspect list for the stellium
+		var paspects []PatternAspect
+		for i := 0; i < len(group); i++ {
+			for j := i + 1; j < len(group); j++ {
+				dist := angleDist(allPos[group[i]], allPos[group[j]])
+				paspects = append(paspects, PatternAspect{Planet1: group[i], Planet2: group[j], Aspect: "conjunction", Orb: math.Round(dist*100) / 100})
 			}
 		}
+		patterns = append(patterns, Pattern{
+			Kind:        Stellium,
+			Name:        fmt.Sprintf("Stellium in %s", sign),
+			Planets:     group,
+			Description: fmt.Sprintf("%d planets in %s. Concentrated energy in one sign.", len(group), sign),
+			Aspects:     paspects,
+		})
 	}
 
 	// ── Grand Trine: 3 planets, each pair in trine ───────────────────
@@ -193,12 +262,12 @@ func DetectPatterns(planets map[string]float64, orbDeg float64) *PatternReport {
 						Kind:    GrandTrine,
 						Name:    "Grand Trine",
 						Planets: trio,
-						Description: fmt.Sprintf("%s, %s, %s form a Grand Trine — each pair in flowing 120° aspect. Self-reinforcing harmony in one element.",
+						Description: fmt.Sprintf("%s, %s, %s form a Grand Trine. Each pair in flowing 120° aspect. Self-reinforcing harmony in one element.",
 							trio[0], trio[1], trio[2]),
 						Aspects: []PatternAspect{
-							{names[i], names[j], "trine", mustOrb(hasAspect(names[i], names[j], "trine"))},
-							{names[i], names[k], "trine", mustOrb(hasAspect(names[i], names[k], "trine"))},
-							{names[j], names[k], "trine", mustOrb(hasAspect(names[j], names[k], "trine"))},
+							{Planet1: names[i], Planet2: names[j], Aspect: "trine", Orb: mustOrb(hasAspect(names[i], names[j], "trine"))},
+							{Planet1: names[i], Planet2: names[k], Aspect: "trine", Orb: mustOrb(hasAspect(names[i], names[k], "trine"))},
+							{Planet1: names[j], Planet2: names[k], Aspect: "trine", Orb: mustOrb(hasAspect(names[j], names[k], "trine"))},
 						},
 					})
 				}
@@ -232,15 +301,15 @@ func DetectPatterns(planets map[string]float64, orbDeg float64) *PatternReport {
 						Kind:    Kite,
 						Name:    "Kite",
 						Planets: all,
-						Description: fmt.Sprintf("Grand Trine (%s, %s, %s) with %s at the release point — opposite %s and sextile the other two. The trine's energy discharges through the opposition axis.",
+						Description: fmt.Sprintf("Grand Trine (%s, %s, %s) with %s at the release point. Opposite %s and sextile the other two. The trine's energy discharges through the opposition axis.",
 							apex, base1, base2, fourth, apex),
 						Aspects: []PatternAspect{
-							{apex, base1, "trine", mustOrb(hasAspect(apex, base1, "trine"))},
-							{apex, base2, "trine", mustOrb(hasAspect(apex, base2, "trine"))},
-							{base1, base2, "trine", mustOrb(hasAspect(base1, base2, "trine"))},
-							{fourth, apex, "opposition", mustOrb(hasAspect(fourth, apex, "opposition"))},
-							{fourth, base1, "sextile", mustOrb(hasAspect(fourth, base1, "sextile"))},
-							{fourth, base2, "sextile", mustOrb(hasAspect(fourth, base2, "sextile"))},
+							{Planet1: apex, Planet2: base1, Aspect: "trine", Orb: mustOrb(hasAspect(apex, base1, "trine"))},
+							{Planet1: apex, Planet2: base2, Aspect: "trine", Orb: mustOrb(hasAspect(apex, base2, "trine"))},
+							{Planet1: base1, Planet2: base2, Aspect: "trine", Orb: mustOrb(hasAspect(base1, base2, "trine"))},
+							{Planet1: fourth, Planet2: apex, Aspect: "opposition", Orb: mustOrb(hasAspect(fourth, apex, "opposition"))},
+							{Planet1: fourth, Planet2: base1, Aspect: "sextile", Orb: mustOrb(hasAspect(fourth, base1, "sextile"))},
+							{Planet1: fourth, Planet2: base2, Aspect: "sextile", Orb: mustOrb(hasAspect(fourth, base2, "sextile"))},
 						},
 					})
 				}
@@ -270,9 +339,9 @@ func DetectPatterns(planets map[string]float64, orbDeg float64) *PatternReport {
 						Description: fmt.Sprintf("%s opposes %s, both square %s at the apex. Dynamic tension demanding resolution through the apex planet.",
 							names[i], names[j], names[k]),
 						Aspects: []PatternAspect{
-							{names[i], names[j], "opposition", mustOrb(hasAspect(names[i], names[j], "opposition"))},
-							{names[k], names[i], "square", mustOrb(hasAspect(names[k], names[i], "square"))},
-							{names[k], names[j], "square", mustOrb(hasAspect(names[k], names[j], "square"))},
+							{Planet1: names[i], Planet2: names[j], Aspect: "opposition", Orb: mustOrb(hasAspect(names[i], names[j], "opposition"))},
+							{Planet1: names[k], Planet2: names[i], Aspect: "square", Orb: mustOrb(hasAspect(names[k], names[i], "square"))},
+							{Planet1: names[k], Planet2: names[j], Aspect: "square", Orb: mustOrb(hasAspect(names[k], names[j], "square"))},
 						},
 					})
 				}
@@ -313,12 +382,12 @@ func DetectPatterns(planets map[string]float64, orbDeg float64) *PatternReport {
 							Description: fmt.Sprintf("%s-%s and %s-%s form two oppositions, all four in mutual square. Intense dynamic pressure across four points.",
 								names[i], names[j], names[k], names[l]),
 							Aspects: []PatternAspect{
-								{names[i], names[j], "opposition", mustOrb(hasAspect(names[i], names[j], "opposition"))},
-								{names[k], names[l], "opposition", mustOrb(hasAspect(names[k], names[l], "opposition"))},
-								{names[i], names[k], "square", mustOrb(hasAspect(names[i], names[k], "square"))},
-								{names[i], names[l], "square", mustOrb(hasAspect(names[i], names[l], "square"))},
-								{names[j], names[k], "square", mustOrb(hasAspect(names[j], names[k], "square"))},
-								{names[j], names[l], "square", mustOrb(hasAspect(names[j], names[l], "square"))},
+							{Planet1: names[i], Planet2: names[j], Aspect: "opposition", Orb: mustOrb(hasAspect(names[i], names[j], "opposition"))},
+								{Planet1: names[k], Planet2: names[l], Aspect: "opposition", Orb: mustOrb(hasAspect(names[k], names[l], "opposition"))},
+								{Planet1: names[i], Planet2: names[k], Aspect: "square", Orb: mustOrb(hasAspect(names[i], names[k], "square"))},
+								{Planet1: names[i], Planet2: names[l], Aspect: "square", Orb: mustOrb(hasAspect(names[i], names[l], "square"))},
+								{Planet1: names[j], Planet2: names[k], Aspect: "square", Orb: mustOrb(hasAspect(names[j], names[k], "square"))},
+								{Planet1: names[j], Planet2: names[l], Aspect: "square", Orb: mustOrb(hasAspect(names[j], names[l], "square"))},
 							},
 						})
 					}
@@ -346,12 +415,12 @@ func DetectPatterns(planets map[string]float64, orbDeg float64) *PatternReport {
 						Kind:    Yod,
 						Name:    "Yod (Finger of God)",
 						Planets: trio,
-						Description: fmt.Sprintf("%s and %s sextile each other, both quincunx %s at the apex. A fated, uncomfortable pointing — the apex planet carries a special assignment.",
+						Description: fmt.Sprintf("%s and %s sextile each other, both quincunx %s at the apex. A fated, uncomfortable pointing. The apex planet carries a special assignment.",
 							names[i], names[j], names[k]),
 						Aspects: []PatternAspect{
-							{names[i], names[j], "sextile", mustOrb(hasAspect(names[i], names[j], "sextile"))},
-							{names[k], names[i], "quincunx", mustOrb(hasAspect(names[k], names[i], "quincunx"))},
-							{names[k], names[j], "quincunx", mustOrb(hasAspect(names[k], names[j], "quincunx"))},
+							{Planet1: names[i], Planet2: names[j], Aspect: "sextile", Orb: mustOrb(hasAspect(names[i], names[j], "sextile"))},
+							{Planet1: names[k], Planet2: names[i], Aspect: "quincunx", Orb: mustOrb(hasAspect(names[k], names[i], "quincunx"))},
+							{Planet1: names[k], Planet2: names[j], Aspect: "quincunx", Orb: mustOrb(hasAspect(names[k], names[j], "quincunx"))},
 						},
 					})
 				}
@@ -404,24 +473,24 @@ func DetectPatterns(planets map[string]float64, orbDeg float64) *PatternReport {
 					if config1 || config2 {
 						all := []string{names[i], names[j], names[k], names[l]}
 						var paspects []PatternAspect
-						paspects = append(paspects, PatternAspect{names[i], names[j], "opposition", mustOrb(hasAspect(names[i], names[j], "opposition"))})
-						paspects = append(paspects, PatternAspect{names[k], names[l], "opposition", mustOrb(hasAspect(names[k], names[l], "opposition"))})
+						paspects = append(paspects, PatternAspect{Planet1: names[i], Planet2: names[j], Aspect: "opposition", Orb: mustOrb(hasAspect(names[i], names[j], "opposition"))})
+						paspects = append(paspects, PatternAspect{Planet1: names[k], Planet2: names[l], Aspect: "opposition", Orb: mustOrb(hasAspect(names[k], names[l], "opposition"))})
 						if config1 {
-							paspects = append(paspects, PatternAspect{names[i], names[k], "sextile", mustOrb(hasAspect(names[i], names[k], "sextile"))})
-							paspects = append(paspects, PatternAspect{names[j], names[l], "sextile", mustOrb(hasAspect(names[j], names[l], "sextile"))})
-							paspects = append(paspects, PatternAspect{names[i], names[l], "trine", mustOrb(hasAspect(names[i], names[l], "trine"))})
-							paspects = append(paspects, PatternAspect{names[j], names[k], "trine", mustOrb(hasAspect(names[j], names[k], "trine"))})
+							paspects = append(paspects, PatternAspect{Planet1: names[i], Planet2: names[k], Aspect: "sextile", Orb: mustOrb(hasAspect(names[i], names[k], "sextile"))})
+							paspects = append(paspects, PatternAspect{Planet1: names[j], Planet2: names[l], Aspect: "sextile", Orb: mustOrb(hasAspect(names[j], names[l], "sextile"))})
+							paspects = append(paspects, PatternAspect{Planet1: names[i], Planet2: names[l], Aspect: "trine", Orb: mustOrb(hasAspect(names[i], names[l], "trine"))})
+							paspects = append(paspects, PatternAspect{Planet1: names[j], Planet2: names[k], Aspect: "trine", Orb: mustOrb(hasAspect(names[j], names[k], "trine"))})
 						} else {
-							paspects = append(paspects, PatternAspect{names[i], names[l], "sextile", mustOrb(hasAspect(names[i], names[l], "sextile"))})
-							paspects = append(paspects, PatternAspect{names[j], names[k], "sextile", mustOrb(hasAspect(names[j], names[k], "sextile"))})
-							paspects = append(paspects, PatternAspect{names[i], names[k], "trine", mustOrb(hasAspect(names[i], names[k], "trine"))})
-							paspects = append(paspects, PatternAspect{names[j], names[l], "trine", mustOrb(hasAspect(names[j], names[l], "trine"))})
+							paspects = append(paspects, PatternAspect{Planet1: names[i], Planet2: names[l], Aspect: "sextile", Orb: mustOrb(hasAspect(names[i], names[l], "sextile"))})
+							paspects = append(paspects, PatternAspect{Planet1: names[j], Planet2: names[k], Aspect: "sextile", Orb: mustOrb(hasAspect(names[j], names[k], "sextile"))})
+							paspects = append(paspects, PatternAspect{Planet1: names[i], Planet2: names[k], Aspect: "trine", Orb: mustOrb(hasAspect(names[i], names[k], "trine"))})
+							paspects = append(paspects, PatternAspect{Planet1: names[j], Planet2: names[l], Aspect: "trine", Orb: mustOrb(hasAspect(names[j], names[l], "trine"))})
 						}
 						patterns = append(patterns, Pattern{
 							Kind:    MysticRectangle,
 							Name:    "Mystic Rectangle",
 							Planets: all,
-							Description: fmt.Sprintf("Two oppositions (%s-%s, %s-%s) woven together by sextiles and trines. Balanced creative tension — a rare harmonizing structure.",
+							Description: fmt.Sprintf("Two oppositions (%s-%s, %s-%s) woven together by sextiles and trines. Balanced creative tension. A rare harmonizing structure.",
 								names[i], names[j], names[k], names[l]),
 							Aspects: paspects,
 						})
@@ -460,11 +529,11 @@ func DetectPatterns(planets map[string]float64, orbDeg float64) *PatternReport {
 							Description: fmt.Sprintf("%s opposes %s, with %s and %s forming sextile-trine bridges on each side. A supportive container for the opposition's tension.",
 								names[i], names[j], names[k], names[l]),
 							Aspects: []PatternAspect{
-								{names[i], names[j], "opposition", mustOrb(hasAspect(names[i], names[j], "opposition"))},
-								{names[i], names[k], "sextile", mustOrb(hasAspect(names[i], names[k], "sextile"))},
-								{names[k], names[j], "trine", mustOrb(hasAspect(names[k], names[j], "trine"))},
-								{names[j], names[l], "sextile", mustOrb(hasAspect(names[j], names[l], "sextile"))},
-								{names[l], names[i], "trine", mustOrb(hasAspect(names[l], names[i], "trine"))},
+							{Planet1: names[i], Planet2: names[j], Aspect: "opposition", Orb: mustOrb(hasAspect(names[i], names[j], "opposition"))},
+								{Planet1: names[i], Planet2: names[k], Aspect: "sextile", Orb: mustOrb(hasAspect(names[i], names[k], "sextile"))},
+								{Planet1: names[k], Planet2: names[j], Aspect: "trine", Orb: mustOrb(hasAspect(names[k], names[j], "trine"))},
+								{Planet1: names[j], Planet2: names[l], Aspect: "sextile", Orb: mustOrb(hasAspect(names[j], names[l], "sextile"))},
+								{Planet1: names[l], Planet2: names[i], Aspect: "trine", Orb: mustOrb(hasAspect(names[l], names[i], "trine"))},
 							},
 						})
 					}
@@ -482,11 +551,11 @@ func DetectPatterns(planets map[string]float64, orbDeg float64) *PatternReport {
 							Description: fmt.Sprintf("%s opposes %s, with %s and %s forming sextile-trine bridges on each side. A supportive container for the opposition's tension.",
 								names[i], names[j], names[l], names[k]),
 							Aspects: []PatternAspect{
-								{names[i], names[j], "opposition", mustOrb(hasAspect(names[i], names[j], "opposition"))},
-								{names[i], names[l], "sextile", mustOrb(hasAspect(names[i], names[l], "sextile"))},
-								{names[l], names[j], "trine", mustOrb(hasAspect(names[l], names[j], "trine"))},
-								{names[j], names[k], "sextile", mustOrb(hasAspect(names[j], names[k], "sextile"))},
-								{names[k], names[i], "trine", mustOrb(hasAspect(names[k], names[i], "trine"))},
+							{Planet1: names[i], Planet2: names[j], Aspect: "opposition", Orb: mustOrb(hasAspect(names[i], names[j], "opposition"))},
+								{Planet1: names[i], Planet2: names[l], Aspect: "sextile", Orb: mustOrb(hasAspect(names[i], names[l], "sextile"))},
+								{Planet1: names[l], Planet2: names[j], Aspect: "trine", Orb: mustOrb(hasAspect(names[l], names[j], "trine"))},
+								{Planet1: names[j], Planet2: names[k], Aspect: "sextile", Orb: mustOrb(hasAspect(names[j], names[k], "sextile"))},
+								{Planet1: names[k], Planet2: names[i], Aspect: "trine", Orb: mustOrb(hasAspect(names[k], names[i], "trine"))},
 							},
 						})
 					}
@@ -515,12 +584,12 @@ func DetectPatterns(planets map[string]float64, orbDeg float64) *PatternReport {
 							Kind:    Wedge,
 							Name:    "Wedge",
 							Planets: trio,
-							Description: fmt.Sprintf("%s, %s, %s form a right triangle: sextile + trine + square. Productive friction — the square provides drive, the sextile/trine provide flow.",
+							Description: fmt.Sprintf("%s, %s, %s form a right triangle: sextile + trine + square. Productive friction. The square provides drive, the sextile/trine provide flow.",
 								trio[0], trio[1], trio[2]),
 							Aspects: []PatternAspect{
-								{trio[perm[0][0]], trio[perm[0][1]], "sextile", mustOrb(hasAspect(trio[perm[0][0]], trio[perm[0][1]], "sextile"))},
-								{trio[perm[1][0]], trio[perm[1][1]], "trine", mustOrb(hasAspect(trio[perm[1][0]], trio[perm[1][1]], "trine"))},
-								{trio[perm[2][0]], trio[perm[2][1]], "square", mustOrb(hasAspect(trio[perm[2][0]], trio[perm[2][1]], "square"))},
+							{Planet1: trio[perm[0][0]], Planet2: trio[perm[0][1]], Aspect: "sextile", Orb: mustOrb(hasAspect(trio[perm[0][0]], trio[perm[0][1]], "sextile"))},
+								{Planet1: trio[perm[1][0]], Planet2: trio[perm[1][1]], Aspect: "trine", Orb: mustOrb(hasAspect(trio[perm[1][0]], trio[perm[1][1]], "trine"))},
+								{Planet1: trio[perm[2][0]], Planet2: trio[perm[2][1]], Aspect: "square", Orb: mustOrb(hasAspect(trio[perm[2][0]], trio[perm[2][1]], "square"))},
 							},
 						})
 						break // one permutation is enough
@@ -541,10 +610,7 @@ func DetectPatterns(planets map[string]float64, orbDeg float64) *PatternReport {
 		return len(patterns[i].Planets) > len(patterns[j].Planets)
 	})
 
-	return &PatternReport{
-		Name:     "",
-		Patterns: patterns,
-	}
+	return patterns
 }
 
 // mustOrb extracts the orb from hasAspect result, or returns 0.
@@ -627,7 +693,7 @@ func (pr *PatternReport) PatternReportJSON() ([]byte, error) {
 // FormatPatternReport returns a human-readable pattern report.
 func FormatPatternReport(pr *PatternReport) string {
 	var b strings.Builder
-	b.WriteString(fmt.Sprintf("Geometric Pattern Report — %s\n\n", pr.Name))
+	b.WriteString(fmt.Sprintf("Geometric Pattern Report .  %s\n\n", pr.Name))
 
 	if len(pr.Patterns) == 0 {
 		b.WriteString("No geometric patterns detected.\n")
@@ -640,7 +706,7 @@ func FormatPatternReport(pr *PatternReport) string {
 		b.WriteString(fmt.Sprintf("  %s\n", p.Description))
 		b.WriteString("  Aspects:\n")
 		for _, a := range p.Aspects {
-			b.WriteString(fmt.Sprintf("    %s — %s %s (orb %.1f°)\n", a.Planet1, a.Planet2, a.Aspect, a.Orb))
+			b.WriteString(fmt.Sprintf("    %s .  %s %s (orb %.1f°)\n", a.Planet1, a.Planet2, a.Aspect, a.Orb))
 		}
 		b.WriteString("\n")
 	}
