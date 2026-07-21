@@ -632,6 +632,31 @@ func NewMux(cfg ServerConfig) *http.ServeMux {
 		return cfg.Firdaria(req.ToBirthData())
 	}))
 
+	// ── New parameterized endpoints (Phase C) ──────────────────────────
+
+	// POST /api/base-chart — compute a BaseChart from birth data.
+	// Returns the full physics-only chart: positions, houses, angles, nodes, stars, declinations.
+	mux.HandleFunc("/api/base-chart", handleJSON(func(req ChartRequest) ([]byte, error) {
+		if cfg.Compute == nil {
+			return nil, ErrNotAvailable
+		}
+		return cfg.Compute(req.ToBirthData())
+	}))
+
+	// POST /api/system — apply a system transform to a BaseChart.
+	// Body: {name, year, month, day, hour, minute, tz_offset, lat, lng, system, orb}
+	// system: "koine", "western", "vedic", "bazi", "draconic"
+	mux.HandleFunc("/api/system", handleJSON(func(req ChartRequest) ([]byte, error) {
+		if cfg.Interpretation == nil {
+			return nil, ErrNotAvailable
+		}
+		system := req.System
+		if system == "" {
+			system = "koine"
+		}
+		return cfg.Interpretation(req.ToBirthData(), req.HouseSystem, defaultOrb(req.Orb, OrbStandard), system)
+	}))
+
 	mux.HandleFunc("/api/", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodOptions {
 			w.Header().Set("Access-Control-Allow-Origin", "*")
