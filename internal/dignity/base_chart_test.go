@@ -74,19 +74,9 @@ func TestComputeBaseChart_KnownChart(t *testing.T) {
 		}
 	}
 
-	// Aspects should be non-empty
-	if len(bc.Aspects) == 0 {
-		t.Error("expected non-empty aspects")
-	}
-
-	// Fixed stars should be non-empty
-	if len(bc.FixedStars) == 0 {
-		t.Error("expected non-empty fixed stars")
-	}
-
-	// Arabic Parts should have all 13
-	if len(bc.ArabicParts) < 13 {
-		t.Errorf("got %d Arabic Parts, want at least 13", len(bc.ArabicParts))
+	// Star positions should be non-empty
+	if len(bc.StarPositions) == 0 {
+		t.Error("expected non-empty star positions")
 	}
 }
 

@@ -1,6 +1,7 @@
 package dignity
 
 import (
+	"github.com/aj-nt/empirical/internal/declination"
 	"github.com/aj-nt/empirical/internal/swe"
 )
 
@@ -10,11 +11,12 @@ import (
 // Computed once from birth data; every system extracts what it needs via
 // FromBase() pure functions. No system re-derives positions.
 
-// Position holds a planet's longitude, latitude, and daily speed.
+// Position holds a planet's longitude, latitude, daily speed, and distance from Earth.
 type Position struct {
 	Lon   float64
 	Lat   float64
 	Speed float64
+	Dist  float64 // distance in AU
 }
 
 // BaseChart holds all computed astrological positions for a single chart.
@@ -47,10 +49,9 @@ type BaseChart struct {
 	DayJD int // Julian Day at midnight UTC (for Ba Zi day pillar)
 
 	// Pre-computed derivatives
-	Aspects     []AspectHit       // all natal aspects
-	FixedStars  []StarConjunction // all star-planet conjunctions
-	ArabicParts map[string]float64 // all Arabic Parts
-	GMST        float64
+	StarPositions map[string]float64 // raw star longitudes (physics)
+	Declinations  map[string]float64 // body name → declination in degrees (physics)
+	GMST          float64
 }
 
 // ComputeBaseChart computes all astrological positions for a birth chart.
@@ -67,13 +68,18 @@ func ComputeBaseChart(bd BirthData) (*BaseChart, error) {
 	tropical := make(map[string]Position)
 	sidereal := make(map[string]Position)
 	for _, p := range AllPlanets {
-		lon, lat, _, speed := swe.CalcUT(jd, p.ID)
-		tropical[p.Name] = Position{Lon: lon, Lat: lat, Speed: speed}
+		lon, lat, dist, speed, err := swe.CalcUTErr(jd, p.ID)
+		if err != nil {
+			// Skip planets with missing/out-of-range ephemeris files.
+			// The chart is still valid without them.
+			continue
+		}
+		tropical[p.Name] = Position{Lon: lon, Lat: lat, Speed: speed, Dist: dist}
 		sidLon := lon - ayan
 		if sidLon < 0 {
 			sidLon += 360
 		}
-		sidereal[p.Name] = Position{Lon: sidLon, Lat: lat, Speed: speed}
+		sidereal[p.Name] = Position{Lon: sidLon, Lat: lat, Speed: speed, Dist: dist}
 	}
 
 	// ── Nodes ───────────────────────────────────────────────────────────
@@ -124,21 +130,11 @@ func ComputeBaseChart(bd BirthData) (*BaseChart, error) {
 			starPositions[starName] = normalizeLon(lon)
 		}
 	}
-	planetLons := TropicalToLonMap(tropical)
-	stars := FindStarConjunctions(starPositions, planetLons, 2.0)
-
-	// ── Arabic Parts ────────────────────────────────────────────────────
-	// Determine day/night: Sun above horizon = day
-	sunLon := tropical["Sun"].Lon
-	diff := sunLon - asc
-	if diff < 0 {
-		diff += 360
+	// ── Declinations ─────────────────────────────────────────────────────
+	decls := make(map[string]float64, len(tropical))
+	for name, pos := range tropical {
+		decls[name] = declination.EclipticToDeclination(pos.Lon, pos.Lat)
 	}
-	isDay := diff < 180
-	parts := ComputeParts(asc, planetLons, isDay)
-
-	// ── Natal aspects ───────────────────────────────────────────────────
-	aspects := FindNatalAspects(planetLons, DefaultAspects(), 5.0)
 
 	// ── GMST ────────────────────────────────────────────────────────────
 	gmst := ComputeGMST(jd)
@@ -165,11 +161,10 @@ func ComputeBaseChart(bd BirthData) (*BaseChart, error) {
 		SouthNode:   snLon,
 		Houses:      houses,
 		JD:          jd,
-		DayJD:       int(swe.Julday(bd.Year, bd.Month, bd.Day, 0, true)),
-		Aspects:     aspects,
-		FixedStars:  stars,
-		ArabicParts: parts,
-		GMST:        gmst,
+		DayJD:         int(swe.Julday(bd.Year, bd.Month, bd.Day, 0, true)),
+		StarPositions: starPositions,
+		Declinations:  decls,
+		GMST:          gmst,
 	}, nil
 }
 
