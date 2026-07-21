@@ -330,7 +330,7 @@ func computeInterpretation(name string, bc *dignity.BaseChart, lat, lng float64,
 	var report *dignity.ChartInterpretation
 	switch system {
 	case string(dignity.SystemWestern):
-		report = dignity.WesternFromBase(bc, orbDeg)
+		report = dignity.WesternFromBase(bc, orbDeg, false)
 	default:
 		report = dignity.KoinéFromBase(bc, orbDeg)
 	}

@@ -6,7 +6,10 @@ package swe
 #include <swephexp.h>
 */
 import "C"
-import "unsafe"
+import (
+	"fmt"
+	"unsafe"
+)
 
 // Swiss Ephemeris planet indices.
 const (
@@ -66,6 +69,8 @@ func Julday(year, month, day int, hour float64, gregflag bool) float64 {
 
 // CalcUT computes a planet's ecliptic position for the given Julian Day.
 // Returns longitude, latitude, distance (AU), and speed in longitude (deg/day).
+// Panics if the Swiss Ephemeris returns an error (missing file, out of range, etc.).
+// For callers that can propagate errors, use CalcUTErr instead.
 // planet must be one of the SE_* constants.
 func CalcUT(jd float64, planet int) (lon, lat, dist, speed float64) {
 	var xx [6]C.double
@@ -78,9 +83,27 @@ func CalcUT(jd float64, planet int) (lon, lat, dist, speed float64) {
 		(*C.char)(unsafe.Pointer(&serr[0])),
 	)
 	if int(ret) < 0 {
-		return 0, 0, 0, 0
+		panic(fmt.Sprintf("swe_calc_ut failed for planet %d: %s", planet, C.GoString(&serr[0])))
 	}
 	return float64(xx[0]), float64(xx[1]), float64(xx[2]), float64(xx[3])
+}
+
+// CalcUTErr is like CalcUT but returns an error instead of panicking.
+// Use this when the caller can propagate errors to the user.
+func CalcUTErr(jd float64, planet int) (lon, lat, dist, speed float64, err error) {
+	var xx [6]C.double
+	var serr [256]C.char
+	ret := C.swe_calc_ut(
+		C.double(jd),
+		C.int(planet),
+		C.int(SEFLG_SWIEPH|SEFLG_SPEED),
+		(*C.double)(unsafe.Pointer(&xx[0])),
+		(*C.char)(unsafe.Pointer(&serr[0])),
+	)
+	if int(ret) < 0 {
+		return 0, 0, 0, 0, fmt.Errorf("swe_calc_ut failed for planet %d: %s", planet, C.GoString(&serr[0]))
+	}
+	return float64(xx[0]), float64(xx[1]), float64(xx[2]), float64(xx[3]), nil
 }
 
 // SetEphePath points Swiss Ephemeris to its data files directory.

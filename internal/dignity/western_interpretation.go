@@ -28,6 +28,15 @@ type PatternHit struct {
 	Planets []string `json:"planets"`
 }
 
+// WeightedAspect is an aspect ranked by importance (orb × aspect type × planet weight).
+type WeightedAspect struct {
+	Planet1 string  `json:"planet1"`
+	Planet2 string  `json:"planet2"`
+	Aspect  string  `json:"aspect"`
+	Orb     float64 `json:"orb"`
+	Weight  float64 `json:"weight"`
+}
+
 // ChartInterpretation holds the full interpretation of a chart.
 type ChartInterpretation struct {
 	Name            string         `json:"name"`
@@ -42,7 +51,20 @@ type ChartInterpretation struct {
 	Hemisphere       *HemisphereEmphasis `json:"hemisphere,omitempty"`
 	RulershipChains  map[int][]string    `json:"rulership_chains,omitempty"`
 	DispositorTrees  map[string][]string `json:"dispositor_trees,omitempty"`
-	IsDay           bool           `json:"is_day"` // true = day sect, false = night sect
+	IsDay           bool           `json:"is_day"`
+
+	// ── Reading-optimized fields (populated when reading=true) ──
+	ChartRuler             string          `json:"chart_ruler,omitempty"`
+	ChartRulerTraditional  string          `json:"chart_ruler_traditional,omitempty"`
+	ChartRulerHouse        int             `json:"chart_ruler_house,omitempty"`
+	ChartRulerSign         string          `json:"chart_ruler_sign,omitempty"`
+	ChartRulerDignity      string          `json:"chart_ruler_dignity,omitempty"`
+	FinalDispositor            string      `json:"final_dispositor,omitempty"`
+	FinalDispositorTraditional string      `json:"final_dispositor_traditional,omitempty"`
+	WeightedAspects            []WeightedAspect `json:"weighted_aspects,omitempty"`
+	KeyMidpoints               []string     `json:"key_midpoints,omitempty"`
+	KeyStarAspects             []string     `json:"key_star_aspects,omitempty"`
+	AngularPlanets             []string     `json:"angular_planets,omitempty"`
 }
 
 // JSON returns the interpretation as JSON bytes.
@@ -224,16 +246,13 @@ func InterpretPlanetInSign(planet, sign string) string {
 }
 
 // InterpretPlanetInHouse returns a natural-language description of a planet in a house.
-// Uses the authored planetHouseMeanings table when available; falls back to template assembly.
 func InterpretPlanetInHouse(planet string, house int) string {
-	// Check authored content first
 	if planetMap, ok := planetHouseMeanings[planet]; ok {
 		if meaning, ok := planetMap[house]; ok {
 			return meaning
 		}
 	}
 
-	// Fallback: template assembly
 	pd, ok := planetDescriptions[planet]
 	if !ok {
 		pd = strings.ToLower(planet)
@@ -253,7 +272,6 @@ func InterpretAspect(planet1, planet2, aspect string, orb float64) string {
 		ad = fmt.Sprintf("%s aspect", aspect)
 	}
 
-	// Look up pair dynamics (order-independent)
 	key1 := planet1 + "," + planet2
 	key2 := planet2 + "," + planet1
 	dynamics, ok := pairDynamics[key1]
@@ -279,9 +297,7 @@ func InterpretPattern(name string, planets []string) string {
 	return fmt.Sprintf("%s involving %s: %s.", name, planetList, pd)
 }
 
-// InterpretStarConjunction returns a natural-language description of a fixed star
-// conjunct a planet or point, including the star's traditional meaning and the
-// significance of the planet it touches.
+// InterpretStarConjunction returns a natural-language description of a fixed star conjunct a planet.
 func InterpretStarConjunction(sc StarConjunction) string {
 	pd, ok := planetDescriptions[sc.Planet]
 	if !ok {
@@ -297,8 +313,7 @@ func InterpretStarConjunction(sc StarConjunction) string {
 	)
 }
 
-// InterpretChart produces a full chart interpretation from planetary positions,
-// house placements, aspects, and patterns.
+// InterpretChart produces a full chart interpretation.
 func InterpretChart(
 	name string,
 	planets map[string]float64,
@@ -315,26 +330,22 @@ func InterpretChart(
 		Patterns:     make([]string, 0),
 	}
 
-	// Planet-in-sign interpretations
 	for planet, lon := range planets {
 		sign := SignForLongitude(lon)
 		report.PlanetSigns = append(report.PlanetSigns,
 			InterpretPlanetInSign(planet, sign))
 	}
 
-	// Planet-in-house interpretations
 	for planet, house := range houses {
 		report.PlanetHouses = append(report.PlanetHouses,
 			InterpretPlanetInHouse(planet, house))
 	}
 
-	// Aspect interpretations
 	for _, a := range aspects {
 		report.Aspects = append(report.Aspects,
 			InterpretAspect(a.Planet1, a.Planet2, a.Aspect, a.Orb))
 	}
 
-	// Pattern interpretations
 	for _, p := range patterns {
 		report.Patterns = append(report.Patterns,
 			InterpretPattern(p.Name, p.Planets))

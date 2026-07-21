@@ -30,7 +30,7 @@ func TestWesternFromBase_KnownChart(t *testing.T) {
 		t.Fatalf("ComputeBaseChart failed: %v", err)
 	}
 
-	report := WesternFromBase(bc, 5.0)
+	report := WesternFromBase(bc, 5.0, false)
 
 	if report == nil {
 		t.Fatal("WesternFromBase returned nil")
@@ -63,7 +63,7 @@ func TestWesternFromBase_IncludesOuterPlanets(t *testing.T) {
 		t.Fatalf("ComputeBaseChart failed: %v", err)
 	}
 
-	report := WesternFromBase(bc, 5.0)
+	report := WesternFromBase(bc, 5.0, false)
 
 	// Verify outer planets appear in PlanetSigns
 	outerPlanets := map[string]bool{"Uranus": false, "Neptune": false, "Pluto": false}
@@ -89,7 +89,7 @@ func TestWesternFromBase_EmptyName(t *testing.T) {
 		t.Fatalf("ComputeBaseChart failed: %v", err)
 	}
 
-	report := WesternFromBase(bc, 5.0)
+	report := WesternFromBase(bc, 5.0, false)
 	if report == nil {
 		t.Fatal("WesternFromBase returned nil for empty name")
 	}
@@ -106,8 +106,8 @@ func TestWesternFromBase_CustomOrb(t *testing.T) {
 		t.Fatalf("ComputeBaseChart failed: %v", err)
 	}
 
-	tight := WesternFromBase(bc, 1.0)
-	wide := WesternFromBase(bc, 10.0)
+	tight := WesternFromBase(bc, 1.0, false)
+	wide := WesternFromBase(bc, 10.0, false)
 
 	if tight == nil || wide == nil {
 		t.Fatal("WesternFromBase returned nil")
@@ -126,7 +126,7 @@ func TestWesternFromBase_JSON(t *testing.T) {
 		t.Fatalf("ComputeBaseChart failed: %v", err)
 	}
 
-	report := WesternFromBase(bc, 5.0)
+	report := WesternFromBase(bc, 5.0, false)
 	data, err := report.JSON()
 	if err != nil {
 		t.Fatalf("JSON() failed: %v", err)
@@ -207,7 +207,7 @@ func TestWesternFromBase_HasMidpoints(t *testing.T) {
 		t.Fatalf("ComputeBaseChart failed: %v", err)
 	}
 
-	report := WesternFromBase(bc, 5.0)
+	report := WesternFromBase(bc, 5.0, false)
 	if len(report.Midpoints) == 0 {
 		t.Error("expected non-empty Midpoints in WesternFromBase output")
 	}
@@ -262,7 +262,7 @@ func TestWesternFromBase_HasElementBalance(t *testing.T) {
 		t.Fatalf("ComputeBaseChart failed: %v", err)
 	}
 
-	report := WesternFromBase(bc, 5.0)
+	report := WesternFromBase(bc, 5.0, false)
 	if len(report.ElementBalance) == 0 {
 		t.Error("expected non-empty ElementBalance")
 	}
@@ -308,7 +308,7 @@ func TestWesternFromBase_HasHemisphereEmphasis(t *testing.T) {
 		t.Fatalf("ComputeBaseChart failed: %v", err)
 	}
 
-	report := WesternFromBase(bc, 5.0)
+	report := WesternFromBase(bc, 5.0, false)
 	if report.Hemisphere == nil {
 		t.Fatal("expected non-nil Hemisphere")
 	}
@@ -388,7 +388,7 @@ func TestWesternFromBase_HasRulershipChains(t *testing.T) {
 		t.Fatalf("ComputeBaseChart failed: %v", err)
 	}
 
-	report := WesternFromBase(bc, 5.0)
+	report := WesternFromBase(bc, 5.0, false)
 	if len(report.RulershipChains) == 0 {
 		t.Error("expected non-empty RulershipChains")
 	}

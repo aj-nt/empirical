@@ -38,6 +38,38 @@ func SignRuler(sign string) string {
 	return ""
 }
 
+// SignRulerTraditional returns the traditional (pre-modern) ruler of a zodiac sign.
+// Differs from SignRuler for Scorpio (Mars), Aquarius (Saturn), and Pisces (Jupiter).
+func SignRulerTraditional(sign string) string {
+	switch sign {
+	case "Aries":
+		return "Mars"
+	case "Taurus":
+		return "Venus"
+	case "Gemini":
+		return "Mercury"
+	case "Cancer":
+		return "Moon"
+	case "Leo":
+		return "Sun"
+	case "Virgo":
+		return "Mercury"
+	case "Libra":
+		return "Venus"
+	case "Scorpio":
+		return "Mars"
+	case "Sagittarius":
+		return "Jupiter"
+	case "Capricorn":
+		return "Saturn"
+	case "Aquarius":
+		return "Saturn"
+	case "Pisces":
+		return "Jupiter"
+	}
+	return ""
+}
+
 // ComputeRulershipChains traces the house rulership chain for each house.
 // For each house: cusp sign → ruler planet → house ruler is in → that house's
 // cusp sign → ... until a loop is detected. Returns map[houseNumber]chain.

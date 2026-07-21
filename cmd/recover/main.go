@@ -62,7 +62,7 @@ func main() {
 				report := dignity.KoinéFromBase(bc, orbDeg)
 				return dignity.RenderKoinéNatal(report)
 			case "western":
-				report := dignity.WesternFromBase(bc, orbDeg)
+				report := dignity.WesternFromBase(bc, orbDeg, false)
 				return dignity.RenderWesternNatal(report)
 			case "vedic":
 				report := dignity.VedicFromBase(bc)
@@ -699,6 +699,58 @@ func main() {
 		default:
 			fmt.Fprintf(os.Stderr, "unknown batch subcommand: %s (use transits or synastry)\n", subCmd)
 			os.Exit(1)
+		}
+		return
+	}
+
+	// ── western subcommand ──────────────────────────────────────────
+	if len(os.Args) >= 2 && os.Args[1] == "western" {
+		fs := flag.NewFlagSet("western", flag.ExitOnError)
+		jsonOut := fs.Bool("json", false, "output as JSON")
+		orb := fs.Float64("orb", 5.0, "aspect orb in degrees")
+		reading := fs.Bool("reading", false, "include reading-optimized fields")
+		fs.Parse(os.Args[2:])
+		args := fs.Args()
+
+		if len(args) < 9 {
+			fmt.Fprintf(os.Stderr, "Usage: empirical western [--json] [--orb 5] [--reading] NAME Y M D H MIN TZ LAT LNG\n")
+			fmt.Fprintf(os.Stderr, "Example: empirical western --json --reading AJ 1969 2 15 23 10 -8 47.038 -122.901\n")
+			os.Exit(1)
+		}
+
+		name := args[0]
+		year, _ := strconv.Atoi(args[1])
+		month, _ := strconv.Atoi(args[2])
+		day, _ := strconv.Atoi(args[3])
+		hour, _ := strconv.Atoi(args[4])
+		minute, _ := strconv.Atoi(args[5])
+		tzOff, _ := strconv.ParseFloat(args[6], 64)
+		lat, _ := strconv.ParseFloat(args[7], 64)
+		lng, _ := strconv.ParseFloat(args[8], 64)
+
+		initEphe()
+		bd := dignity.BirthData{Name: name, Year: year, Month: month, Day: day, Hour: hour, Minute: minute, TZOffset: tzOff, Lat: lat, Lng: lng}
+		bc, err := dignity.ComputeBaseChart(bd)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Failed to compute base chart: %v\n", err)
+			os.Exit(1)
+		}
+		report := dignity.WesternFromBase(bc, *orb, *reading)
+
+		if *jsonOut {
+			js, err := json.Marshal(report)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "JSON error: %v\n", err)
+				os.Exit(1)
+			}
+			fmt.Println(string(js))
+		} else {
+			html, err := dignity.RenderWesternNatal(report)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Render error: %v\n", err)
+				os.Exit(1)
+			}
+			fmt.Println(html)
 		}
 		return
 	}
