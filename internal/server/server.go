@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/aj-nt/empirical/internal/comparison"
 	"github.com/aj-nt/empirical/internal/dignity"
 )
 
@@ -655,6 +656,22 @@ func NewMux(cfg ServerConfig) *http.ServeMux {
 			system = "koine"
 		}
 		return cfg.Interpretation(req.ToBirthData(), req.HouseSystem, defaultOrb(req.Orb, OrbStandard), system)
+	}))
+
+	// POST /api/compare — cross-system comparison.
+	// Body: {name, year, month, day, hour, minute, tz_offset, lat, lng, orb}
+	// Runs Koiné, Western, and Vedic transforms and diffs the outputs.
+	mux.HandleFunc("/api/compare", handleJSON(func(req ChartRequest) ([]byte, error) {
+		if cfg.Compute == nil {
+			return nil, ErrNotAvailable
+		}
+		// Compute the base chart, then compare systems
+		bc, err := dignity.ComputeBaseChart(req.ToBirthData())
+		if err != nil {
+			return nil, err
+		}
+		report := comparison.CompareSystems(bc, defaultOrb(req.Orb, OrbWide))
+		return report.JSON()
 	}))
 
 	mux.HandleFunc("/api/", func(w http.ResponseWriter, r *http.Request) {
