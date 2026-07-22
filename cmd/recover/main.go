@@ -348,12 +348,13 @@ func main() {
 		fs := flag.NewFlagSet("transit", flag.ExitOnError)
 		jsonOut := fs.Bool("json", false, "output as JSON")
 		orbDeg := fs.Float64("orb", 3.0, "max orb in degrees")
+		sidereal := fs.Bool("sidereal", false, "use sidereal (Lahiri) positions")
 		fs.Parse(os.Args[2:])
 		args := fs.Args()
 
 		if len(args) < 11 {
-			fmt.Fprintf(os.Stderr, "Usage: empirical transit [--json] [--orb 3] NAME Y M D H MIN TZ LAT LNG START_DATE END_DATE\n")
-			fmt.Fprintf(os.Stderr, "Example: empirical transit \"AJ\" 1969 2 15 23 10 -8 47.038 -122.901 2026-06-09 2026-06-23\n")
+			fmt.Fprintf(os.Stderr, "Usage: empirical transit [--json] [--orb 3] [--sidereal] NAME Y M D H MIN TZ LAT LNG START_DATE END_DATE\n")
+			fmt.Fprintf(os.Stderr, "Example: empirical transit --sidereal \"AJ\" 1969 2 15 23 10 -8 47.038 -122.901 2026-07-22 2026-07-22\n")
 			os.Exit(1)
 		}
 
@@ -369,7 +370,7 @@ func main() {
 		startDate := args[9]
 		endDate := args[10]
 
-		result, err := computeTransits(name, year, month, day, hour, minute, tzOff, lat, lng, startDate, endDate, *orbDeg, false, "")
+		result, err := computeTransits(name, year, month, day, hour, minute, tzOff, lat, lng, startDate, endDate, *orbDeg, *sidereal, "")
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Transit error: %v\n", err)
 			os.Exit(1)
