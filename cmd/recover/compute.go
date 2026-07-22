@@ -1007,3 +1007,38 @@ func buildSpeeds(tropical map[string]dignity.Position) map[string]float64 {
 	}
 	return m
 }
+
+// formatVedicNatal formats a VedicNatalReport as human-readable text.
+func formatVedicNatal(r *dignity.VedicNatalReport) string {
+	var b strings.Builder
+	b.WriteString(fmt.Sprintf("Vedic Natal Horoscope — %s\n", r.Name))
+	b.WriteString(fmt.Sprintf("Ayanamsa: %.2f° (Lahiri)\n\n", r.Ayanamsa))
+
+	asc := r.Ascendant
+	b.WriteString(fmt.Sprintf("Lagna: %s · %s · Pada %d · Ruler: %s\n\n",
+		asc.SiderealSign, asc.Nakshatra, asc.NakshatraPada, asc.NakshatraRuler))
+
+	b.WriteString(fmt.Sprintf("%-10s %-12s %-22s %-6s %-10s %-4s %-16s %s\n",
+		"Planet", "Sign", "Nakshatra", "Pada", "Ruler", "H", "Dignity", "Conv"))
+	b.WriteString(strings.Repeat("-", 110) + "\n")
+	for _, p := range r.Planets {
+		b.WriteString(fmt.Sprintf("%-10s %-12s %-22s %-6d %-10s %-4d %-16s %s\n",
+			p.Planet, p.SiderealSign, p.Nakshatra, p.NakshatraPada,
+			p.NakshatraRuler, p.House, p.Dignity, p.Convergence))
+	}
+
+	b.WriteString(fmt.Sprintf("\nSignal: %d/%d planets agree with Western dignity\n\n",
+		r.SignalCount, r.TotalPlanets))
+
+	b.WriteString("Vimshottari Dasha:\n")
+	for _, d := range r.Dasha {
+		marker := ""
+		if d.Start <= "2026-07-22" && "2026-07-22" < d.End {
+			marker = " ← CURRENT"
+		}
+		b.WriteString(fmt.Sprintf("  %-10s %s → %s  (%.1fy)%s\n",
+			d.Planet, d.Start, d.End, d.Years, marker))
+	}
+
+	return b.String()
+}
