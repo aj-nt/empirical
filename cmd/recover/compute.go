@@ -1018,19 +1018,53 @@ func formatVedicNatal(r *dignity.VedicNatalReport) string {
 	b.WriteString(fmt.Sprintf("Lagna: %s · %s · Pada %d · Ruler: %s\n\n",
 		asc.SiderealSign, asc.Nakshatra, asc.NakshatraPada, asc.NakshatraRuler))
 
-	b.WriteString(fmt.Sprintf("%-10s %-12s %-22s %-6s %-10s %-4s %-16s %s\n",
-		"Planet", "Sign", "Nakshatra", "Pada", "Ruler", "H", "Dignity", "Conv"))
-	b.WriteString(strings.Repeat("-", 110) + "\n")
+	// House lords
+	b.WriteString("House Lords:\n")
+	for h := 1; h <= 12; h++ {
+		if lord, ok := r.HouseLords[h]; ok {
+			b.WriteString(fmt.Sprintf("  %2d: %-10s", h, lord))
+			if h%4 == 0 {
+				b.WriteString("\n")
+			}
+		}
+	}
+	if len(r.HouseLords)%4 != 0 {
+		b.WriteString("\n")
+	}
+	b.WriteString("\n")
+
+	// Planet table
+	b.WriteString(fmt.Sprintf("%-10s %-12s %-22s %-5s %-8s %-3s %-3s %-4s %-16s %s\n",
+		"Planet", "Sign", "Nakshatra", "Pada", "NkLord", "H", "NL", "R/C", "Dignity", "Conv"))
+	b.WriteString(strings.Repeat("-", 120) + "\n")
 	for _, p := range r.Planets {
-		b.WriteString(fmt.Sprintf("%-10s %-12s %-22s %-6d %-10s %-4d %-16s %s\n",
+		rc := ""
+		if p.Retrograde {
+			rc += "R"
+		}
+		if p.Combust {
+			rc += "C"
+		}
+		if rc == "" {
+			rc = "—"
+		}
+		nl := ""
+		if p.NakshatraLordHouse > 0 {
+			nl = fmt.Sprintf("%d", p.NakshatraLordHouse)
+		} else {
+			nl = "—"
+		}
+		b.WriteString(fmt.Sprintf("%-10s %-12s %-22s %-5d %-8s %-3d %-3s %-4s %-16s %s\n",
 			p.Planet, p.SiderealSign, p.Nakshatra, p.NakshatraPada,
-			p.NakshatraRuler, p.House, p.Dignity, p.Convergence))
+			p.NakshatraRuler, p.House, nl, rc, p.Dignity, p.Convergence))
 	}
 
-	b.WriteString(fmt.Sprintf("\nSignal: %d/%d planets agree with Western dignity\n\n",
+	b.WriteString(fmt.Sprintf("\nR = Retrograde  C = Combust  NL = Nakshatra Lord House\n"))
+	b.WriteString(fmt.Sprintf("Signal: %d/%d planets agree with Western dignity\n\n",
 		r.SignalCount, r.TotalPlanets))
 
-	b.WriteString("Vimshottari Dasha:\n")
+	// Mahadasha
+	b.WriteString("Vimshottari Mahadasha:\n")
 	for _, d := range r.Dasha {
 		marker := ""
 		if d.Start <= "2026-07-22" && "2026-07-22" < d.End {
@@ -1038,6 +1072,19 @@ func formatVedicNatal(r *dignity.VedicNatalReport) string {
 		}
 		b.WriteString(fmt.Sprintf("  %-10s %s → %s  (%.1fy)%s\n",
 			d.Planet, d.Start, d.End, d.Years, marker))
+	}
+
+	// Antardasha
+	if len(r.Antardasha) > 0 {
+		b.WriteString("\nCurrent Antardasha (Bhukti):\n")
+		for _, d := range r.Antardasha {
+			marker := ""
+			if d.Start <= "2026-07-22" && "2026-07-22" < d.End {
+				marker = " ← CURRENT"
+			}
+			b.WriteString(fmt.Sprintf("  %-10s %s → %s  (%.2fy)%s\n",
+				d.Planet, d.Start, d.End, d.Years, marker))
+		}
 	}
 
 	return b.String()
