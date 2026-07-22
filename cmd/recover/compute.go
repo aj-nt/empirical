@@ -327,14 +327,20 @@ func computeDirections(name string, bc *dignity.BaseChart, lat, lng, age float64
 // system: SystemKoiné (Hellenistic, default) or SystemWestern (modern).
 func computeInterpretation(name string, bc *dignity.BaseChart, lat, lng float64, houseSystem string, orbDeg float64, system string, cacheDir string) ([]byte, error) {
 	bc.Name = name
-	var report *dignity.ChartInterpretation
 	switch system {
 	case string(dignity.SystemWestern):
-		report = dignity.WesternFromBase(bc, orbDeg, false)
+		report := dignity.WesternFromBase(bc, orbDeg, false)
+		return report.JSON()
+	case "vedic":
+		report := dignity.ComputeVedicNatalReport(bc)
+		return report.JSON()
+	case "bazi":
+		report := dignity.BaZiFromBase(bc)
+		return json.Marshal(report)
 	default:
-		report = dignity.KoinéFromBase(bc, orbDeg)
+		report := dignity.KoinéFromBase(bc, orbDeg)
+		return report.JSON()
 	}
-	return report.JSON()
 }
 
 // computeAstroCartography computes planetary lines for a world map.
