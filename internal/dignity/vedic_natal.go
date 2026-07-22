@@ -55,6 +55,9 @@ type VedicNatalReport struct {
 	Ascendant    VedicNatalAscendant `json:"ascendant"`
 	HouseLords   map[int]string      `json:"house_lords"` // house number → ruling planet
 	Planets      []VedicNatalPlanet  `json:"planets"`
+	Aspects      []VedicAspect       `json:"aspects"`      // Vedic drishti aspects
+	Yogas        []VedicYoga         `json:"yogas"`        // detected yogas
+	Vargas       map[string][]VargaPosition `json:"vargas"` // D3, D7, D9, D10
 	Dasha        []VedicNatalDasha   `json:"dasha"`
 	Antardasha   []VedicNatalDasha   `json:"antardasha"`  // sub-periods of current mahadasha
 	SignalCount  int                 `json:"signal_count"`
@@ -217,6 +220,30 @@ func ComputeVedicNatalReport(bc *BaseChart) *VedicNatalReport {
 			WesternDignity:    pd.westDign,
 			Convergence:       pd.conv,
 		})
+	}
+
+	// ── Vedic Aspects (Drishti) ────────────────────────────────────────
+	report.Aspects = ComputeVedicAspects(planetHouse)
+
+	// ── Yogas ───────────────────────────────────────────────────────────
+	planetSigns := make(map[string]string, len(classicalOrder))
+	dignities := make(map[string]string, len(classicalOrder))
+	for _, p := range report.Planets {
+		planetSigns[p.Planet] = p.SiderealSign
+		dignities[p.Planet] = p.Dignity
+	}
+	report.Yogas = ComputeVedicYogas(planetSigns, planetHouse, dignities, report.HouseLords, report.Aspects)
+
+	// ── Varga Charts ───────────────────────────────────────────────────
+	siderealLons := make(map[string]float64, len(classicalOrder))
+	for _, p := range report.Planets {
+		siderealLons[p.Planet] = p.SiderealLon
+	}
+	report.Vargas = map[string][]VargaPosition{
+		"D3":  ComputeVargaChart("D3", siderealLons),
+		"D7":  ComputeVargaChart("D7", siderealLons),
+		"D9":  ComputeVargaChart("D9", siderealLons),
+		"D10": ComputeVargaChart("D10", siderealLons),
 	}
 
 	// ── Dasha ──────────────────────────────────────────────────────────

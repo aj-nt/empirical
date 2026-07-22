@@ -1063,6 +1063,45 @@ func formatVedicNatal(r *dignity.VedicNatalReport) string {
 	b.WriteString(fmt.Sprintf("Signal: %d/%d planets agree with Western dignity\n\n",
 		r.SignalCount, r.TotalPlanets))
 
+	// Vedic Aspects (Drishti)
+	if len(r.Aspects) > 0 {
+		b.WriteString("Vedic Aspects (Drishti):\n")
+		for _, a := range r.Aspects {
+			b.WriteString(fmt.Sprintf("  %-10s (%dH) %3s → %-10s (%dH)\n",
+				a.FromPlanet, a.FromHouse, a.Type, a.ToPlanet, a.ToHouse))
+		}
+		b.WriteString("\n")
+	}
+
+	// Yogas
+	if len(r.Yogas) > 0 {
+		b.WriteString("Yogas:\n")
+		for _, y := range r.Yogas {
+			b.WriteString(fmt.Sprintf("  %-20s [%s] %s\n", y.Name, y.Category, y.Description))
+		}
+		b.WriteString("\n")
+	}
+
+	// Varga Charts
+	if len(r.Vargas) > 0 {
+		vargaOrder := []string{"D3", "D7", "D9", "D10"}
+		vargaNames := map[string]string{
+			"D3": "Drekkana (Siblings)", "D7": "Saptamsha (Children)",
+			"D9": "Navamsha (Marriage)", "D10": "Dashamsha (Career)",
+		}
+		for _, v := range vargaOrder {
+			positions, ok := r.Vargas[v]
+			if !ok || len(positions) == 0 {
+				continue
+			}
+			b.WriteString(fmt.Sprintf("%s:\n", vargaNames[v]))
+			for _, p := range positions {
+				b.WriteString(fmt.Sprintf("  %-10s %s\n", p.Planet, p.Sign))
+			}
+			b.WriteString("\n")
+		}
+	}
+
 	// Mahadasha
 	b.WriteString("Vimshottari Mahadasha:\n")
 	for _, d := range r.Dasha {
