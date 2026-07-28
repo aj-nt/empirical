@@ -230,6 +230,10 @@ func main() {
 			return computeImport(data)
 		}
 
+		report := func(bd dignity.BirthData, templateName, customTemplate, format string) ([]byte, error) {
+			return computeReport(bd, templateName, customTemplate, format)
+		}
+
 		interpretation := func(bd dignity.BirthData, houseSystem string, orbDeg float64, system string) ([]byte, error) {
 			cd := computePositions(bd.Year, bd.Month, bd.Day, bd.Hour, bd.Minute, bd.TZOffset, bd.Lat, bd.Lng, cacheDir)
 			return computeInterpretation(bd.Name, cd, bd.Lat, bd.Lng, houseSystem, orbDeg, system, cacheDir)
@@ -362,6 +366,7 @@ func main() {
 			ZodiacalReleasing:     zodiacalReleasing,
 			Horary:                horary,
 			Import:                importCharts,
+			Report:                report,
 			Interpretation:        interpretation,
 			AstroCartography:      astroCartography,
 			AstroCartographyCompare: astroCartographyCompare,

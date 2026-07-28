@@ -94,6 +94,9 @@ type HoraryFunc func(bd dignity.BirthData, question string) ([]byte, error)
 // ImportFunc imports charts from external formats.
 type ImportFunc func(data string) ([]byte, error)
 
+// ReportFunc generates a templated report.
+type ReportFunc func(bd dignity.BirthData, templateName, customTemplate, format string) ([]byte, error)
+
 // InterpretationFunc produces natural-language chart interpretation.
 // system: SystemKoiné (Hellenistic, default) or SystemWestern (modern).
 type InterpretationFunc func(bd dignity.BirthData, houseSystem string, orbDeg float64, system string) ([]byte, error)
@@ -199,6 +202,7 @@ type ServerConfig struct {
 	ZodiacalReleasing     ZodiacalReleasingFunc
 	Horary                HoraryFunc
 	Import                ImportFunc
+	Report                ReportFunc
 	Interpretation        InterpretationFunc
 	AstroCartography      AstroCartographyFunc
 	AstroCartographyCompare AstroCartographyCompareFunc
@@ -594,6 +598,13 @@ func NewMux(cfg ServerConfig) *http.ServeMux {
 		return cfg.Import(req.Data)
 	}))
 
+	mux.HandleFunc("/api/report", handleJSON(func(req ReportRequest) ([]byte, error) {
+		if cfg.Report == nil {
+			return nil, ErrNotAvailable
+		}
+		return cfg.Report(req.ToBirthData(), req.TemplateName, req.CustomTemplate, req.Format)
+	}))
+
 	mux.HandleFunc("/api/interpretation", handleJSON(func(req ChartRequest) ([]byte, error) {
 		if cfg.Interpretation == nil {
 			return nil, ErrNotAvailable
@@ -961,6 +972,14 @@ type HoraryRequest struct {
 // ImportRequest is the request for /api/import.
 type ImportRequest struct {
 	Data string `json:"data"`
+}
+
+// ReportRequest is the request for /api/report.
+type ReportRequest struct {
+	ChartRequest
+	TemplateName   string `json:"template_name"`
+	CustomTemplate string `json:"custom_template,omitempty"`
+	Format         string `json:"format"`
 }
 
 // AstroCartographyRequest is the request for /api/astrocartography.

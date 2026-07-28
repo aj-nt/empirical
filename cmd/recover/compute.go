@@ -464,6 +464,23 @@ func computeImport(data string) ([]byte, error) {
 	return json.Marshal(result)
 }
 
+// computeReport generates a templated report.
+func computeReport(bd dignity.BirthData, templateName, customTemplate, format string) ([]byte, error) {
+	bc := computePositions(bd.Year, bd.Month, bd.Day, bd.Hour, bd.Minute, bd.TZOffset, bd.Lat, bd.Lng, "")
+	data := dignity.BuildReportData(bc)
+
+	req := dignity.ReportRequest{
+		TemplateName:   templateName,
+		CustomTemplate: customTemplate,
+		Format:         format,
+	}
+	result, err := dignity.GenerateReport(req, data)
+	if err != nil {
+		return nil, err
+	}
+	return result.JSON()
+}
+
 // computeInterpretation produces a natural-language chart interpretation.
 // system: SystemKoiné (Hellenistic, default) or SystemWestern (modern).
 func computeInterpretation(name string, bc *dignity.BaseChart, lat, lng float64, houseSystem string, orbDeg float64, system string, cacheDir string) ([]byte, error) {
