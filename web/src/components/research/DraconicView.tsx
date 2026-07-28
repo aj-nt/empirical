@@ -67,7 +67,7 @@ export function DraconicView({ data }: { data: BirthData }) {
           </thead>
           <tbody>
             {Object.entries(result.planets).map(([planet, lon]) => {
-              const tropicalSign = lonToSign(lon);
+              const tropicalSign = lonToSign((lon + result.offset) % 360);
               const shift = result.sign_shifts.find(s => s.planet === planet);
               const draconicSign = shift ? shift.draconic_sign : tropicalSign;
               const shifted = shiftedPlanets.has(planet);
