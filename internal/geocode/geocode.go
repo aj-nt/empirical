@@ -4,6 +4,7 @@ import (
 	_ "embed"
 	"encoding/json"
 	"math"
+	"strings"
 )
 
 // City represents a named location with country code.
@@ -26,6 +27,27 @@ func LoadCities() ([]City, error) {
 	return cities, nil
 }
 
+// SearchCities returns cities whose name contains the query (case-insensitive),
+// limited to maxResults. Results are sorted by population (largest cities first
+// in the embedded data).
+func SearchCities(query string, maxResults int) ([]City, error) {
+	cities, err := LoadCities()
+	if err != nil {
+		return nil, err
+	}
+	q := strings.ToLower(query)
+	var results []City
+	for _, c := range cities {
+		if strings.Contains(strings.ToLower(c.Name), q) {
+			results = append(results, c)
+			if len(results) >= maxResults {
+				break
+			}
+		}
+	}
+	return results, nil
+}
+
 // NearestCity finds the nearest city to (lat, lon) using Haversine distance.
 // Returns false if the city list is empty.
 func NearestCity(lat, lon float64, cities []City) (*City, bool) {
@@ -42,6 +64,13 @@ func NearestCity(lat, lon float64, cities []City) (*City, bool) {
 		}
 	}
 	return best, true
+}
+
+// EstimateTZOffset returns an approximate UTC offset in hours for a given longitude.
+// This is a rough heuristic: each 15° of longitude ≈ 1 hour, rounded to nearest
+// whole hour. Does not account for DST or political boundaries.
+func EstimateTZOffset(lon float64) float64 {
+	return math.Round(lon/15.0*2) / 2 // round to nearest 0.5 hour
 }
 
 // haversine returns the great-circle distance in kilometers between two points.
