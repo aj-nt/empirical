@@ -49,6 +49,10 @@ func ComputeTransitChart(natal *BaseChart, year, month, day, hour, minute, secon
 	tropical := make(map[string]Position)
 	sidereal := make(map[string]Position)
 	for _, p := range AllPlanets {
+		// Skip synthetic bodies (SouthNode is NN+180°, computed below)
+		if p.ID < 0 {
+			continue
+		}
 		lon, lat, _, speed := swe.CalcUT(jd, p.ID)
 		tropical[p.Name] = Position{Lon: lon, Lat: lat, Speed: speed}
 		sidLon := lon - ayan
@@ -64,6 +68,14 @@ func ComputeTransitChart(natal *BaseChart, year, month, day, hour, minute, secon
 	if snLon >= 360 {
 		snLon -= 360
 	}
+
+	// SouthNode as synthetic body in transit maps
+	snSidLon := snLon - ayan
+	if snSidLon < 0 {
+		snSidLon += 360
+	}
+	tropical["SouthNode"] = Position{Lon: snLon, Lat: 0, Speed: 0, Dist: 0}
+	sidereal["SouthNode"] = Position{Lon: snSidLon, Lat: 0, Speed: 0, Dist: 0}
 
 	// Transit houses
 	houses := make(map[string][]float64)

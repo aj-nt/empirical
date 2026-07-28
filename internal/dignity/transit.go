@@ -87,10 +87,13 @@ type TransitHit struct {
 }
 
 // planetSpec maps a planet name to its SWE ID for transit scanning.
+// A sentinel ID of -1 means the position is derived (e.g., SouthNode = NN + 180°).
 type planetSpec struct {
 	Name string
 	ID   int
 }
+
+const sentinelSouthNode = -1
 
 var (
 	defaultTransitPlanetsOnce sync.Once
@@ -112,12 +115,18 @@ func DefaultTransitPlanets() []planetSpec {
 			{"Uranus", 7},
 			{"Neptune", 8},
 			{"Pluto", 9},
+			{"Node", swe.MEAN_NODE},
+			{"TrueNode", swe.TRUE_NODE},
+			{"SouthNode", sentinelSouthNode},
 			{"Ceres", swe.CERES},
 			{"Pallas", swe.PALLAS},
 			{"Juno", swe.JUNO},
 			{"Vesta", swe.VESTA},
 			{"Lilith", swe.MEAN_APOG},
 			{"Chiron", swe.CHIRON},
+			{"Eris", swe.ERIS},
+			{"Makemake", swe.MAKEMAKE},
+			{"Gonggong", swe.GONGGONG},
 			{"Cupido", swe.CUPIDO},
 			{"Hades", swe.HADES},
 			{"Zeus", swe.ZEUS},
@@ -167,7 +176,17 @@ func ScanTransits(
 		y, m, d := current.Year(), int(current.Month()), current.Day()
 
 		for _, tp := range transitPlanets {
-			tLon, _, _, _ := compute(y, m, d, 12.0, tp.ID)
+			var tLon float64
+			if tp.ID == sentinelSouthNode {
+				// SouthNode is always NN + 180°
+				nnLon, _, _, _ := compute(y, m, d, 12.0, swe.MEAN_NODE)
+				tLon = nnLon + 180
+				if tLon >= 360 {
+					tLon -= 360
+				}
+			} else {
+				tLon, _, _, _ = compute(y, m, d, 12.0, tp.ID)
+			}
 			for _, np := range natalPlanets {
 				nLon, ok := natalLongs[np]
 				if !ok {
@@ -278,7 +297,16 @@ func ScanTransitToTransit(
 		// Compute all transit positions for this day
 		positions := make(map[string]float64)
 		for _, tp := range transitPlanets {
-			lon, _, _, _ := compute(y, m, d, 12.0, tp.ID)
+			var lon float64
+			if tp.ID == sentinelSouthNode {
+				nnLon, _, _, _ := compute(y, m, d, 12.0, swe.MEAN_NODE)
+				lon = nnLon + 180
+				if lon >= 360 {
+					lon -= 360
+				}
+			} else {
+				lon, _, _, _ = compute(y, m, d, 12.0, tp.ID)
+			}
 			positions[tp.Name] = lon
 		}
 
@@ -460,6 +488,10 @@ func FindTransitPeriods(
 		if !ok {
 			return nil, fmt.Errorf("unknown transit planet: %s", name)
 		}
+		// SouthNode uses MEAN_NODE for the ephemeris cache (position is NN+180°)
+		if id == sentinelSouthNode {
+			id = swe.MEAN_NODE
+		}
 		planetIDs = append(planetIDs, id)
 	}
 
@@ -470,6 +502,13 @@ func FindTransitPeriods(
 	var allPeriods []TransitPeriod
 	for _, name := range transitPlanets {
 		tID := nameToID[name]
+		// SouthNode uses MEAN_NODE cache + 180° offset
+		cacheID := tID
+		lonOffset := 0.0
+		if tID == sentinelSouthNode {
+			cacheID = swe.MEAN_NODE
+			lonOffset = 180.0
+		}
 		for _, np := range natalPlanets {
 			nLon, ok := natalLongs[np]
 			if !ok {
@@ -477,12 +516,13 @@ func FindTransitPeriods(
 			}
 			for _, asp := range aspects {
 				periods := findAspectCrossings(
-					cache, tID, name,
+					cache, cacheID, name,
 					nLon, np,
 					asp.Angle, asp.Name,
 					orbDeg,
 					startJD, endJD,
 					coarseStepDays,
+					lonOffset,
 				)
 				allPeriods = append(allPeriods, periods...)
 			}
@@ -502,6 +542,7 @@ func findAspectCrossings(
 	orbThreshold float64,
 	startJD, endJD float64,
 	coarseStepDays float64,
+	lonOffset float64,
 ) []TransitPeriod {
 
 	type crossing struct {
@@ -513,7 +554,10 @@ func findAspectCrossings(
 	prevInOrb := false
 
 	for jd := startJD; jd <= endJD; jd += coarseStepDays {
-		tLon := cache.getLon(transitID, jd)
+		tLon := cache.getLon(transitID, jd) + lonOffset
+		if tLon >= 360 {
+			tLon -= 360
+		}
 		dist := angleDist(tLon, natalLon)
 		orb := math.Abs(dist - aspectAngle)
 		inOrb := orb <= orbThreshold
@@ -537,7 +581,7 @@ func findAspectCrossings(
 		crossings[i].jd = refineCrossing(
 			cache, transitID, natalLon, aspectAngle, orbThreshold,
 			crossings[i].jd-coarseStepDays, crossings[i].jd+coarseStepDays,
-			crossings[i].kind,
+			crossings[i].kind, lonOffset,
 		)
 	}
 
@@ -560,20 +604,29 @@ func findAspectCrossings(
 		}
 
 		peakJD := findPeak(cache, transitID, natalLon, aspectAngle,
-			crossings[i].jd, crossings[egressIdx].jd)
+			crossings[i].jd, crossings[egressIdx].jd, lonOffset)
 
 		ingressJD := crossings[i].jd
 		egressJD := crossings[egressIdx].jd
 
-		tLonI := cache.getLon(transitID, ingressJD)
+		tLonI := cache.getLon(transitID, ingressJD) + lonOffset
+		if tLonI >= 360 {
+			tLonI -= 360
+		}
 		orbI := math.Abs(angleDist(tLonI, natalLon) - aspectAngle)
 		isRetroI := cache.getSpeed(transitID, ingressJD) < 0
 
-		tLonP := cache.getLon(transitID, peakJD)
+		tLonP := cache.getLon(transitID, peakJD) + lonOffset
+		if tLonP >= 360 {
+			tLonP -= 360
+		}
 		orbP := math.Abs(angleDist(tLonP, natalLon) - aspectAngle)
 		isRetroP := cache.getSpeed(transitID, peakJD) < 0
 
-		tLonE := cache.getLon(transitID, egressJD)
+		tLonE := cache.getLon(transitID, egressJD) + lonOffset
+		if tLonE >= 360 {
+			tLonE -= 360
+		}
 		orbE := math.Abs(angleDist(tLonE, natalLon) - aspectAngle)
 		isRetroE := cache.getSpeed(transitID, egressJD) < 0
 
@@ -599,10 +652,14 @@ func refineCrossing(
 	natalLon, aspectAngle, orbThreshold float64,
 	loJD, hiJD float64,
 	kind ContactType,
+	lonOffset float64,
 ) float64 {
 	for i := 0; i < 30; i++ {
 		mid := (loJD + hiJD) / 2
-		tLon := cache.getLon(transitID, mid)
+		tLon := cache.getLon(transitID, mid) + lonOffset
+		if tLon >= 360 {
+			tLon -= 360
+		}
 		dist := angleDist(tLon, natalLon)
 		orb := math.Abs(dist - aspectAngle)
 		inOrb := orb <= orbThreshold
@@ -624,7 +681,7 @@ func refineCrossing(
 	return (loJD + hiJD) / 2
 }
 
-func findPeak(cache *ephemCache, transitID int, natalLon, aspectAngle, loJD, hiJD float64) float64 {
+func findPeak(cache *ephemCache, transitID int, natalLon, aspectAngle, loJD, hiJD, lonOffset float64) float64 {
 	phi := (1 + math.Sqrt(5)) / 2
 	resphi := 2 - phi
 
@@ -633,8 +690,16 @@ func findPeak(cache *ephemCache, transitID int, natalLon, aspectAngle, loJD, hiJ
 	d := b - resphi*(b-a)
 
 	for i := 0; i < 30; i++ {
-		orbC := math.Abs(angleDist(cache.getLon(transitID, c), natalLon) - aspectAngle)
-		orbD := math.Abs(angleDist(cache.getLon(transitID, d), natalLon) - aspectAngle)
+		tLonC := cache.getLon(transitID, c) + lonOffset
+		if tLonC >= 360 {
+			tLonC -= 360
+		}
+		tLonD := cache.getLon(transitID, d) + lonOffset
+		if tLonD >= 360 {
+			tLonD -= 360
+		}
+		orbC := math.Abs(angleDist(tLonC, natalLon) - aspectAngle)
+		orbD := math.Abs(angleDist(tLonD, natalLon) - aspectAngle)
 
 		if orbC < orbD {
 			b = d
@@ -666,6 +731,9 @@ func FindStations(planetName string, startDate, endDate string, stepDays float64
 	found := false
 	for _, tp := range DefaultTransitPlanets() {
 		if tp.Name == planetName {
+			if tp.ID == sentinelSouthNode {
+				return nil, fmt.Errorf("SouthNode is a derived point (NN+180°) with no independent motion — no stations")
+			}
 			planetID = tp.ID
 			found = true
 			break

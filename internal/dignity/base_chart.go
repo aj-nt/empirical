@@ -68,6 +68,10 @@ func ComputeBaseChart(bd BirthData) (*BaseChart, error) {
 	tropical := make(map[string]Position)
 	sidereal := make(map[string]Position)
 	for _, p := range AllPlanets {
+		// Skip synthetic bodies (SouthNode is NN+180°, computed below)
+		if p.ID < 0 {
+			continue
+		}
 		lon, lat, dist, speed, err := swe.CalcUTErr(jd, p.ID)
 		if err != nil {
 			// Skip planets with missing/out-of-range ephemeris files.
@@ -88,6 +92,15 @@ func ComputeBaseChart(bd BirthData) (*BaseChart, error) {
 	if snLon >= 360 {
 		snLon -= 360
 	}
+
+	// South Node as a synthetic body (always opposite North Node).
+	// Added to the planet maps so it appears in natal output and transits.
+	snSidLon := snLon - ayan
+	if snSidLon < 0 {
+		snSidLon += 360
+	}
+	tropical["SouthNode"] = Position{Lon: snLon, Lat: 0, Speed: 0, Dist: 0}
+	sidereal["SouthNode"] = Position{Lon: snSidLon, Lat: 0, Speed: 0, Dist: 0}
 
 	// ── Houses (all systems) ────────────────────────────────────────────
 	houses := make(map[string][]float64)
