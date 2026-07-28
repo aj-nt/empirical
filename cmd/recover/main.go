@@ -222,6 +222,14 @@ func main() {
 			return computeZodiacalReleasing(bd, lotType, targetDate)
 		}
 
+		horary := func(bd dignity.BirthData, question string) ([]byte, error) {
+			return computeHorary(bd, question)
+		}
+
+		importCharts := func(data string) ([]byte, error) {
+			return computeImport(data)
+		}
+
 		interpretation := func(bd dignity.BirthData, houseSystem string, orbDeg float64, system string) ([]byte, error) {
 			cd := computePositions(bd.Year, bd.Month, bd.Day, bd.Hour, bd.Minute, bd.TZOffset, bd.Lat, bd.Lng, cacheDir)
 			return computeInterpretation(bd.Name, cd, bd.Lat, bd.Lng, houseSystem, orbDeg, system, cacheDir)
@@ -352,6 +360,8 @@ func main() {
 			Profection:            profection,
 			BiWheel:               biWheel,
 			ZodiacalReleasing:     zodiacalReleasing,
+			Horary:                horary,
+			Import:                importCharts,
 			Interpretation:        interpretation,
 			AstroCartography:      astroCartography,
 			AstroCartographyCompare: astroCartographyCompare,

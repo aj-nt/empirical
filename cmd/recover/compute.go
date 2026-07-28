@@ -425,12 +425,12 @@ func computeBiWheel(inner, outer dignity.BirthData, opts dignity.BiWheelOptions)
 
 // computeZodiacalReleasing computes zodiacal releasing periods.
 func computeZodiacalReleasing(bd dignity.BirthData, lotType, targetDate string) ([]byte, error) {
-	cd := computePositions(bd.Year, bd.Month, bd.Day, bd.Hour, bd.Minute, bd.TZOffset, bd.Lat, bd.Lng, "")
+	bc := computePositions(bd.Year, bd.Month, bd.Day, bd.Hour, bd.Minute, bd.TZOffset, bd.Lat, bd.Lng, "")
 	birth := time.Date(bd.Year, time.Month(bd.Month), bd.Day, bd.Hour, bd.Minute, 0, 0, time.UTC)
 
-	// Determine day/night chart: Sun above horizon = day
-	sunLon := cd.Tropical["Sun"].Lon
-	ascLon := cd.ASC
+	// Determine day/night
+	sunLon := bc.Tropical["Sun"].Lon
+	ascLon := bc.ASC
 	diff := sunLon - ascLon
 	if diff < 0 {
 		diff += 360
@@ -438,11 +438,30 @@ func computeZodiacalReleasing(bd dignity.BirthData, lotType, targetDate string) 
 	isDay := diff < 180
 
 	report := dignity.ComputeZodiacalReleasing(
-		bd.Name, birth, cd.ASC,
-		cd.Tropical["Sun"].Lon, cd.Tropical["Moon"].Lon,
+		bd.Name, birth, bc.ASC,
+		bc.Tropical["Sun"].Lon, bc.Tropical["Moon"].Lon,
 		isDay, lotType, targetDate,
 	)
 	return json.Marshal(report)
+}
+
+// computeHorary judges a horary question.
+func computeHorary(bd dignity.BirthData, question string) ([]byte, error) {
+	bc := computePositions(bd.Year, bd.Month, bd.Day, bd.Hour, bd.Minute, bd.TZOffset, bd.Lat, bd.Lng, "")
+	judgment, err := dignity.ComputeHoraryJudgment(bc, question)
+	if err != nil {
+		return nil, err
+	}
+	return judgment.JSON()
+}
+
+// computeImport imports charts from external formats.
+func computeImport(data string) ([]byte, error) {
+	result, err := dignity.ImportCharts(data)
+	if err != nil {
+		return nil, err
+	}
+	return json.Marshal(result)
 }
 
 // computeInterpretation produces a natural-language chart interpretation.

@@ -88,6 +88,12 @@ type BiWheelFunc func(inner, outer dignity.BirthData, opts dignity.BiWheelOption
 // ZodiacalReleasingFunc computes zodiacal releasing periods.
 type ZodiacalReleasingFunc func(bd dignity.BirthData, lotType, targetDate string) ([]byte, error)
 
+// HoraryFunc judges a horary question.
+type HoraryFunc func(bd dignity.BirthData, question string) ([]byte, error)
+
+// ImportFunc imports charts from external formats.
+type ImportFunc func(data string) ([]byte, error)
+
 // InterpretationFunc produces natural-language chart interpretation.
 // system: SystemKoiné (Hellenistic, default) or SystemWestern (modern).
 type InterpretationFunc func(bd dignity.BirthData, houseSystem string, orbDeg float64, system string) ([]byte, error)
@@ -191,6 +197,8 @@ type ServerConfig struct {
 	Profection            ProfectionFunc
 	BiWheel               BiWheelFunc
 	ZodiacalReleasing     ZodiacalReleasingFunc
+	Horary                HoraryFunc
+	Import                ImportFunc
 	Interpretation        InterpretationFunc
 	AstroCartography      AstroCartographyFunc
 	AstroCartographyCompare AstroCartographyCompareFunc
@@ -572,6 +580,20 @@ func NewMux(cfg ServerConfig) *http.ServeMux {
 		return cfg.ZodiacalReleasing(req.ToBirthData(), lotType, req.TargetDate)
 	}))
 
+	mux.HandleFunc("/api/horary", handleJSON(func(req HoraryRequest) ([]byte, error) {
+		if cfg.Horary == nil {
+			return nil, ErrNotAvailable
+		}
+		return cfg.Horary(req.ToBirthData(), req.Question)
+	}))
+
+	mux.HandleFunc("/api/import", handleJSON(func(req ImportRequest) ([]byte, error) {
+		if cfg.Import == nil {
+			return nil, ErrNotAvailable
+		}
+		return cfg.Import(req.Data)
+	}))
+
 	mux.HandleFunc("/api/interpretation", handleJSON(func(req ChartRequest) ([]byte, error) {
 		if cfg.Interpretation == nil {
 			return nil, ErrNotAvailable
@@ -928,6 +950,17 @@ type ZodiacalReleasingRequest struct {
 	ChartRequest
 	LotType    string `json:"lot_type"`    // "fortune" or "spirit"
 	TargetDate string `json:"target_date"` // optional: find current period
+}
+
+// HoraryRequest is the request for /api/horary.
+type HoraryRequest struct {
+	ChartRequest
+	Question string `json:"question"`
+}
+
+// ImportRequest is the request for /api/import.
+type ImportRequest struct {
+	Data string `json:"data"`
 }
 
 // AstroCartographyRequest is the request for /api/astrocartography.
