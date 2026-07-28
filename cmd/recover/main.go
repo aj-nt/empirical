@@ -204,6 +204,16 @@ func main() {
 			return marshalResult(computeDirections(bd.Name, cd, bd.Lat, bd.Lng, age, orbDeg, cacheDir))
 		}
 
+		solarArc := func(bd dignity.BirthData, targetDate string, orbDeg float64) ([]byte, error) {
+			cd := computePositions(bd.Year, bd.Month, bd.Day, bd.Hour, bd.Minute, bd.TZOffset, bd.Lat, bd.Lng, cacheDir)
+			return marshalResult(computeSolarArc(bd.Name, cd, targetDate, orbDeg, cacheDir))
+		}
+
+		profection := func(bd dignity.BirthData, targetDate string) ([]byte, error) {
+			cd := computePositions(bd.Year, bd.Month, bd.Day, bd.Hour, bd.Minute, bd.TZOffset, bd.Lat, bd.Lng, cacheDir)
+			return marshalResult(computeProfection(bd.Name, cd, targetDate))
+		}
+
 		interpretation := func(bd dignity.BirthData, houseSystem string, orbDeg float64, system string) ([]byte, error) {
 			cd := computePositions(bd.Year, bd.Month, bd.Day, bd.Hour, bd.Minute, bd.TZOffset, bd.Lat, bd.Lng, cacheDir)
 			return computeInterpretation(bd.Name, cd, bd.Lat, bd.Lng, houseSystem, orbDeg, system, cacheDir)
@@ -290,8 +300,21 @@ func main() {
 			return marshalResult(computeFirdaria(bd.Name, cd, bd.Year, bd.Month, bd.Day))
 		}
 
-		// Use embedded web files, stripping the "web/" prefix
-		staticFS, err := fs.Sub(empirical.WebFiles, "web")
+		researchMetrics := func(bd dignity.BirthData) ([]byte, error) {
+			cd := computePositions(bd.Year, bd.Month, bd.Day, bd.Hour, bd.Minute, bd.TZOffset, bd.Lat, bd.Lng, cacheDir)
+			return json.Marshal(dignity.ComputeResearchMetrics(cd))
+		}
+
+		researchBaseline := func(metric string, n int, seed int64) ([]byte, error) {
+			return computeResearchBaselineJSON(metric, n, seed, cacheDir)
+		}
+
+		batchAnalysis := func(charts []dignity.BirthData) ([]byte, error) {
+			return computeBatchAnalysisJSON(charts, cacheDir)
+		}
+
+		// Use embedded web build output
+		staticFS, err := fs.Sub(empirical.WebFiles, "web/dist")
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Failed to load web files: %v\n", err)
 			os.Exit(1)
@@ -317,6 +340,8 @@ func main() {
 			DraconicTransitsCross: draconicTransitsCross,
 			ProgressedCross:       progressedCross,
 			Directions:            directions,
+			SolarArc:              solarArc,
+			Profection:            profection,
 			Interpretation:        interpretation,
 			AstroCartography:      astroCartography,
 			AstroCartographyCompare: astroCartographyCompare,
@@ -336,6 +361,9 @@ func main() {
 			Firdaria:              firdaria,
 			NatalHTML:             natalHTML,
 			TransitHTML:           transitHTML,
+			ResearchMetrics:       researchMetrics,
+			ResearchBaseline:      researchBaseline,
+			BatchAnalysis:         batchAnalysis,
 		}); err != nil {
 			fmt.Fprintf(os.Stderr, "Server error: %v\n", err)
 			os.Exit(1)

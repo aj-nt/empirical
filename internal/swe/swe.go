@@ -8,8 +8,12 @@ package swe
 import "C"
 import (
 	"fmt"
+	"sync"
 	"unsafe"
 )
+
+// mu guards all Swiss Ephemeris C calls — the library is not thread-safe.
+var mu sync.Mutex
 
 // Swiss Ephemeris planet indices.
 const (
@@ -37,6 +41,29 @@ const (
 	MAKEMAKE = C.SE_AST_OFFSET + 136472
 	GONGGONG = C.SE_AST_OFFSET + 225088
 
+	// Major asteroids (0-999 range, covered by seas_00.se1)
+	// Numbers 1-4 (Ceres, Pallas, Juno, Vesta) use special SWE constants above.
+	ASTRAEA    = C.SE_AST_OFFSET + 5
+	HEBE       = C.SE_AST_OFFSET + 6
+	IRIS       = C.SE_AST_OFFSET + 7
+	FLORA      = C.SE_AST_OFFSET + 8
+	METIS      = C.SE_AST_OFFSET + 9
+	HYGIEA     = C.SE_AST_OFFSET + 10
+	PSYCHE     = C.SE_AST_OFFSET + 16
+	FORTUNA    = C.SE_AST_OFFSET + 19
+	PROSERPINA = C.SE_AST_OFFSET + 26
+	AMPHITRITE = C.SE_AST_OFFSET + 29
+	PANDORA    = C.SE_AST_OFFSET + 55
+	MNEMOSYNE  = C.SE_AST_OFFSET + 57
+	CYBELE     = C.SE_AST_OFFSET + 65
+	DIANA      = C.SE_AST_OFFSET + 78
+	SAPPHO     = C.SE_AST_OFFSET + 80
+	EROS       = C.SE_AST_OFFSET + 433
+	// Distant objects (covered by seas_90.se1, seas_136.se1)
+	ORCUS  = C.SE_AST_OFFSET + 90482
+	SEDNA  = C.SE_AST_OFFSET + 90377
+	HAUMEA = C.SE_AST_OFFSET + 136108
+
 	// Uranian (Hamburg School) hypothetical planets
 	CUPIDO   = C.SE_CUPIDO
 	HADES    = C.SE_HADES
@@ -57,6 +84,8 @@ const SEFLG_SPEED = C.SEFLG_SPEED
 // Julday computes the Julian Day number for a given calendar date and time.
 // hour is in UT. If gregflag is true, Gregorian calendar is used.
 func Julday(year, month, day int, hour float64, gregflag bool) float64 {
+	mu.Lock()
+	defer mu.Unlock()
 	var gflag C.int
 	if gregflag {
 		gflag = 1
@@ -73,6 +102,8 @@ func Julday(year, month, day int, hour float64, gregflag bool) float64 {
 // For callers that can propagate errors, use CalcUTErr instead.
 // planet must be one of the SE_* constants.
 func CalcUT(jd float64, planet int) (lon, lat, dist, speed float64) {
+	mu.Lock()
+	defer mu.Unlock()
 	var xx [6]C.double
 	var serr [256]C.char
 	ret := C.swe_calc_ut(
@@ -91,6 +122,8 @@ func CalcUT(jd float64, planet int) (lon, lat, dist, speed float64) {
 // CalcUTErr is like CalcUT but returns an error instead of panicking.
 // Use this when the caller can propagate errors to the user.
 func CalcUTErr(jd float64, planet int) (lon, lat, dist, speed float64, err error) {
+	mu.Lock()
+	defer mu.Unlock()
 	var xx [6]C.double
 	var serr [256]C.char
 	ret := C.swe_calc_ut(
@@ -109,6 +142,8 @@ func CalcUTErr(jd float64, planet int) (lon, lat, dist, speed float64, err error
 // SetEphePath points Swiss Ephemeris to its data files directory.
 // Must be called before any calculation.
 func SetEphePath(path string) {
+	mu.Lock()
+	defer mu.Unlock()
 	cpath := C.CString(path)
 	defer C.free(unsafe.Pointer(cpath))
 	C.swe_set_ephe_path(cpath)
@@ -127,11 +162,15 @@ const (
 // SetSidMode sets the sidereal mode (ayanamsa) for sidereal calculations.
 // sidMode: e.g. SIDM_LAHIRI. t0 and ayanT0 are typically 0, 0.
 func SetSidMode(sidMode int32, t0, ayanT0 float64) {
+	mu.Lock()
+	defer mu.Unlock()
 	C.swe_set_sid_mode(C.int32_t(sidMode), C.double(t0), C.double(ayanT0))
 }
 
 // GetAyanamsaUT returns the ayanamsa value for a given Julian Day.
 func GetAyanamsaUT(jd float64) float64 {
+	mu.Lock()
+	defer mu.Unlock()
 	return float64(C.swe_get_ayanamsa_ut(C.double(jd)))
 }
 
@@ -141,6 +180,8 @@ func GetAyanamsaUT(jd float64) float64 {
 //   ascmc[0] = ASC, ascmc[1] = MC, ascmc[2] = ARMC,
 //   ascmc[3] = Vertex, ascmc[4] = Equatorial ASC, ...
 func Houses(jd, lat, lon float64, hsys byte) (cusps [13]float64, ascmc [10]float64) {
+	mu.Lock()
+	defer mu.Unlock()
 	var ccusps [13]C.double
 	var cascmc [10]C.double
 	C.swe_houses(
@@ -162,12 +203,16 @@ func Houses(jd, lat, lon float64, hsys byte) (cusps [13]float64, ascmc [10]float
 
 // Close cleans up Swiss Ephemeris resources.
 func Close() {
+	mu.Lock()
+	defer mu.Unlock()
 	C.swe_close()
 }
 
 // Revjul converts a Julian Day back to calendar date and UT hour.
 // Returns year, month, day, hour_ut (fractional).
 func Revjul(jd float64) (year, month, day int, hour float64) {
+	mu.Lock()
+	defer mu.Unlock()
 	var y, m, d C.int
 	var h C.double
 	C.swe_revjul(C.double(jd), C.int(1), &y, &m, &d, &h)
@@ -178,6 +223,8 @@ func Revjul(jd float64) (year, month, day int, hour float64) {
 // starName must match a name in sefstars.txt.
 // Returns 99 if the star is not found.
 func FixstarMag(starName string) float64 {
+	mu.Lock()
+	defer mu.Unlock()
 	cname := C.CString(starName)
 	defer C.free(unsafe.Pointer(cname))
 	var mag C.double
@@ -196,6 +243,8 @@ func FixstarMag(starName string) float64 {
 // Returns ecliptic longitude, latitude, distance (AU), and speed (deg/day).
 // Returns 0,0,0,0 if the star is not found.
 func Fixstar(starName string, jd float64) (lon, lat, dist, speed float64) {
+	mu.Lock()
+	defer mu.Unlock()
 	cname := C.CString(starName)
 	defer C.free(unsafe.Pointer(cname))
 	var xx [6]C.double

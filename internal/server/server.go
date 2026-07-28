@@ -10,6 +10,7 @@ import (
 
 	"github.com/aj-nt/empirical/internal/comparison"
 	"github.com/aj-nt/empirical/internal/dignity"
+	"github.com/aj-nt/empirical/internal/geocode"
 )
 
 // Default orb values for endpoints that accept an optional orb parameter.
@@ -75,6 +76,12 @@ type ProgressedCrossFunc func(bd dignity.BirthData, targetDate string, orbDeg fl
 // DirectionsFunc computes primary directions (Ptolemy) for a given age.
 type DirectionsFunc func(bd dignity.BirthData, age float64, orbDeg float64) ([]byte, error)
 
+// SolarArcFunc computes solar arc directions for a target date.
+type SolarArcFunc func(bd dignity.BirthData, targetDate string, orbDeg float64) ([]byte, error)
+
+// ProfectionFunc computes annual profections for a target date.
+type ProfectionFunc func(bd dignity.BirthData, targetDate string) ([]byte, error)
+
 // InterpretationFunc produces natural-language chart interpretation.
 // system: SystemKoiné (Hellenistic, default) or SystemWestern (modern).
 type InterpretationFunc func(bd dignity.BirthData, houseSystem string, orbDeg float64, system string) ([]byte, error)
@@ -136,6 +143,15 @@ type NatalHTMLFunc func(bd dignity.BirthData, system string, orbDeg float64) (st
 // system is one of: "koine", "western", "vedic", "bazi".
 type TransitHTMLFunc func(bd dignity.BirthData, year, month, day, hour, minute int, tzOff, lat, lng float64, system string, orbDeg float64) (string, error)
 
+// ResearchMetricsFunc computes research metrics for a single chart.
+type ResearchMetricsFunc func(bd dignity.BirthData) ([]byte, error)
+
+// ResearchBaselineFunc generates a baseline distribution for a metric across N random charts.
+type ResearchBaselineFunc func(metric string, n int, seed int64) ([]byte, error)
+
+// BatchAnalysisFunc computes research metrics for multiple charts and returns aggregate stats.
+type BatchAnalysisFunc func(charts []dignity.BirthData) ([]byte, error)
+
 // LatLng holds a named geographic location.
 type LatLng struct {
 	Name string  `json:"name"`
@@ -165,6 +181,8 @@ type ServerConfig struct {
 	DraconicTransitsCross DraconicTransitsCrossFunc
 	ProgressedCross       ProgressedCrossFunc
 	Directions            DirectionsFunc
+	SolarArc              SolarArcFunc
+	Profection            ProfectionFunc
 	Interpretation        InterpretationFunc
 	AstroCartography      AstroCartographyFunc
 	AstroCartographyCompare AstroCartographyCompareFunc
@@ -184,6 +202,9 @@ type ServerConfig struct {
 	Firdaria              FirdariaFunc
 	NatalHTML             NatalHTMLFunc
 	TransitHTML           TransitHTMLFunc
+	ResearchMetrics       ResearchMetricsFunc
+	ResearchBaseline      ResearchBaselineFunc
+	BatchAnalysis         BatchAnalysisFunc
 }
 
 // ErrNotAvailable is returned by handler functions when an endpoint is not configured.
@@ -253,7 +274,25 @@ func NewMux(cfg ServerConfig) *http.ServeMux {
 	mux := http.NewServeMux()
 
 	if cfg.StaticFS != nil {
-		mux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.FS(cfg.StaticFS))))
+		fsys := http.FS(cfg.StaticFS)
+		fileServer := http.FileServer(fsys)
+
+		mux.Handle("/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			// Don't intercept API calls
+			if strings.HasPrefix(r.URL.Path, "/api/") {
+				http.NotFound(w, r)
+				return
+			}
+			// SPA fallback: if the file doesn't exist, serve index.html
+			path := strings.TrimPrefix(r.URL.Path, "/")
+			if path == "" {
+				path = "index.html"
+			}
+			if _, err := fsys.Open(path); err != nil {
+				r.URL.Path = "/index.html"
+			}
+			fileServer.ServeHTTP(w, r)
+		}))
 	}
 
 	mux.HandleFunc("/api/recover", handleJSON(func(req ChartRequest) ([]byte, error) {
@@ -458,6 +497,20 @@ func NewMux(cfg ServerConfig) *http.ServeMux {
 			return nil, ErrNotAvailable
 		}
 		return cfg.Directions(req.ToBirthData(), req.Age, defaultOrb(req.Orb, OrbTight))
+	}))
+
+	mux.HandleFunc("/api/solar-arc", handleJSON(func(req SolarArcRequest) ([]byte, error) {
+		if cfg.SolarArc == nil {
+			return nil, ErrNotAvailable
+		}
+		return cfg.SolarArc(req.ToBirthData(), req.TargetDate, defaultOrb(req.Orb, OrbStandard))
+	}))
+
+	mux.HandleFunc("/api/profection", handleJSON(func(req ProfectionRequest) ([]byte, error) {
+		if cfg.Profection == nil {
+			return nil, ErrNotAvailable
+		}
+		return cfg.Profection(req.ToBirthData(), req.TargetDate)
 	}))
 
 	mux.HandleFunc("/api/interpretation", handleJSON(func(req ChartRequest) ([]byte, error) {
@@ -674,6 +727,82 @@ func NewMux(cfg ServerConfig) *http.ServeMux {
 		return report.JSON()
 	}))
 
+	// GET /api/geocode/search?q=... — search cities by name
+	// Returns up to 20 matching cities with lat, lon, and estimated timezone offset.
+	mux.HandleFunc("/api/geocode/search", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			http.Error(w, "GET only", http.StatusMethodNotAllowed)
+			return
+		}
+		q := r.URL.Query().Get("q")
+		if q == "" {
+			http.Error(w, "missing ?q= parameter", http.StatusBadRequest)
+			return
+		}
+		cities, err := geocode.SearchCities(q, 20)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		// Enrich with estimated timezone offset
+		type CityResult struct {
+			Name    string  `json:"name"`
+			Country string  `json:"country"`
+			Lat     float64 `json:"lat"`
+			Lon     float64 `json:"lon"`
+			TZOffset float64 `json:"tz_offset"`
+		}
+		results := make([]CityResult, len(cities))
+		for i, c := range cities {
+			results[i] = CityResult{
+				Name:    c.Name,
+				Country: c.Country,
+				Lat:     c.Lat,
+				Lon:     c.Lon,
+				TZOffset: geocode.EstimateTZOffset(c.Lon),
+			}
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		json.NewEncoder(w).Encode(results)
+	})
+
+	// POST /api/research-metrics — compute all research metrics for a chart.
+	mux.HandleFunc("/api/research-metrics", handleJSON(func(req ChartRequest) ([]byte, error) {
+		if cfg.ResearchMetrics == nil {
+			return nil, ErrNotAvailable
+		}
+		return cfg.ResearchMetrics(req.ToBirthData())
+	}))
+
+	// POST /api/research-baseline — generate baseline distribution for a metric.
+	mux.HandleFunc("/api/research-baseline", handleJSON(func(req struct {
+		Metric string `json:"metric"`
+		N      int    `json:"n"`
+		Seed   int64  `json:"seed"`
+	}) ([]byte, error) {
+		if cfg.ResearchBaseline == nil {
+			return nil, ErrNotAvailable
+		}
+		if req.N == 0 {
+			req.N = 1000
+		}
+		return cfg.ResearchBaseline(req.Metric, req.N, req.Seed)
+	}))
+
+	// POST /api/batch-analysis — compute research metrics for multiple charts.
+	mux.HandleFunc("/api/batch-analysis", handleJSON(func(req struct {
+		Charts []dignity.BirthData `json:"charts"`
+	}) ([]byte, error) {
+		if cfg.BatchAnalysis == nil {
+			return nil, ErrNotAvailable
+		}
+		if len(req.Charts) == 0 {
+			return nil, fmt.Errorf("at least one chart required")
+		}
+		return cfg.BatchAnalysis(req.Charts)
+	}))
+
 	mux.HandleFunc("/api/", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodOptions {
 			w.Header().Set("Access-Control-Allow-Origin", "*")
@@ -709,6 +838,19 @@ type DirectionsRequest struct {
 	ChartRequest
 	Age float64 `json:"age"`
 	Orb float64 `json:"orb"`
+}
+
+// SolarArcRequest is the request for /api/solar-arc.
+type SolarArcRequest struct {
+	ChartRequest
+	TargetDate string  `json:"target_date"`
+	Orb        float64 `json:"orb"`
+}
+
+// ProfectionRequest is the request for /api/profection.
+type ProfectionRequest struct {
+	ChartRequest
+	TargetDate string `json:"target_date"`
 }
 
 // AstroCartographyRequest is the request for /api/astrocartography.

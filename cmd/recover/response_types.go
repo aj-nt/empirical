@@ -15,12 +15,22 @@ type TransitHitJSON struct {
 	EndDate       string  `json:"end_date"`
 }
 
+// TransitMidpointJSON is a single transit midpoint hit in JSON output.
+type TransitMidpointJSON struct {
+	Date          string  `json:"date"`
+	TransitPlanet string  `json:"transit_planet"`
+	NatalPairA    string  `json:"natal_pair_a"`
+	NatalPairB    string  `json:"natal_pair_b"`
+	Orb           float64 `json:"orb"`
+}
+
 // TransitsResponse is the JSON response for /api/transits.
 type TransitsResponse struct {
-	Name       string          `json:"name"`
-	Sidereal   bool            `json:"sidereal"`
-	Transits   []TransitHitJSON `json:"transits"`
-	SkyWeather []TransitHitJSON `json:"sky_weather"`
+	Name       string               `json:"name"`
+	Sidereal   bool                 `json:"sidereal"`
+	Transits   []TransitHitJSON     `json:"transits"`
+	SkyWeather []TransitHitJSON     `json:"sky_weather"`
+	Midpoints  []TransitMidpointJSON `json:"midpoints,omitempty"`
 }
 
 // SynastryResponse is the JSON response for /api/synastry.
@@ -277,6 +287,39 @@ type SolarReturnResponse struct {
 	Positions  map[string]float64    `json:"positions"`
 	Aspects    []dignity.SynastryHit `json:"aspects"`
 	Patterns   []dignity.Pattern     `json:"patterns"`
+}
+
+// SolarArcResponse is the JSON response for /api/solar-arc.
+type SolarArcResponse struct {
+	Name              string                `json:"name"`
+	BirthDate         string                `json:"birth_date"`
+	TargetDate        string                `json:"target_date"`
+	Age               float64               `json:"age_years"`
+	SolarArc          float64               `json:"solar_arc_deg"`
+	ProgressedSunLon  float64               `json:"progressed_sun_lon"`
+	NatalSunLon       float64               `json:"natal_sun_lon"`
+	DirectedPositions map[string]float64    `json:"directed_positions"`
+	NatalPositions    map[string]float64    `json:"natal_positions"`
+	Aspects           []dignity.SynastryHit `json:"aspects"`
+	TotalAspects      int                   `json:"total_aspects"`
+}
+
+// ProfectionResponse is the JSON response for /api/profection.
+type ProfectionResponse struct {
+	Name           string                `json:"name"`
+	BirthDate      string                `json:"birth_date"`
+	TargetDate     string                `json:"target_date"`
+	Age            float64               `json:"age_years"`
+	ProfectionYear int                   `json:"profection_year"`
+	NatalASC       float64               `json:"natal_asc"`
+	ProfectedASC   float64               `json:"profected_asc"`
+	ProfectedSign  string                `json:"profected_sign"`
+	ProfectedHouse int                   `json:"profected_house"`
+	TimeLord       string                `json:"time_lord"`
+	TimeLordHouse  int                   `json:"time_lord_house"`
+	TimeLordSign   string                `json:"time_lord_sign"`
+	PlanetsInSign  []string              `json:"planets_in_sign"`
+	TransitAspects []dignity.SynastryHit `json:"transit_aspects,omitempty"`
 }
 
 // computePositions calculates planet longitudes, ayanamsa, ASC, and NN.

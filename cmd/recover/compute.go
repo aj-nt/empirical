@@ -8,6 +8,7 @@ import (
 	"sort"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/aj-nt/empirical"
 	"github.com/aj-nt/empirical/internal/declination"
@@ -126,6 +127,12 @@ func computeTransits(name string, year, month, day, hour, minute int, tzOff, lat
 	}
 	ttCompact := dignity.CompactTransitsWithRange(ttHits)
 
+	// Transit midpoints (transiting planet conjunct natal midpoint)
+	mpHits, err := dignity.FindTransitMidpoints(scanLongs, dignity.DefaultTransitPlanets(), startDate, endDate, orbDeg, compute)
+	if err != nil {
+		return nil, err
+	}
+
 	// Build JSON response
 	response := &TransitsResponse{
 		Name:     name,
@@ -149,6 +156,15 @@ func computeTransits(name string, year, month, day, hour, minute int, tzOff, lat
 			Orb:           c.MinOrb,
 			StartDate:     c.DateStart,
 			EndDate:       c.DateEnd,
+		})
+	}
+	for _, m := range mpHits {
+		response.Midpoints = append(response.Midpoints, TransitMidpointJSON{
+			Date:          m.Date,
+			TransitPlanet: m.TransitPlanet,
+			NatalPairA:    m.NatalPairA,
+			NatalPairB:    m.NatalPairB,
+			Orb:           m.Orb,
 		})
 	}
 
@@ -321,6 +337,78 @@ func computeDirections(name string, bc *dignity.BaseChart, lat, lng, age float64
 	}
 
 	return response, nil
+}
+
+// computeSolarArc computes solar arc directions for a target date.
+func computeSolarArc(name string, bc *dignity.BaseChart, targetDate string, orbDeg float64, cacheDir string) (*SolarArcResponse, error) {
+	// Parse target date
+	target, err := time.Parse("2006-01-02", targetDate)
+	if err != nil {
+		return nil, fmt.Errorf("invalid target date: %w", err)
+	}
+
+	// Birth date
+	birth := time.Date(bc.Year, time.Month(bc.Month), bc.Day, bc.Hour, bc.Minute, 0, 0, time.UTC)
+
+	// Compute secondary progressed Sun (day-for-a-year)
+	age := target.Sub(birth).Hours() / (365.2425 * 24)
+	progressedJD := bc.JD + age
+
+	// Get progressed Sun position
+	progSunLon, _, _, _, err := swe.CalcUTErr(progressedJD, swe.SUN)
+	if err != nil {
+		return nil, fmt.Errorf("progressed Sun calculation failed: %w", err)
+	}
+
+	// Natal positions
+	natal := dignity.TropicalToLonMap(bc.Tropical)
+	natalSunLon := natal["Sun"]
+
+	// Compute solar arc
+	report := dignity.ComputeSolarArc(name, birth, target, natalSunLon, progSunLon, natal, orbDeg)
+
+	return &SolarArcResponse{
+		Name:              report.Name,
+		BirthDate:         report.BirthDate,
+		TargetDate:        report.TargetDate,
+		Age:               report.Age,
+		SolarArc:          report.SolarArc,
+		ProgressedSunLon:  report.ProgressedSunLon,
+		NatalSunLon:       report.NatalSunLon,
+		DirectedPositions: report.DirectedPositions,
+		NatalPositions:    report.NatalPositions,
+		Aspects:           report.Aspects,
+		TotalAspects:      report.TotalAspects,
+	}, nil
+}
+
+// computeProfection computes annual profections for a target date.
+func computeProfection(name string, bc *dignity.BaseChart, targetDate string) (*ProfectionResponse, error) {
+	target, err := time.Parse("2006-01-02", targetDate)
+	if err != nil {
+		return nil, fmt.Errorf("invalid target date: %w", err)
+	}
+
+	birth := time.Date(bc.Year, time.Month(bc.Month), bc.Day, bc.Hour, bc.Minute, 0, 0, time.UTC)
+	natal := dignity.TropicalToLonMap(bc.Tropical)
+
+	report := dignity.ComputeProfectionReport(name, birth, target, bc.ASC, natal)
+
+	return &ProfectionResponse{
+		Name:           report.Name,
+		BirthDate:      report.BirthDate,
+		TargetDate:     report.TargetDate,
+		Age:            report.Age,
+		ProfectionYear: report.ProfectionYear,
+		NatalASC:       report.NatalASC,
+		ProfectedASC:   report.ProfectedASC,
+		ProfectedSign:  report.ProfectedSign,
+		ProfectedHouse: report.ProfectedHouse,
+		TimeLord:       report.TimeLord,
+		TimeLordHouse:  report.TimeLordHouse,
+		TimeLordSign:   report.TimeLordSign,
+		PlanetsInSign:  report.PlanetsInSign,
+	}, nil
 }
 
 // computeInterpretation produces a natural-language chart interpretation.
@@ -874,7 +962,7 @@ func computeProgressed(name string, bc *dignity.BaseChart, targetDate string, or
 	progJD := bc.JD + age
 
 	// Compute progressed positions
-	planetIDs := dignity.AllPlanets
+	planetIDs := dignity.AllPlanets[:22]
 
 	progPositions := make(map[string]float64)
 	for _, p := range planetIDs {
