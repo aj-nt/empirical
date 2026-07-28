@@ -347,23 +347,15 @@ func computeDrikBala(planet string, planetLons map[string]float64, planetHouses 
 }
 
 // vedicAspectHousesAbs returns which absolute houses a planet aspects from its position.
+// Uses the canonical vedicAspectHouses from vedic_drishti.go and converts relative
+// house offsets to absolute house numbers.
 func vedicAspectHousesAbs(planet string, house int) []int {
-	// All planets aspect the 7th house from themselves
-	aspects := []int{((house + 6) % 12) + 1}
-
-	switch planet {
-	case "Mars":
-		// Mars also aspects 4th and 8th
-		aspects = append(aspects, ((house+3)%12)+1, ((house+7)%12)+1)
-	case "Jupiter":
-		// Jupiter also aspects 5th and 9th
-		aspects = append(aspects, ((house+4)%12)+1, ((house+8)%12)+1)
-	case "Saturn":
-		// Saturn also aspects 3rd and 10th
-		aspects = append(aspects, ((house+2)%12)+1, ((house+9)%12)+1)
+	offsets := vedicAspectHouses(planet)
+	abs := make([]int, len(offsets))
+	for i, off := range offsets {
+		abs[i] = ((house + off - 2) % 12) + 1
 	}
-
-	return aspects
+	return abs
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────────

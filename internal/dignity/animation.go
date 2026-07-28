@@ -34,6 +34,9 @@ type AnimatedChartData struct {
 	MC             float64
 }
 
+// classicalPlanets is the standard order of the seven classical planets.
+var classicalPlanets = []string{"Sun", "Moon", "Mercury", "Venus", "Mars", "Jupiter", "Saturn"}
+
 // RenderAnimatedWheel generates an animated SVG chart wheel.
 // Planets animate from start positions to end positions.
 func RenderAnimatedWheel(data *AnimatedChartData, cfg AnimationConfig) string {
@@ -101,7 +104,6 @@ func RenderAnimatedWheel(data *AnimatedChartData, cfg AnimationConfig) string {
 	}
 
 	// ── Planets ─────────────────────────────────────────────────────────
-	planetOrder := []string{"Sun", "Moon", "Mercury", "Venus", "Mars", "Jupiter", "Saturn"}
 	planetColors := map[string]string{
 		"Sun": "#f39c12", "Moon": "#bdc3c7", "Mercury": "#e67e22",
 		"Venus": "#2ecc71", "Mars": "#e74c3c", "Jupiter": "#3498db", "Saturn": "#9b59b6",
@@ -111,7 +113,7 @@ func RenderAnimatedWheel(data *AnimatedChartData, cfg AnimationConfig) string {
 		"Mars": 0.60, "Jupiter": 0.45, "Saturn": 0.50,
 	}
 
-	for _, planet := range planetOrder {
+	for _, planet := range classicalPlanets {
 		startLon, ok1 := data.StartPositions[planet]
 		endLon, ok2 := data.EndPositions[planet]
 		if !ok1 || !ok2 {
@@ -169,9 +171,9 @@ func RenderAnimatedWheel(data *AnimatedChartData, cfg AnimationConfig) string {
 			{"opposition", 180, "aspect-line aspect-line-hard"},
 		}
 
-		for i := 0; i < len(planetOrder); i++ {
-			for j := i + 1; j < len(planetOrder); j++ {
-				p1, p2 := planetOrder[i], planetOrder[j]
+		for i := 0; i < len(classicalPlanets); i++ {
+			for j := i + 1; j < len(classicalPlanets); j++ {
+				p1, p2 := classicalPlanets[i], classicalPlanets[j]
 				lon1, ok1 := data.StartPositions[p1]
 				lon2, ok2 := data.StartPositions[p2]
 				if !ok1 || !ok2 {
@@ -264,8 +266,7 @@ func RenderAnimatedBiWheel(inner, outer *AnimatedChartData, cfg AnimationConfig)
 `, cx, cy, outerR))
 
 	// Static inner planets
-	planetOrder := []string{"Sun", "Moon", "Mercury", "Venus", "Mars", "Jupiter", "Saturn"}
-	for _, planet := range planetOrder {
+	for _, planet := range classicalPlanets {
 		lon, ok := inner.StartPositions[planet]
 		if !ok {
 			continue
@@ -280,7 +281,7 @@ func RenderAnimatedBiWheel(inner, outer *AnimatedChartData, cfg AnimationConfig)
 	}
 
 	// Animated outer planets
-	for _, planet := range planetOrder {
+	for _, planet := range classicalPlanets {
 		startLon, ok1 := outer.StartPositions[planet]
 		endLon, ok2 := outer.EndPositions[planet]
 		if !ok1 || !ok2 {

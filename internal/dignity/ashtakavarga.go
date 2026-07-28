@@ -67,9 +67,8 @@ func ComputeAshtakavarga(planetHouses map[string]int) *AshtakavargaReport {
 
 // computeBinduPattern returns a 12-element slice (houses 1-12, 0-indexed)
 // where 1 = bindu (benefic point), 0 = no bindu.
-// Based on classical Parashari ashtakavarga tables.
+// Based on classical Parashari ashtakavarga tables (BPHS Ch. 65-72).
 func computeBinduPattern(contributor string, fromHouse int) []int {
-	// ashtakavargaTables[contributor][fromHouse] = set of houses receiving bindus
 	table, ok := ashtakavargaTables[contributor]
 	if !ok {
 		// Fallback: all houses get bindus
@@ -101,6 +100,7 @@ func computeBinduPattern(contributor string, fromHouse int) []int {
 // ashtakavargaTables: classical Parashari bindu tables.
 // Each entry: from house N, give bindus to these houses.
 // Source: BPHS Ch. 65-72, standardized tables.
+// Houses NOT listed receive 0 bindus (rekha).
 var ashtakavargaTables = map[string]map[int][]int{
 	"Sun": {
 		1:  {1, 2, 4, 7, 8, 9, 10, 11},
@@ -133,15 +133,15 @@ var ashtakavargaTables = map[string]map[int][]int{
 	"Mars": {
 		1:  {1, 2, 4, 7, 8, 9, 10, 11},
 		2:  {1, 2, 4, 5, 7, 8, 9, 10, 11},
-		3:  {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11},
-		4:  {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11},
+		3:  {1, 2, 3, 4, 5, 8, 9, 11, 12},
+		4:  {1, 2, 3, 4, 5, 6, 7, 8, 10, 11},
 		5:  {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11},
-		6:  {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11},
-		7:  {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11},
-		8:  {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11},
+		6:  {1, 2, 3, 4, 5, 8, 9, 11},
+		7:  {1, 2, 3, 4, 7, 8, 9, 10, 11},
+		8:  {1, 2, 3, 4, 5, 7, 8, 9, 10, 11},
 		9:  {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11},
-		10: {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11},
-		11: {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11},
+		10: {1, 2, 4, 5, 6, 7, 8, 9, 10, 11},
+		11: {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12},
 		12: {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11},
 	},
 	"Mercury": {

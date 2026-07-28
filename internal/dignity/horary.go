@@ -178,16 +178,21 @@ func ComputeHoraryJudgment(bc *BaseChart, question string) (*HoraryJudgment, err
 
 // ── Aspect Finding ─────────────────────────────────────────────────────────
 
+// standardAspects defines the five Ptolemaic aspects with their angular separations.
+var standardAspects = []struct {
+	Name string
+	Deg  float64
+}{
+	{"conjunction", 0},
+	{"sextile", 60},
+	{"square", 90},
+	{"trine", 120},
+	{"opposition", 180},
+}
+
 // findNextAspect finds the next applying aspect the Moon makes.
 func findNextAspect(planet string, lon, speed float64, allLons, allSpeeds map[string]float64) *HoraryAspect {
 	order := []string{"Sun", "Mercury", "Venus", "Mars", "Jupiter", "Saturn", "Node"}
-	aspectTypes := []struct {
-		name string
-		deg  float64
-	}{
-		{"conjunction", 0}, {"sextile", 60}, {"square", 90},
-		{"trine", 120}, {"opposition", 180},
-	}
 
 	var best *HoraryAspect
 	bestDist := 360.0
@@ -199,23 +204,23 @@ func findNextAspect(planet string, lon, speed float64, allLons, allSpeeds map[st
 		}
 		targetSpeed, _ := allSpeeds[target]
 
-		for _, asp := range aspectTypes {
+		for _, asp := range standardAspects {
 			// Find the applying position
-			aspLon := math.Mod(targetLon+asp.deg, 360)
+			aspLon := math.Mod(targetLon+asp.Deg, 360)
 			dist := aspLon - lon
 			if dist < 0 {
 				dist += 360
 			}
 
 			// Check if applying (planet moving toward aspect)
-			applying := isApplying(lon, speed, targetLon, targetSpeed, asp.deg)
+			applying := isApplying(lon, speed, targetLon, targetSpeed, asp.Deg)
 
 			if dist < bestDist && applying {
 				bestDist = dist
 				best = &HoraryAspect{
 					FromPlanet: planet,
 					ToPlanet:   target,
-					Aspect:     asp.name,
+					Aspect:     asp.Name,
 					Orb:        math.Round(dist*100) / 100,
 					Applying:   true,
 					Reception:  checkReception(planet, target, allLons),
@@ -234,19 +239,15 @@ func findAspectBetween(p1 string, lon1, speed1 float64, p2 string, lon2, speed2 
 		dist = 360 - dist
 	}
 
-	aspectTypes := map[float64]string{
-		0: "conjunction", 60: "sextile", 90: "square", 120: "trine", 180: "opposition",
-	}
-
 	// Check within 8° orb
-	for aspDeg, aspName := range aspectTypes {
-		orb := math.Abs(dist - aspDeg)
+	for _, asp := range standardAspects {
+		orb := math.Abs(dist - asp.Deg)
 		if orb <= 8.0 {
-			applying := isApplying(lon1, speed1, lon2, speed2, aspDeg)
+			applying := isApplying(lon1, speed1, lon2, speed2, asp.Deg)
 			return &HoraryAspect{
 				FromPlanet: p1,
 				ToPlanet:   p2,
-				Aspect:     aspName,
+				Aspect:     asp.Name,
 				Orb:        math.Round(orb*100) / 100,
 				Applying:   applying,
 				Reception:  checkReception(p1, p2, map[string]float64{p1: lon1, p2: lon2}),

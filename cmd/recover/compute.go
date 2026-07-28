@@ -425,7 +425,8 @@ func computeBiWheel(inner, outer dignity.BirthData, opts dignity.BiWheelOptions)
 
 // computeZodiacalReleasing computes zodiacal releasing periods.
 func computeZodiacalReleasing(bd dignity.BirthData, lotType, targetDate string) ([]byte, error) {
-	bc := computePositions(bd.Year, bd.Month, bd.Day, bd.Hour, bd.Minute, bd.TZOffset, bd.Lat, bd.Lng, "")
+	initEphe()
+	bc := computePositions(bd.Year, bd.Month, bd.Day, bd.Hour, bd.Minute, bd.TZOffset, bd.Lat, bd.Lng, epheDir)
 	birth := time.Date(bd.Year, time.Month(bd.Month), bd.Day, bd.Hour, bd.Minute, 0, 0, time.UTC)
 
 	// Determine day/night
@@ -447,7 +448,8 @@ func computeZodiacalReleasing(bd dignity.BirthData, lotType, targetDate string) 
 
 // computeHorary judges a horary question.
 func computeHorary(bd dignity.BirthData, question string) ([]byte, error) {
-	bc := computePositions(bd.Year, bd.Month, bd.Day, bd.Hour, bd.Minute, bd.TZOffset, bd.Lat, bd.Lng, "")
+	initEphe()
+	bc := computePositions(bd.Year, bd.Month, bd.Day, bd.Hour, bd.Minute, bd.TZOffset, bd.Lat, bd.Lng, epheDir)
 	judgment, err := dignity.ComputeHoraryJudgment(bc, question)
 	if err != nil {
 		return nil, err
@@ -466,7 +468,8 @@ func computeImport(data string) ([]byte, error) {
 
 // computeReport generates a templated report.
 func computeReport(bd dignity.BirthData, templateName, customTemplate, format string) ([]byte, error) {
-	bc := computePositions(bd.Year, bd.Month, bd.Day, bd.Hour, bd.Minute, bd.TZOffset, bd.Lat, bd.Lng, "")
+	initEphe()
+	bc := computePositions(bd.Year, bd.Month, bd.Day, bd.Hour, bd.Minute, bd.TZOffset, bd.Lat, bd.Lng, epheDir)
 	data := dignity.BuildReportData(bc)
 
 	req := dignity.ReportRequest{
