@@ -11,3 +11,4 @@
 *.swo
 /recover
 spike/
+.DS_Store
