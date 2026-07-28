@@ -224,7 +224,7 @@ func computeDraconicTransitsCross(name string, bc *dignity.BaseChart, startDate,
 	// Compute tropical transiting positions
 	tropTransits := make(map[string]float64)
 	sidTransits := make(map[string]float64)
-	planetIDs := dignity.AllPlanets
+	planetIDs := dignity.BasicPlanets
 	for _, p := range planetIDs {
 		lon, _, _, _ := swe.CalcUT(midJD, p.ID)
 		tropLon := dignity.NormalizeLon(lon)
@@ -278,7 +278,7 @@ func computeProgressedCross(name string, bc *dignity.BaseChart, targetDate strin
 	natal := dignity.TropicalToLonMap(bc.Tropical)
 
 	// Progressed positions (tropical)
-	planetIDs := dignity.AllPlanets
+	planetIDs := dignity.BasicPlanets
 	prog := make(map[string]float64)
 	for _, p := range planetIDs {
 		lon, _, _, _ := swe.CalcUT(progJD, p.ID)
