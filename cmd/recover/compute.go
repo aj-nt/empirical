@@ -423,6 +423,28 @@ func computeBiWheel(inner, outer dignity.BirthData, opts dignity.BiWheelOptions)
 	return []byte(svg), nil
 }
 
+// computeZodiacalReleasing computes zodiacal releasing periods.
+func computeZodiacalReleasing(bd dignity.BirthData, lotType, targetDate string) ([]byte, error) {
+	cd := computePositions(bd.Year, bd.Month, bd.Day, bd.Hour, bd.Minute, bd.TZOffset, bd.Lat, bd.Lng, "")
+	birth := time.Date(bd.Year, time.Month(bd.Month), bd.Day, bd.Hour, bd.Minute, 0, 0, time.UTC)
+
+	// Determine day/night chart: Sun above horizon = day
+	sunLon := cd.Tropical["Sun"].Lon
+	ascLon := cd.ASC
+	diff := sunLon - ascLon
+	if diff < 0 {
+		diff += 360
+	}
+	isDay := diff < 180
+
+	report := dignity.ComputeZodiacalReleasing(
+		bd.Name, birth, cd.ASC,
+		cd.Tropical["Sun"].Lon, cd.Tropical["Moon"].Lon,
+		isDay, lotType, targetDate,
+	)
+	return json.Marshal(report)
+}
+
 // computeInterpretation produces a natural-language chart interpretation.
 // system: SystemKoiné (Hellenistic, default) or SystemWestern (modern).
 func computeInterpretation(name string, bc *dignity.BaseChart, lat, lng float64, houseSystem string, orbDeg float64, system string, cacheDir string) ([]byte, error) {

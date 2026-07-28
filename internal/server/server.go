@@ -85,6 +85,9 @@ type ProfectionFunc func(bd dignity.BirthData, targetDate string) ([]byte, error
 // BiWheelFunc generates a bi-wheel SVG comparing two charts.
 type BiWheelFunc func(inner, outer dignity.BirthData, opts dignity.BiWheelOptions) ([]byte, error)
 
+// ZodiacalReleasingFunc computes zodiacal releasing periods.
+type ZodiacalReleasingFunc func(bd dignity.BirthData, lotType, targetDate string) ([]byte, error)
+
 // InterpretationFunc produces natural-language chart interpretation.
 // system: SystemKoiné (Hellenistic, default) or SystemWestern (modern).
 type InterpretationFunc func(bd dignity.BirthData, houseSystem string, orbDeg float64, system string) ([]byte, error)
@@ -187,6 +190,7 @@ type ServerConfig struct {
 	SolarArc              SolarArcFunc
 	Profection            ProfectionFunc
 	BiWheel               BiWheelFunc
+	ZodiacalReleasing     ZodiacalReleasingFunc
 	Interpretation        InterpretationFunc
 	AstroCartography      AstroCartographyFunc
 	AstroCartographyCompare AstroCartographyCompareFunc
@@ -557,6 +561,17 @@ func NewMux(cfg ServerConfig) *http.ServeMux {
 		w.Write(result)
 	})
 
+	mux.HandleFunc("/api/zodiacal-releasing", handleJSON(func(req ZodiacalReleasingRequest) ([]byte, error) {
+		if cfg.ZodiacalReleasing == nil {
+			return nil, ErrNotAvailable
+		}
+		lotType := req.LotType
+		if lotType == "" {
+			lotType = "fortune"
+		}
+		return cfg.ZodiacalReleasing(req.ToBirthData(), lotType, req.TargetDate)
+	}))
+
 	mux.HandleFunc("/api/interpretation", handleJSON(func(req ChartRequest) ([]byte, error) {
 		if cfg.Interpretation == nil {
 			return nil, ErrNotAvailable
@@ -906,6 +921,13 @@ type BiWheelRequest struct {
 	ShowTNPs      bool         `json:"show_tnps"`
 	Sidereal      bool         `json:"sidereal"`
 	Orb           float64      `json:"orb"`
+}
+
+// ZodiacalReleasingRequest is the request for /api/zodiacal-releasing.
+type ZodiacalReleasingRequest struct {
+	ChartRequest
+	LotType    string `json:"lot_type"`    // "fortune" or "spirit"
+	TargetDate string `json:"target_date"` // optional: find current period
 }
 
 // AstroCartographyRequest is the request for /api/astrocartography.

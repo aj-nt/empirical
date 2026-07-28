@@ -218,6 +218,10 @@ func main() {
 			return computeBiWheel(inner, outer, opts)
 		}
 
+		zodiacalReleasing := func(bd dignity.BirthData, lotType, targetDate string) ([]byte, error) {
+			return computeZodiacalReleasing(bd, lotType, targetDate)
+		}
+
 		interpretation := func(bd dignity.BirthData, houseSystem string, orbDeg float64, system string) ([]byte, error) {
 			cd := computePositions(bd.Year, bd.Month, bd.Day, bd.Hour, bd.Minute, bd.TZOffset, bd.Lat, bd.Lng, cacheDir)
 			return computeInterpretation(bd.Name, cd, bd.Lat, bd.Lng, houseSystem, orbDeg, system, cacheDir)
@@ -347,6 +351,7 @@ func main() {
 			SolarArc:              solarArc,
 			Profection:            profection,
 			BiWheel:               biWheel,
+			ZodiacalReleasing:     zodiacalReleasing,
 			Interpretation:        interpretation,
 			AstroCartography:      astroCartography,
 			AstroCartographyCompare: astroCartographyCompare,
@@ -581,6 +586,48 @@ func main() {
 			fmt.Println(string(js))
 		} else {
 			fmt.Print(string(js))
+		}
+		return
+	}
+
+	// ── zodiacal-releasing subcommand ───────────────────────────────
+	if len(os.Args) >= 2 && os.Args[1] == "zodiacal-releasing" {
+		fs := flag.NewFlagSet("zodiacal-releasing", flag.ExitOnError)
+		jsonOut := fs.Bool("json", false, "output as JSON")
+		lotType := fs.String("lot", "fortune", "lot type: fortune or spirit")
+		targetDate := fs.String("target", "", "target date to find current period (YYYY-MM-DD)")
+		fs.Parse(os.Args[2:])
+		args := fs.Args()
+
+		if len(args) < 9 {
+			fmt.Fprintf(os.Stderr, "Usage: empirical zodiacal-releasing [--json] [--lot fortune|spirit] [--target YYYY-MM-DD] NAME Y M D H MIN TZ LAT LNG\n")
+			fmt.Fprintf(os.Stderr, "Example: empirical zodiacal-releasing --lot fortune --target 2026-07-26 AJ 1969 2 15 23 10 -8 47.038 -122.901\n")
+			os.Exit(1)
+		}
+
+		name := args[0]
+		year, _ := strconv.Atoi(args[1])
+		month, _ := strconv.Atoi(args[2])
+		day, _ := strconv.Atoi(args[3])
+		hour, _ := strconv.Atoi(args[4])
+		minute, _ := strconv.Atoi(args[5])
+		tzOff, _ := strconv.ParseFloat(args[6], 64)
+		lat, _ := strconv.ParseFloat(args[7], 64)
+		lng, _ := strconv.ParseFloat(args[8], 64)
+
+		bd := dignity.BirthData{
+			Name: name, Year: year, Month: month, Day: day,
+			Hour: hour, Minute: minute, TZOffset: tzOff, Lat: lat, Lng: lng,
+		}
+		result, err := computeZodiacalReleasing(bd, *lotType, *targetDate)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Zodiacal Releasing error: %v\n", err)
+			os.Exit(1)
+		}
+		if *jsonOut {
+			fmt.Println(string(result))
+		} else {
+			fmt.Print(string(result))
 		}
 		return
 	}
