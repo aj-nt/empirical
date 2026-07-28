@@ -58,7 +58,9 @@ type VedicNatalReport struct {
 	Aspects      []VedicAspect       `json:"aspects"`      // Vedic drishti aspects
 	Yogas        []VedicYoga         `json:"yogas"`        // detected yogas
 	Vargas       map[string][]VargaPosition `json:"vargas"` // D3, D7, D9, D10
-	Dasha        []VedicNatalDasha   `json:"dasha"`
+	Shadbala     *ShadbalaReport           `json:"shadbala,omitempty"` // six-fold strength
+	Ashtakavarga *AshtakavargaReport       `json:"ashtakavarga,omitempty"` // eight-fold points
+	Dasha        []VedicNatalDasha         `json:"dasha"`
 	Antardasha   []VedicNatalDasha   `json:"antardasha"`  // sub-periods of current mahadasha
 	SignalCount  int                 `json:"signal_count"`
 	TotalPlanets int                 `json:"total_planets"`
@@ -245,6 +247,34 @@ func ComputeVedicNatalReport(bc *BaseChart) *VedicNatalReport {
 		"D9":  ComputeVargaChart("D9", siderealLons),
 		"D10": ComputeVargaChart("D10", siderealLons),
 	}
+
+	// ── Shadbala ──────────────────────────────────────────────────────
+	siderealSpeeds := make(map[string]float64, len(classicalOrder))
+	for _, planetName := range classicalOrder {
+		if pos, ok := bc.Tropical[planetName]; ok {
+			siderealSpeeds[planetName] = pos.Speed
+		}
+	}
+	sunSidLon = float64(0)
+	if sunPos, ok := bc.Tropical["Sun"]; ok {
+		sunSidLon = NormalizeLon(sunPos.Lon - bc.Ayanamsa)
+	}
+	// Determine day/night
+	sunLonTrop := float64(0)
+	if sunPos, ok := bc.Tropical["Sun"]; ok {
+		sunLonTrop = sunPos.Lon
+	}
+	dayDiff := sunLonTrop - bc.ASC
+	if dayDiff < 0 {
+		dayDiff += 360
+	}
+	isDay := dayDiff < 180
+
+	sb := ComputeShadbala(siderealLons, planetHouse, siderealSpeeds, sidASC, sunSidLon, isDay)
+	report.Shadbala = &sb
+
+	// ── Ashtakavarga ──────────────────────────────────────────────────
+	report.Ashtakavarga = ComputeAshtakavarga(planetHouse)
 
 	// ── Dasha ──────────────────────────────────────────────────────────
 	if moonNak != "" {
