@@ -214,6 +214,10 @@ func main() {
 			return marshalResult(computeProfection(bd.Name, cd, targetDate))
 		}
 
+		biWheel := func(inner, outer dignity.BirthData, opts dignity.BiWheelOptions) ([]byte, error) {
+			return computeBiWheel(inner, outer, opts)
+		}
+
 		interpretation := func(bd dignity.BirthData, houseSystem string, orbDeg float64, system string) ([]byte, error) {
 			cd := computePositions(bd.Year, bd.Month, bd.Day, bd.Hour, bd.Minute, bd.TZOffset, bd.Lat, bd.Lng, cacheDir)
 			return computeInterpretation(bd.Name, cd, bd.Lat, bd.Lng, houseSystem, orbDeg, system, cacheDir)
@@ -342,6 +346,7 @@ func main() {
 			Directions:            directions,
 			SolarArc:              solarArc,
 			Profection:            profection,
+			BiWheel:               biWheel,
 			Interpretation:        interpretation,
 			AstroCartography:      astroCartography,
 			AstroCartographyCompare: astroCartographyCompare,

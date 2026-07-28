@@ -411,6 +411,18 @@ func computeProfection(name string, bc *dignity.BaseChart, targetDate string) (*
 	}, nil
 }
 
+// computeBiWheel generates a bi-wheel SVG comparing two charts.
+func computeBiWheel(inner, outer dignity.BirthData, opts dignity.BiWheelOptions) ([]byte, error) {
+	svg := dignity.RenderBiWheelSVG(
+		inner.Name, inner.Year, inner.Month, inner.Day, inner.Hour, inner.Minute,
+		inner.TZOffset, inner.Lat, inner.Lng,
+		outer.Name, outer.Year, outer.Month, outer.Day, outer.Hour, outer.Minute,
+		outer.TZOffset, outer.Lat, outer.Lng,
+		opts,
+	)
+	return []byte(svg), nil
+}
+
 // computeInterpretation produces a natural-language chart interpretation.
 // system: SystemKoiné (Hellenistic, default) or SystemWestern (modern).
 func computeInterpretation(name string, bc *dignity.BaseChart, lat, lng float64, houseSystem string, orbDeg float64, system string, cacheDir string) ([]byte, error) {

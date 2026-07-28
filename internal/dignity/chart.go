@@ -708,3 +708,455 @@ func RenderChartSVG(
 	sb.WriteString(`</svg>`)
 	return sb.String()
 }
+
+// ── Bi-Wheel SVG Renderer ─────────────────────────────────────────────────
+//
+// A bi-wheel shows two charts on the same zodiac ring:
+//   - Inner ring: primary (natal) chart planets
+//   - Outer ring: secondary (transit/progressed) chart planets
+//   - Sign ring: shared zodiac
+//   - House cusps: from the primary chart
+//   - Aspect lines: between inner and outer planets
+
+// BiWheelOptions configures the bi-wheel rendering.
+type BiWheelOptions struct {
+	HouseSystem       string  // house system for primary chart
+	ShowAspects       bool
+	ShowOuterAspects  bool    // aspects between inner and outer planets
+	ShowInnerAspects  bool    // aspects within inner chart
+	ShowOuterPlanets  bool
+	ShowAsteroids     bool
+	ShowTNPs          bool
+	Sidereal          bool
+	Orb               float64 // aspect orb (default 3°)
+}
+
+// DefaultBiWheelOptions returns sensible defaults.
+func DefaultBiWheelOptions() BiWheelOptions {
+	return BiWheelOptions{
+		HouseSystem:      "placidus",
+		ShowAspects:      true,
+		ShowOuterAspects: true,
+		ShowInnerAspects: false,
+		ShowOuterPlanets: true,
+		Sidereal:         false,
+		Orb:              3.0,
+	}
+}
+
+// RenderBiWheelSVG generates a bi-wheel SVG with two charts.
+func RenderBiWheelSVG(
+	innerName string, innerYear, innerMonth, innerDay, innerHour, innerMinute int,
+	innerTZOffset, innerLat, innerLng float64,
+	outerName string, outerYear, outerMonth, outerDay, outerHour, outerMinute int,
+	outerTZOffset, outerLat, outerLng float64,
+	opts BiWheelOptions,
+) string {
+	// ── Compute inner (primary) chart ──────────────────────────────────
+	innerUT := float64(innerHour) + float64(innerMinute)/60.0 - innerTZOffset
+	innerJD := swe.Julday(innerYear, innerMonth, innerDay, innerUT, true)
+
+	hcode, ok := swephCode[opts.HouseSystem]
+	if !ok {
+		hcode = 'P'
+	}
+	cusps, ascmc := swe.Houses(innerJD, innerLat, innerLng, hcode)
+	innerASC := ascmc[0]
+	innerMC := ascmc[1]
+
+	// ── Compute outer (secondary) chart ────────────────────────────────
+	outerUT := float64(outerHour) + float64(outerMinute)/60.0 - outerTZOffset
+	outerJD := swe.Julday(outerYear, outerMonth, outerDay, outerUT, true)
+
+	// ── Planet positions ───────────────────────────────────────────────
+	type planetPos struct {
+		Name  string
+		Lon   float64
+		Speed float64
+		Glyph string
+	}
+
+	// Build planet ID list
+	planetIDs := []struct {
+		name string
+		id   int
+	}{
+		{"Sun", swe.SUN}, {"Moon", swe.MOON}, {"Mercury", swe.MERCURY},
+		{"Venus", swe.VENUS}, {"Mars", swe.MARS}, {"Jupiter", swe.JUPITER},
+		{"Saturn", swe.SATURN},
+	}
+	if opts.ShowOuterPlanets {
+		planetIDs = append(planetIDs,
+			struct{ name string; id int }{"Uranus", swe.URANUS},
+			struct{ name string; id int }{"Neptune", swe.NEPTUNE},
+			struct{ name string; id int }{"Pluto", swe.PLUTO},
+			struct{ name string; id int }{"Eris", swe.ERIS},
+			struct{ name string; id int }{"Makemake", swe.MAKEMAKE},
+			struct{ name string; id int }{"Gonggong", swe.GONGGONG},
+		)
+	}
+
+	var innerPlanets, outerPlanets []planetPos
+
+	innerAyan := 0.0
+	outerAyan := 0.0
+	if opts.Sidereal {
+		innerAyan = swe.GetAyanamsaUT(innerJD)
+		outerAyan = swe.GetAyanamsaUT(outerJD)
+	}
+
+	for _, p := range planetIDs {
+		// Inner
+		lon, _, _, speed := swe.CalcUT(innerJD, p.id)
+		if opts.Sidereal {
+			lon -= innerAyan
+			if lon < 0 { lon += 360 }
+		}
+		innerPlanets = append(innerPlanets, planetPos{Name: p.name, Lon: lon, Speed: speed, Glyph: planetGlyphs[p.name]})
+
+		// Outer
+		lon, _, _, speed = swe.CalcUT(outerJD, p.id)
+		if opts.Sidereal {
+			lon -= outerAyan
+			if lon < 0 { lon += 360 }
+		}
+		outerPlanets = append(outerPlanets, planetPos{Name: p.name, Lon: lon, Speed: speed, Glyph: planetGlyphs[p.name]})
+	}
+
+	// Nodes
+	nnLon, _, _, nnSpeed := swe.CalcUT(innerJD, swe.MEAN_NODE)
+	if opts.Sidereal { nnLon -= innerAyan; if nnLon < 0 { nnLon += 360 } }
+	innerPlanets = append(innerPlanets, planetPos{Name: "Node", Lon: nnLon, Speed: nnSpeed, Glyph: planetGlyphs["Node"]})
+	snLon := nnLon + 180; if snLon >= 360 { snLon -= 360 }
+	innerPlanets = append(innerPlanets, planetPos{Name: "SouthNode", Lon: snLon, Speed: nnSpeed, Glyph: planetGlyphs["SouthNode"]})
+
+	nnLon, _, _, nnSpeed = swe.CalcUT(outerJD, swe.MEAN_NODE)
+	if opts.Sidereal { nnLon -= outerAyan; if nnLon < 0 { nnLon += 360 } }
+	outerPlanets = append(outerPlanets, planetPos{Name: "Node", Lon: nnLon, Speed: nnSpeed, Glyph: planetGlyphs["Node"]})
+	snLon = nnLon + 180; if snLon >= 360 { snLon -= 360 }
+	outerPlanets = append(outerPlanets, planetPos{Name: "SouthNode", Lon: snLon, Speed: nnSpeed, Glyph: planetGlyphs["SouthNode"]})
+
+	// Asteroids
+	if opts.ShowAsteroids {
+		extraIDs := []struct{ name string; id int }{
+			{"Ceres", swe.CERES}, {"Pallas", swe.PALLAS}, {"Juno", swe.JUNO},
+			{"Vesta", swe.VESTA}, {"Chiron", swe.CHIRON},
+			{"Astraea", swe.ASTRAEA}, {"Hebe", swe.HEBE}, {"Iris", swe.IRIS},
+			{"Flora", swe.FLORA}, {"Metis", swe.METIS}, {"Hygiea", swe.HYGIEA},
+			{"Psyche", swe.PSYCHE}, {"Fortuna", swe.FORTUNA}, {"Proserpina", swe.PROSERPINA},
+			{"Amphitrite", swe.AMPHITRITE}, {"Pandora", swe.PANDORA},
+			{"Mnemosyne", swe.MNEMOSYNE}, {"Cybele", swe.CYBELE}, {"Diana", swe.DIANA},
+			{"Sappho", swe.SAPPHO}, {"Eros", swe.EROS},
+			{"Orcus", swe.ORCUS}, {"Sedna", swe.SEDNA}, {"Haumea", swe.HAUMEA},
+		}
+		for _, p := range extraIDs {
+			lon, _, _, speed := swe.CalcUT(innerJD, p.id)
+			if opts.Sidereal { lon -= innerAyan; if lon < 0 { lon += 360 } }
+			innerPlanets = append(innerPlanets, planetPos{Name: p.name, Lon: lon, Speed: speed, Glyph: planetGlyphs[p.name]})
+
+			lon, _, _, speed = swe.CalcUT(outerJD, p.id)
+			if opts.Sidereal { lon -= outerAyan; if lon < 0 { lon += 360 } }
+			outerPlanets = append(outerPlanets, planetPos{Name: p.name, Lon: lon, Speed: speed, Glyph: planetGlyphs[p.name]})
+		}
+	}
+
+	// TNPs
+	if opts.ShowTNPs {
+		tnpIDs := []struct{ name string; id int }{
+			{"Cupido", swe.CUPIDO}, {"Hades", swe.HADES}, {"Zeus", swe.ZEUS},
+			{"Kronos", swe.KRONOS}, {"Apollon", swe.APOLLON}, {"Admetos", swe.ADMETOS},
+			{"Poseidon", swe.POSEIDON}, {"Vulkanus", swe.VULKANUS},
+		}
+		for _, p := range tnpIDs {
+			lon, _, _, speed := swe.CalcUT(innerJD, p.id)
+			if opts.Sidereal { lon -= innerAyan; if lon < 0 { lon += 360 } }
+			innerPlanets = append(innerPlanets, planetPos{Name: p.name, Lon: lon, Speed: speed, Glyph: planetGlyphs[p.name]})
+
+			lon, _, _, speed = swe.CalcUT(outerJD, p.id)
+			if opts.Sidereal { lon -= outerAyan; if lon < 0 { lon += 360 } }
+			outerPlanets = append(outerPlanets, planetPos{Name: p.name, Lon: lon, Speed: speed, Glyph: planetGlyphs[p.name]})
+		}
+	}
+
+	// ── Build SVG ──────────────────────────────────────────────────────
+	var sb strings.Builder
+	sb.WriteString(`<svg viewBox="0 0 800 800" xmlns="http://www.w3.org/2000/svg">`)
+	sb.WriteString(`<rect width="800" height="800" fill="#ffffff"/>`)
+
+	cx, cy := 400.0, 400.0
+
+	// toAngle converts ecliptic longitude to SVG angle (degrees clockwise from 3-o'clock).
+	// ASC is pinned at 9-o'clock (left edge of wheel).
+	toAngle := func(lon float64) float64 {
+		a := innerASC - lon + 180
+		for a < 0 { a += 360 }
+		for a >= 360 { a -= 360 }
+		return a
+	}
+
+	toXY := func(angle, r float64) (float64, float64) {
+		rad := angle * math.Pi / 180.0
+		return cx + r*math.Cos(rad), cy + r*math.Sin(rad)
+	}
+
+	// ── Sign ring (outer band) ─────────────────────────────────────────
+	outerR := 340.0
+	innerR := 305.0
+	for i, signName := range Signs {
+		signStart := float64(i * 30)
+		signEnd := signStart + 30
+
+		a1 := toAngle(signStart)
+		a2 := toAngle(signEnd)
+
+		x1o, y1o := toXY(a1, outerR)
+		x2o, y2o := toXY(a2, outerR)
+		x2i, y2i := toXY(a2, innerR)
+		x1i, y1i := toXY(a1, innerR)
+
+		fill := "#ffffff"
+		if i%2 == 0 { fill = "#f5f5f5" }
+
+		sb.WriteString(fmt.Sprintf(
+			`<path d="M%.1f,%.1f A%.0f,%.0f 0 0,1 %.1f,%.1f L%.1f,%.1f A%.0f,%.0f 0 0,0 %.1f,%.1f Z" fill="%s" stroke="#000000" stroke-width="1"/>`,
+			x1o, y1o, outerR, outerR, x2o, y2o,
+			x2i, y2i, innerR, innerR, x1i, y1i,
+			fill,
+		))
+
+		midAngle := toAngle(signStart + 15)
+		mx, my := toXY(midAngle, 352)
+		sb.WriteString(fmt.Sprintf(
+			`<text x="%.1f" y="%.1f" fill="#000000" font-size="20" text-anchor="middle" dominant-baseline="central" font-weight="bold">%s</text>`,
+			mx, my, signGlyphs[signName],
+		))
+	}
+
+	// Border circles
+	sb.WriteString(fmt.Sprintf(`<circle cx="%.1f" cy="%.1f" r="%.0f" fill="none" stroke="#000000" stroke-width="2"/>`, cx, cy, outerR))
+	sb.WriteString(fmt.Sprintf(`<circle cx="%.1f" cy="%.1f" r="%.0f" fill="none" stroke="#000000" stroke-width="1"/>`, cx, cy, innerR))
+
+	// ── Degree tick ring ───────────────────────────────────────────────
+	tickOuter := 303.0
+	tickInner := 290.0
+	for deg := 0.0; deg < 360; deg += 5 {
+		angle := toAngle(deg)
+		xo, yo := toXY(angle, tickOuter)
+		xi, yi := toXY(angle, tickInner)
+		sw := "0.5"
+		if math.Mod(deg, 10) == 0 { sw = "1" }
+		sb.WriteString(fmt.Sprintf(
+			`<line x1="%.1f" y1="%.1f" x2="%.1f" y2="%.1f" stroke="#000000" stroke-width="%s"/>`,
+			xo, yo, xi, yi, sw,
+		))
+	}
+
+	// ── House cusp lines (from inner chart) ────────────────────────────
+	cuspR := 280.0
+	for h := 1; h <= 12; h++ {
+		cuspLon := cusps[h]
+		angle := toAngle(cuspLon)
+		x, y := toXY(angle, cuspR)
+
+		sw := "1"
+		if h == 1 { sw = "2" }
+		sb.WriteString(fmt.Sprintf(
+			`<line x1="%.1f" y1="%.1f" x2="%.1f" y2="%.1f" stroke="#000000" stroke-width="%s"/>`,
+			cx, cy, x, y, sw,
+		))
+
+		lx, ly := toXY(angle, 265)
+		sb.WriteString(fmt.Sprintf(
+			`<text x="%.1f" y="%.1f" fill="#000000" font-size="16" text-anchor="middle" dominant-baseline="central" font-weight="bold">%d</text>`,
+			lx, ly, h,
+		))
+	}
+
+	// MC line
+	mcAngle := toAngle(innerMC)
+	mcx, mcy := toXY(mcAngle, cuspR)
+	sb.WriteString(fmt.Sprintf(
+		`<line x1="%.1f" y1="%.1f" x2="%.1f" y2="%.1f" stroke="#000000" stroke-width="2"/>`,
+		cx, cy, mcx, mcy,
+	))
+	mlx, mly := toXY(mcAngle, 258)
+	sb.WriteString(fmt.Sprintf(
+		`<text x="%.1f" y="%.1f" fill="#000000" font-size="14" text-anchor="middle" dominant-baseline="central" font-weight="bold">MC</text>`,
+		mlx, mly,
+	))
+
+	// ── Helper: draw planet set at given radius ────────────────────────
+	drawPlanets := func(planets []planetPos, planetR float64, color string, small bool) {
+		type placed struct {
+			angle float64
+			count int
+		}
+		var placedList []placed
+
+		circleR := 16.0
+		glyphSize := 16
+		labelSize := 12
+		if small {
+			circleR = 12.0
+			glyphSize = 12
+			labelSize = 9
+		}
+
+		for _, p := range planets {
+			angle := toAngle(p.Lon)
+			px, py := toXY(angle, planetR)
+
+			// Overlap avoidance
+			offset := 0.0
+			labelStagger := 0
+			for pi := range placedList {
+				prev := &placedList[pi]
+				diff := math.Abs(angle - prev.angle)
+				if diff > 180 { diff = 360 - diff }
+				if diff < 10 {
+					offset += 18
+					labelStagger = prev.count
+					prev.count++
+				}
+			}
+			if offset > 0 {
+				px, py = toXY(angle, planetR+offset)
+			}
+			placedList = append(placedList, placed{angle: angle, count: 1})
+
+			// Planet circle
+			sb.WriteString(fmt.Sprintf(
+				`<circle cx="%.1f" cy="%.1f" r="%.0f" fill="#ffffff" stroke="%s" stroke-width="2"/>`,
+				px, py, circleR, color,
+			))
+
+			// Glyph
+			sb.WriteString(fmt.Sprintf(
+				`<text x="%.1f" y="%.1f" fill="%s" font-size="%d" text-anchor="middle" dominant-baseline="central" font-weight="bold">%s</text>`,
+				px, py, color, glyphSize, p.Glyph,
+			))
+
+			// Degree label
+			degInSign := math.Mod(p.Lon, 30)
+			deg := int(degInSign)
+			min := int(math.Round((degInSign - float64(deg)) * 60))
+			signName := SignForLongitude(p.Lon)
+			labelR := planetR - 25 - float64(labelStagger)*18
+			dlx, dly := toXY(angle, labelR)
+			sb.WriteString(fmt.Sprintf(
+				`<text x="%.1f" y="%.1f" fill="%s" font-size="%d" text-anchor="middle" dominant-baseline="central" font-weight="bold">%d°%02d′%s</text>`,
+				dlx, dly, color, labelSize, deg, min, signGlyphs[signName],
+			))
+
+			// Retrograde marker
+			if p.Speed < 0 && p.Name != "Node" && p.Name != "SouthNode" {
+				rxR := labelR - 10
+				rx, ry := toXY(angle, rxR)
+				sb.WriteString(fmt.Sprintf(
+					`<text x="%.1f" y="%.1f" fill="%s" font-size="8" text-anchor="middle" dominant-baseline="central" font-weight="bold">℞</text>`,
+					rx, ry, color,
+				))
+			}
+		}
+	}
+
+	// ── Inner planets (natal) ──────────────────────────────────────────
+	innerPlanetR := 195.0
+	drawPlanets(innerPlanets, innerPlanetR, "#000000", false)
+
+	// ── Outer planets (transit/secondary) ──────────────────────────────
+	outerPlanetR := 370.0
+	drawPlanets(outerPlanets, outerPlanetR, "#cc0000", true)
+
+	// ── Aspect lines between inner and outer planets ───────────────────
+	if opts.ShowAspects && opts.ShowOuterAspects {
+		orb := opts.Orb
+		if orb <= 0 { orb = 3.0 }
+
+		for _, ip := range innerPlanets {
+			for _, op := range outerPlanets {
+				diff := math.Abs(ip.Lon - op.Lon)
+				if diff > 180 { diff = 360 - diff }
+
+				// Check all Ptolemaic aspects
+				for _, aspAngle := range []float64{0, 60, 90, 120, 180} {
+					if math.Abs(diff-aspAngle) <= orb {
+						a1 := toAngle(ip.Lon)
+						a2 := toAngle(op.Lon)
+						x1, y1 := toXY(a1, innerPlanetR)
+						x2, y2 := toXY(a2, outerPlanetR)
+
+						// Color by aspect type
+						aspColor := "#000000"
+						opacity := "0.25"
+						sw := "0.5"
+						switch aspAngle {
+						case 0:
+							aspColor = "#cc0000"; opacity = "0.4"; sw = "1"
+						case 90:
+							aspColor = "#cc0000"; opacity = "0.3"
+						case 180:
+							aspColor = "#cc0000"; opacity = "0.35"; sw = "0.8"
+						case 120:
+							aspColor = "#006600"; opacity = "0.3"
+						case 60:
+							aspColor = "#006600"; opacity = "0.2"
+						}
+
+						sb.WriteString(fmt.Sprintf(
+							`<line x1="%.1f" y1="%.1f" x2="%.1f" y2="%.1f" stroke="%s" stroke-width="%s" opacity="%s"/>`,
+							x1, y1, x2, y2, aspColor, sw, opacity,
+						))
+						break
+					}
+				}
+			}
+		}
+	}
+
+	// ── Inner aspect lines (within natal) ──────────────────────────────
+	if opts.ShowAspects && opts.ShowInnerAspects {
+		orb := opts.Orb
+		if orb <= 0 { orb = 3.0 }
+		for i := 0; i < len(innerPlanets); i++ {
+			for j := i + 1; j < len(innerPlanets); j++ {
+				diff := math.Abs(innerPlanets[i].Lon - innerPlanets[j].Lon)
+				if diff > 180 { diff = 360 - diff }
+				for _, aspAngle := range []float64{0, 90, 120, 180} {
+					if math.Abs(diff-aspAngle) <= orb {
+						a1 := toAngle(innerPlanets[i].Lon)
+						a2 := toAngle(innerPlanets[j].Lon)
+						x1, y1 := toXY(a1, innerPlanetR)
+						x2, y2 := toXY(a2, innerPlanetR)
+						sb.WriteString(fmt.Sprintf(
+							`<line x1="%.1f" y1="%.1f" x2="%.1f" y2="%.1f" stroke="#000000" stroke-width="0.5" opacity="0.2"/>`,
+							x1, y1, x2, y2,
+						))
+						break
+					}
+				}
+			}
+		}
+	}
+
+	// ── Center label ───────────────────────────────────────────────────
+	sb.WriteString(fmt.Sprintf(
+		`<text x="%.1f" y="%.1f" fill="#000000" font-size="16" text-anchor="middle" dominant-baseline="central" font-weight="bold">%s</text>`,
+		cx, cy-18, innerName,
+	))
+	sb.WriteString(fmt.Sprintf(
+		`<text x="%.1f" y="%.1f" fill="#000000" font-size="14" text-anchor="middle" dominant-baseline="central">%d-%02d-%02d</text>`,
+		cx, cy, innerYear, innerMonth, innerDay,
+	))
+	sb.WriteString(fmt.Sprintf(
+		`<text x="%.1f" y="%.1f" fill="#cc0000" font-size="14" text-anchor="middle" dominant-baseline="central" font-weight="bold">%s</text>`,
+		cx, cy+18, outerName,
+	))
+	sb.WriteString(fmt.Sprintf(
+		`<text x="%.1f" y="%.1f" fill="#cc0000" font-size="12" text-anchor="middle" dominant-baseline="central">%d-%02d-%02d</text>`,
+		cx, cy+34, outerYear, outerMonth, outerDay,
+	))
+
+	sb.WriteString(`</svg>`)
+	return sb.String()
+}

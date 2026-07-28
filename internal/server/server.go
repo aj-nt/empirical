@@ -82,6 +82,9 @@ type SolarArcFunc func(bd dignity.BirthData, targetDate string, orbDeg float64) 
 // ProfectionFunc computes annual profections for a target date.
 type ProfectionFunc func(bd dignity.BirthData, targetDate string) ([]byte, error)
 
+// BiWheelFunc generates a bi-wheel SVG comparing two charts.
+type BiWheelFunc func(inner, outer dignity.BirthData, opts dignity.BiWheelOptions) ([]byte, error)
+
 // InterpretationFunc produces natural-language chart interpretation.
 // system: SystemKoiné (Hellenistic, default) or SystemWestern (modern).
 type InterpretationFunc func(bd dignity.BirthData, houseSystem string, orbDeg float64, system string) ([]byte, error)
@@ -183,6 +186,7 @@ type ServerConfig struct {
 	Directions            DirectionsFunc
 	SolarArc              SolarArcFunc
 	Profection            ProfectionFunc
+	BiWheel               BiWheelFunc
 	Interpretation        InterpretationFunc
 	AstroCartography      AstroCartographyFunc
 	AstroCartographyCompare AstroCartographyCompareFunc
@@ -512,6 +516,46 @@ func NewMux(cfg ServerConfig) *http.ServeMux {
 		}
 		return cfg.Profection(req.ToBirthData(), req.TargetDate)
 	}))
+
+	mux.HandleFunc("/api/bi-wheel", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			http.Error(w, "POST only", http.StatusMethodNotAllowed)
+			return
+		}
+		var req BiWheelRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			http.Error(w, "invalid JSON: "+err.Error(), http.StatusBadRequest)
+			return
+		}
+		if cfg.BiWheel == nil {
+			http.Error(w, "not available", http.StatusNotImplemented)
+			return
+		}
+		opts := dignity.DefaultBiWheelOptions()
+		if req.HouseSystem != "" {
+			opts.HouseSystem = req.HouseSystem
+		}
+		if req.ShowAsteroids {
+			opts.ShowAsteroids = true
+		}
+		if req.ShowTNPs {
+			opts.ShowTNPs = true
+		}
+		if req.Sidereal {
+			opts.Sidereal = true
+		}
+		if req.Orb > 0 {
+			opts.Orb = req.Orb
+		}
+		result, err := cfg.BiWheel(req.Inner.ToBirthData(), req.Outer.ToBirthData(), opts)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		w.Header().Set("Content-Type", "image/svg+xml")
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Write(result)
+	})
 
 	mux.HandleFunc("/api/interpretation", handleJSON(func(req ChartRequest) ([]byte, error) {
 		if cfg.Interpretation == nil {
@@ -851,6 +895,17 @@ type SolarArcRequest struct {
 type ProfectionRequest struct {
 	ChartRequest
 	TargetDate string `json:"target_date"`
+}
+
+// BiWheelRequest is the request for /api/bi-wheel.
+type BiWheelRequest struct {
+	Inner         ChartRequest `json:"inner"`
+	Outer         ChartRequest `json:"outer"`
+	HouseSystem   string       `json:"house_system"`
+	ShowAsteroids bool         `json:"show_asteroids"`
+	ShowTNPs      bool         `json:"show_tnps"`
+	Sidereal      bool         `json:"sidereal"`
+	Orb           float64      `json:"orb"`
 }
 
 // AstroCartographyRequest is the request for /api/astrocartography.
