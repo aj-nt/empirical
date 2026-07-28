@@ -838,7 +838,11 @@ function DivisionalTab({ data }: { data: BirthData }) {
   return (
     <div className="space-y-4">
       {/* Dasha info */}
-      {dasha.length > 0 && (
+      {dasha.length > 0 && (() => {
+        const today = new Date().toISOString().slice(0, 10);
+        const currentIdx = dasha.findIndex((d: any) => d.start <= today && d.end > today);
+        const startIdx = currentIdx >= 0 ? currentIdx : 0;
+        return (
         <Section title="Current Dasha">
           <table className="w-full text-sm">
             <thead>
@@ -849,7 +853,7 @@ function DivisionalTab({ data }: { data: BirthData }) {
               </tr>
             </thead>
             <tbody>
-              {dasha.slice(0, 3).map((d: any, i: number) => (
+              {dasha.slice(startIdx, startIdx + 3).map((d: any, i: number) => (
                 <tr key={i} className="border-t border-border">
                   <td className={`py-1 pr-4 ${i === 0 ? 'font-semibold text-accent' : ''}`}>{d.planet}</td>
                   <td className="py-1 pr-4">{d.start}</td>
@@ -859,7 +863,8 @@ function DivisionalTab({ data }: { data: BirthData }) {
             </tbody>
           </table>
         </Section>
-      )}
+        );
+      })()}
 
       {/* Navamsha (D9) */}
       {positions.length > 0 && (
