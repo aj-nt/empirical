@@ -46,12 +46,26 @@ type ChartInterpretation struct {
 	Patterns        []string       `json:"patterns"`
 	Stars           []string       `json:"stars,omitempty"`
 	Midpoints       []string       `json:"midpoints,omitempty"`
+	Declinations    []string       `json:"declinations,omitempty"`
+	Contraparallels []string       `json:"contraparallels,omitempty"`
 	ElementBalance  map[string]int     `json:"element_balance,omitempty"`
 	ModalityBalance map[string]int     `json:"modality_balance,omitempty"`
 	Hemisphere       *HemisphereEmphasis `json:"hemisphere,omitempty"`
 	RulershipChains  map[int][]string    `json:"rulership_chains,omitempty"`
 	DispositorTrees  map[string][]string `json:"dispositor_trees,omitempty"`
 	IsDay           bool           `json:"is_day"`
+
+	// ── Traditional Western fields ──
+	LunarPhase        string   `json:"lunar_phase,omitempty"`
+	LunarPhaseAngle   float64  `json:"lunar_phase_angle,omitempty"`
+	Retrogrades       []string `json:"retrogrades,omitempty"`
+	Antiscia          []string `json:"antiscia,omitempty"`
+	AntisciaContacts  []string `json:"antiscia_contacts,omitempty"`
+	MutualReceptions  []string `json:"mutual_receptions,omitempty"`
+	Decans            []string `json:"decans,omitempty"`
+	Terms             []string `json:"terms,omitempty"`
+	VOCMoon           string   `json:"voc_moon,omitempty"`
+	Sect              string   `json:"sect,omitempty"`
 
 	// ── Reading-optimized fields (populated when reading=true) ──
 	ChartRuler             string          `json:"chart_ruler,omitempty"`
@@ -119,6 +133,7 @@ var planetDescriptions = map[string]string{
 	"Pluto":   "power, transformation, where you destroy and regenerate",
 	"Chiron":  "wounding and healing, the teacher from pain",
 	"Node":    "evolutionary path, what you're moving toward",
+	"SouthNode": "past mastery, what you're releasing, the diminishment point",
 	"Ceres":   "nurturing, cycles of care and loss",
 	"Pallas":  "pattern recognition, strategic intelligence",
 	"Juno":    "partnership contracts, what you commit to",

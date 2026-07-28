@@ -47,6 +47,14 @@ func WesternFromBase(bc *BaseChart, orbDeg float64, reading bool) *ChartInterpre
 	// Run the modern Western interpretation engine
 	report := InterpretChart(bc.Name, planetLons, houses, aspects, patternHits, nil)
 
+	// Day/night sect
+	sunLon := planetLons["Sun"]
+	diff := sunLon - bc.ASC
+	if diff < 0 {
+		diff += 360
+	}
+	report.IsDay = diff < 180
+
 	// Star conjunctions (2° orb — system-specific, now explicit)
 	starConjunctions := FindStarConjunctions(bc.StarPositions, planetLons, 2.0)
 	for _, sc := range starConjunctions {
@@ -76,6 +84,74 @@ func WesternFromBase(bc *BaseChart, orbDeg float64, reading bool) *ChartInterpre
 
 	// Dispositor trees
 	report.DispositorTrees = ComputeDispositorTrees(planetLons)
+
+	// Declination parallels & contraparallels (1° orb)
+	report.Declinations, report.Contraparallels = computeDeclinationContacts(bc.Declinations, planetLons)
+
+	// ── Traditional Western fields ────────────────────────────────────
+
+	// Lunar phase
+	lp := ComputeLunarPhase(planetLons["Sun"], planetLons["Moon"])
+	report.LunarPhase = lp.Name
+	report.LunarPhaseAngle = lp.Angle
+
+	// Retrogrades
+	// Build speed map from BaseChart
+	speeds := make(map[string]float64, len(bc.Tropical))
+	for name, pos := range bc.Tropical {
+		speeds[name] = pos.Speed
+	}
+	for _, r := range DetectRetrogrades(speeds) {
+		if r.Retrograde {
+			report.Retrogrades = append(report.Retrogrades,
+				fmt.Sprintf("%s Rx (%.4f°/day)", r.Planet, r.Speed))
+		}
+	}
+
+	// Antiscia
+	for _, a := range ComputeAntiscia(planetLons) {
+		report.Antiscia = append(report.Antiscia,
+			fmt.Sprintf("%s (%.2f° %s) → antiscion %.2f° %s, contra-antiscion %.2f° %s",
+				a.Planet, a.Longitude, SignForLongitude(a.Longitude),
+				a.Antiscion, a.AntiscionSign,
+				a.ContraAntiscion, a.ContraSign))
+	}
+
+	// Antiscia contacts (natal planet conjunct another's antiscion, ≤1°)
+	report.AntisciaContacts = computeAntisciaContacts(planetLons)
+
+	// Mutual receptions (from traditional dispositor tree)
+	dt := ComputeDispositorTree(planetLons)
+	report.MutualReceptions = dt.MutualReceptions
+
+	// Decans (Faces)
+	for _, d := range ComputeDecans(planetLons) {
+		report.Decans = append(report.Decans,
+			fmt.Sprintf("%s: %s decan %d (ruler: %s)", d.Planet, d.Sign, d.Decan, d.Ruler))
+	}
+
+	// Egyptian Terms
+	for _, t := range ComputeTerms(planetLons) {
+		report.Terms = append(report.Terms,
+			fmt.Sprintf("%s: %s term %d (ruler: %s)", t.Planet, t.Sign, t.Term, t.Ruler))
+	}
+
+	// Void of Course Moon
+	voc := ComputeVOCMoon(planetLons)
+	if voc.VOC {
+		report.VOCMoon = fmt.Sprintf("Moon is VOID OF COURSE in %s (%.2f°). %.2f° remaining until %s.",
+			voc.MoonSign, voc.MoonLon, voc.DegreesToNext, voc.NextSign)
+	} else {
+		report.VOCMoon = fmt.Sprintf("Moon is NOT void of course in %s. Last applying aspect: %s to %s (orb %.2f°).",
+			voc.MoonSign, voc.LastAspect, voc.LastAspectTo, voc.LastAspectOrb)
+	}
+
+	// Sect
+	if report.IsDay {
+		report.Sect = "Day chart (diurnal) — Sun above horizon. Sun is sect light. Jupiter is the benefic of sect; Saturn is the contrary-to-sect malefic."
+	} else {
+		report.Sect = "Night chart (nocturnal) — Sun below horizon. Moon is sect light. Venus is the benefic of sect; Mars is the contrary-to-sect malefic."
+	}
 
 	// ── Reading-optimized fields ──────────────────────────────────────
 	if reading {
@@ -238,7 +314,7 @@ func planetImportance(name string) float64 {
 		return planetWeightNeptune
 	case "Pluto":
 		return planetWeightPluto
-	case "Node", "North Node", "TrueNode":
+	case "Node", "North Node", "TrueNode", "SouthNode":
 		return planetWeightNode
 	case "Chiron":
 		return planetWeightChiron
@@ -361,4 +437,110 @@ func planetDignity(planet, sign string) string {
 		return "fall"
 	}
 	return "peregrine"
+}
+
+// ── Declination contacts ────────────────────────────────────────────────
+
+// computeDeclinationContacts finds parallels (same hemisphere, ≤1° orb) and
+// contraparallels (opposite hemisphere, ≤1° orb) from the declination map.
+// Only bodies present in planetLons are included.
+func computeDeclinationContacts(decls map[string]float64, planetLons map[string]float64) (parallels, contraparallels []string) {
+	// Build a list of (name, declination) for bodies in planetLons
+	type entry struct {
+		name string
+		dec  float64
+	}
+	var entries []entry
+	for name, dec := range decls {
+		if _, ok := planetLons[name]; ok {
+			entries = append(entries, entry{name, dec})
+		}
+	}
+
+	// Sort by absolute declination for cleaner output
+	sort.Slice(entries, func(i, j int) bool {
+		return entries[i].dec < entries[j].dec
+	})
+
+	for i := 0; i < len(entries); i++ {
+		for j := i + 1; j < len(entries); j++ {
+			a, b := entries[i], entries[j]
+			// Same hemisphere → parallel
+			if (a.dec >= 0 && b.dec >= 0) || (a.dec < 0 && b.dec < 0) {
+				diff := a.dec - b.dec
+				if diff < 0 {
+					diff = -diff
+				}
+				if diff > 1.0 {
+					continue
+				}
+				hemi := "N"
+				if a.dec < 0 {
+					hemi = "S"
+				}
+				parallels = append(parallels,
+					fmt.Sprintf("%s ∥ %s (orb %.2f° %s)", a.name, b.name, diff, hemi))
+			} else {
+				// Opposite hemisphere → contraparallel (compare absolute values)
+				absA, absB := a.dec, b.dec
+				if absA < 0 {
+					absA = -absA
+				}
+				if absB < 0 {
+					absB = -absB
+				}
+				diff := absA - absB
+				if diff < 0 {
+					diff = -diff
+				}
+				if diff > 1.0 {
+					continue
+				}
+				contraparallels = append(contraparallels,
+					fmt.Sprintf("%s ⧄ %s (orb %.2f°)", a.name, b.name, diff))
+			}
+		}
+	}
+	return
+}
+
+// ── Antiscia contacts ──────────────────────────────────────────────────
+
+// computeAntisciaContacts finds natal planets conjunct another planet's
+// antiscion or contra-antiscion point (≤1° orb).
+func computeAntisciaContacts(planetLons map[string]float64) []string {
+	// Build antiscia map: planet → antiscion longitude
+	type antiPoint struct {
+		planet   string
+		anti     float64
+		contra   float64
+	}
+	var points []antiPoint
+	for name, lon := range planetLons {
+		anti := normalizeLon(360 - lon)
+		contra := normalizeLon(anti + 180)
+		points = append(points, antiPoint{name, anti, contra})
+	}
+
+	var contacts []string
+	for _, ap := range points {
+		for other, otherLon := range planetLons {
+			if other == ap.planet {
+				continue
+			}
+			// Check antiscion contact
+			orb := angleDist(otherLon, ap.anti)
+			if orb <= 1.0 {
+				contacts = append(contacts,
+					fmt.Sprintf("%s conjunct %s's antiscion (orb %.2f°)", other, ap.planet, orb))
+			}
+			// Check contra-antiscion contact
+			orb = angleDist(otherLon, ap.contra)
+			if orb <= 1.0 {
+				contacts = append(contacts,
+					fmt.Sprintf("%s conjunct %s's contra-antiscion (orb %.2f°)", other, ap.planet, orb))
+			}
+		}
+	}
+	return contacts
 }

@@ -20,6 +20,20 @@
 <body>
   <h1>Western Natal Chart — {{.Name}}</h1>
 
+  {{if .Sect}}
+  <h2>Sect</h2>
+  <div class="section">
+    <div class="item">{{.Sect}}</div>
+  </div>
+  {{end}}
+
+  {{if .LunarPhase}}
+  <h2>Lunar Phase</h2>
+  <div class="section">
+    <div class="item">{{.LunarPhase}} ({{.LunarPhaseAngle}}° Sun-Moon angle)</div>
+  </div>
+  {{end}}
+
   <h2>Planets in Signs</h2>
   <div class="section">
     {{range .PlanetSigns}}
@@ -50,12 +64,91 @@
   </div>
   {{end}}
 
+  {{if .Retrogrades}}
+  <h2>Retrogrades</h2>
+  <div class="section">
+    {{range .Retrogrades}}
+    <div class="item">{{.}}</div>
+    {{end}}
+  </div>
+  {{end}}
+
   {{if .Midpoints}}
   <h2>Midpoints</h2>
   <div class="section">
     {{range .Midpoints}}
     <div class="item">{{.}}</div>
     {{end}}
+  </div>
+  {{end}}
+
+  {{if .Declinations}}
+  <h2>Declination Parallels</h2>
+  <div class="section">
+    {{range .Declinations}}
+    <div class="item">{{.}}</div>
+    {{end}}
+  </div>
+  {{end}}
+
+  {{if .Contraparallels}}
+  <h2>Contraparallels</h2>
+  <div class="section">
+    {{range .Contraparallels}}
+    <div class="item">{{.}}</div>
+    {{end}}
+  </div>
+  {{end}}
+
+  {{if .Antiscia}}
+  <h2>Antiscia</h2>
+  <div class="section">
+    {{range .Antiscia}}
+    <div class="item">{{.}}</div>
+    {{end}}
+  </div>
+  {{end}}
+
+  {{if .AntisciaContacts}}
+  <h2>Antiscia Contacts</h2>
+  <div class="section">
+    {{range .AntisciaContacts}}
+    <div class="item">{{.}}</div>
+    {{end}}
+  </div>
+  {{end}}
+
+  {{if .MutualReceptions}}
+  <h2>Mutual Receptions</h2>
+  <div class="section">
+    {{range .MutualReceptions}}
+    <div class="item">{{.}}</div>
+    {{end}}
+  </div>
+  {{end}}
+
+  {{if .Decans}}
+  <h2>Decans (Faces)</h2>
+  <div class="section">
+    {{range .Decans}}
+    <div class="item">{{.}}</div>
+    {{end}}
+  </div>
+  {{end}}
+
+  {{if .Terms}}
+  <h2>Egyptian Terms</h2>
+  <div class="section">
+    {{range .Terms}}
+    <div class="item">{{.}}</div>
+    {{end}}
+  </div>
+  {{end}}
+
+  {{if .VOCMoon}}
+  <h2>Void of Course Moon</h2>
+  <div class="section">
+    <div class="item">{{.VOCMoon}}</div>
   </div>
   {{end}}
 
