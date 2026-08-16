@@ -1,8 +1,7 @@
 package swe
 
 /*
-#cgo LDFLAGS: /Users/aj/.local/lib/libswe.a -lm
-#cgo CFLAGS: -I/Users/aj/.local/include
+#cgo pkg-config: swe
 #include <swephexp.h>
 */
 import "C"
