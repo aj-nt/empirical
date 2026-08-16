@@ -1,7 +1,8 @@
 package swe
 
 /*
-#cgo pkg-config: swe
+#cgo darwin pkg-config: swe
+#cgo linux LDFLAGS: -Wl,-Bstatic -lswe -Wl,-Bdynamic -lm
 #include <swephexp.h>
 */
 import "C"
