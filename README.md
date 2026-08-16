@@ -4,6 +4,17 @@ Cross-system **signal recovery**, not distillation. Nine astrological systems tr
 
 Single Go binary. Zero runtime dependencies. Same JPL DE ephemeris data NASA uses for spacecraft navigation (Swiss Ephemeris via CGo).
 
+## Quick Start
+
+```bash
+git clone https://github.com/aj-nt/empirical.git
+cd empirical
+go build -buildvcs=false -o empirical ./cmd/recover/
+./empirical serve 5000
+```
+
+Open `http://localhost:5000` in your browser.
+
 ## What it does
 
 Runs the **recover** protocol across all systems and produces a convergence report: which placements agree across tropical and sidereal traditions, which diverge, and what that tells you.
@@ -27,46 +38,31 @@ Saturn     Aries          Pisces         fall           peregrine      NOISE
 Signal: 4/7 (57%)
 ```
 
-Use `--json` for machine-readable output.
+## Features
 
-## Installing
+- **Chart wheel** — natal, bi-wheel (transits), tri-wheel
+- **Interpretation** — Western and Koiné (Hellenistic) systems
+- **Predictive tools** — solar returns, progressions, directions, profections, firdaria, zodiacal releasing
+- **Relationship astrology** — synastry, composite, draconic synastry
+- **Astrocartography** — planetary line maps
+- **Research tools** — ephemeris, transit calendar, mundane astrology (67 national charts)
+- **Professional features** — tag management, bulk operations, backup/restore, print layout, custom aspect sets, keyboard shortcuts
 
-Download the binary for your platform from [Releases](https://github.com/aj-nt/empirical/releases). No install step — it's self-contained. The binary extracts ephemeris data files to `~/.cache/empirical/ephe/` on first run.
+## Documentation
 
-## Building from source
+- [Getting Started](docs/getting-started.md)
+- [API Reference](docs/api-reference.md)
+- [CLI Reference](docs/cli-reference.md)
+- [Web GUI](docs/web-gui.md)
+- [Astrology Systems](docs/astrology-systems.md)
 
-Requires Go 1.26+ and the Swiss Ephemeris C library.
+## Community
 
-```bash
-# Install Swiss Ephemeris C library
-git clone https://github.com/aloistr/swisseph
-cd swisseph && make libswe.a
-sudo cp libswe.a /usr/local/lib/
-sudo cp src/*.h /usr/local/include/
-
-# Build
-go build -o empirical ./cmd/recover
-```
-
-## The thesis
-
-Modern astrology is a degraded transmission of an original computational system. Each surviving tradition (Western, Vedic, Chinese, Uranian, etc.) preserves a partial signal. By measuring where they agree and where they diverge, we can recover the original grammar — not by choosing a "correct" system, but by treating the variance itself as information.
-
-This is falsifiable, not interpretive. The convergence scores are deterministic. The claims can be tested.
-
-### Signal recovery phases
-
-1. **Dignity convergence** — Western vs Vedic planetary dignity. Where they agree = signal.
-2. **Aspect geometry** — Which angle families are universal? Only conjunction (0), trine (120), and opposition (180) survive all three traditions.
-3. **House division** — 5 systems compared. Whole-sign houses show highest cross-system agreement.
-4. **Timing layers** — Vedic dasha, Ba Zi luck pillars, Hellenistic profections as complementary timing frameworks.
-5. **Node axis** — The lunar node axis is invariant across all coordinate systems.
-6. **Zodiac comparison** — 9,738 synthetic charts confirm tropical and sidereal are symmetric views of the same grammar. Neither is "correct."
+- [Contributing](CONTRIBUTING.md)
+- [Code of Conduct](CODE_OF_CONDUCT.md)
+- [Report a Bug](https://github.com/aj-nt/empirical/issues/new?template=bug_report.yml)
+- [Request a Feature](https://github.com/aj-nt/empirical/issues/new?template=feature_request.yml)
 
 ## License
 
-MIT
-
-## Status
-
-In development. Phases 1-2 ported to Go, cross-validated against the Python reference implementation. Phases 3-6 in progress.
+Engine: MIT. Paper: CC-BY 4.0.

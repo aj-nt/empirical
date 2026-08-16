@@ -1,25 +1,13 @@
 package dignity
 
 import (
-	"os"
-	"path/filepath"
 	"testing"
 
-	"github.com/aj-nt/empirical/internal/swe"
 )
 
 func initEpheForVFB(t *testing.T) {
 	t.Helper()
-	home, err := os.UserHomeDir()
-	if err != nil {
-		t.Skipf("cannot find home dir: %v", err)
-	}
-	cacheDir := filepath.Join(home, ".cache", "empirical", "ephe")
-	if _, err := os.Stat(cacheDir); os.IsNotExist(err) {
-		t.Skipf("ephemeris cache not found at %s", cacheDir)
-	}
-	swe.SetEphePath(cacheDir)
-	swe.SetSidMode(swe.SIDM_LAHIRI, 0, 0)
+	initEphe(t)
 }
 
 func TestVedicFromBase_KnownChart(t *testing.T) {

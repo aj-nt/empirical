@@ -98,11 +98,12 @@ export const chartDB = {
     return count;
   },
 
-  async createFromBirthData(name: string, birthData: BirthData, tags: string[] = []): Promise<number> {
+  async createFromBirthData(name: string, birthData: BirthData, tags: string[] = [], houseSystem = 'placidus'): Promise<number> {
     const now = new Date().toISOString();
     return this.add({
       name,
       birthData,
+      houseSystem,
       tags,
       notes: '',
       createdAt: now,

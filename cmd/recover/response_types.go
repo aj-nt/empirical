@@ -27,6 +27,8 @@ type TransitMidpointJSON struct {
 // TransitsResponse is the JSON response for /api/transits.
 type TransitsResponse struct {
 	Name       string               `json:"name"`
+	StartDate  string               `json:"start_date"`
+	EndDate    string               `json:"end_date"`
 	Sidereal   bool                 `json:"sidereal"`
 	Transits   []TransitHitJSON     `json:"transits"`
 	SkyWeather []TransitHitJSON     `json:"sky_weather"`

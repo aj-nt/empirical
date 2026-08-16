@@ -119,8 +119,8 @@ func main() {
 			return report.TimingReportJSON()
 		}
 
-		transits := func(bd dignity.BirthData, startDate, endDate string, orbDeg float64, sidereal bool) ([]byte, error) {
-			return marshalResult(computeTransits(bd.Name, bd.Year, bd.Month, bd.Day, bd.Hour, bd.Minute, bd.TZOffset, bd.Lat, bd.Lng, startDate, endDate, orbDeg, sidereal, cacheDir))
+		transits := func(bd dignity.BirthData, startDate, endDate string, orbDeg float64, sidereal bool, ayanamsa string) ([]byte, error) {
+			return marshalResult(computeTransits(bd.Name, bd.Year, bd.Month, bd.Day, bd.Hour, bd.Minute, bd.TZOffset, bd.Lat, bd.Lng, startDate, endDate, orbDeg, sidereal, ayanamsa, cacheDir))
 		}
 
 		synastry := func(name1 string, y1, mo1, d1, h1, mi1 int, tz1, la1, lo1 float64, name2 string, y2, mo2, d2, h2, mi2 int, tz2, la2, lo2 float64, orbDeg float64) ([]byte, error) {
@@ -131,10 +131,11 @@ func main() {
 			return marshalResult(computeRelocation(bd.Name, bd.Year, bd.Month, bd.Day, bd.Hour, bd.Minute, bd.TZOffset, bd.Lat, bd.Lng, locA, locB, targetDate, cacheDir))
 		}
 
-		chart := func(bd dignity.BirthData, houseSystem string, sidereal bool, showAspects bool, outerPlanets bool, highlightPatterns bool, patternOrb float64) (string, error) {
+		chart := func(bd dignity.BirthData, houseSystem string, sidereal bool, ayanamsa string, showAspects bool, outerPlanets bool, highlightPatterns bool, patternOrb float64) (string, error) {
 			opts := dignity.DefaultChartOptions()
 			opts.HouseSystem = houseSystem
 			opts.Sidereal = sidereal
+			opts.Ayanamsa = ayanamsa
 			opts.ShowAspects = showAspects
 			opts.OuterPlanets = outerPlanets
 			opts.HighlightPatterns = highlightPatterns
@@ -216,6 +217,10 @@ func main() {
 
 		biWheel := func(inner, outer dignity.BirthData, opts dignity.BiWheelOptions) ([]byte, error) {
 			return computeBiWheel(inner, outer, opts)
+		}
+
+		triWheel := func(inner, middle, outer dignity.BirthData, opts dignity.TriWheelOptions) ([]byte, error) {
+			return computeTriWheel(inner, middle, outer, opts)
 		}
 
 		zodiacalReleasing := func(bd dignity.BirthData, lotType, targetDate string) ([]byte, error) {
@@ -363,6 +368,7 @@ func main() {
 			SolarArc:              solarArc,
 			Profection:            profection,
 			BiWheel:               biWheel,
+			TriWheel:              triWheel,
 			ZodiacalReleasing:     zodiacalReleasing,
 			Horary:                horary,
 			Import:                importCharts,
@@ -402,14 +408,24 @@ func main() {
 		jsonOut := fs.Bool("json", false, "output as JSON")
 		orbDeg := fs.Float64("orb", 3.0, "max orb in degrees")
 		sidereal := fs.Bool("sidereal", false, "use sidereal (Lahiri) positions")
+		ayanamsa := fs.String("ayanamsa", "lahiri", "ayanamsa: lahiri, fagan_bradley, raman, krishnamurti")
 		fs.Parse(os.Args[2:])
 		args := fs.Args()
 
 		if len(args) < 11 {
-			fmt.Fprintf(os.Stderr, "Usage: empirical transit [--json] [--orb 3] [--sidereal] NAME Y M D H MIN TZ LAT LNG START_DATE END_DATE\n")
-			fmt.Fprintf(os.Stderr, "Example: empirical transit --sidereal \"AJ\" 1969 2 15 23 10 -8 47.038 -122.901 2026-07-22 2026-07-22\n")
+			fmt.Fprintf(os.Stderr, "Usage: empirical transit [--json] [--orb 3] [--sidereal] [--ayanamsa lahiri] NAME Y M D H MIN TZ LAT LNG START_DATE END_DATE\n")
+			fmt.Fprintf(os.Stderr, "Example: empirical transit --sidereal --ayanamsa raman \"AJ\" 1969 2 15 23 10 -8 47.038 -122.901 2026-07-22 2026-07-22\n")
 			os.Exit(1)
 		}
+
+		// Init ephemeris
+		cacheDir, err := empirical.EnsureEpheCache()
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Failed to initialize ephemeris: %v\n", err)
+			os.Exit(1)
+		}
+		swe.SetEphePath(cacheDir)
+		swe.SetSidMode(swe.SIDM_LAHIRI, 0, 0)
 
 		name := args[0]
 		year, _ := strconv.Atoi(args[1])
@@ -423,7 +439,7 @@ func main() {
 		startDate := args[9]
 		endDate := args[10]
 
-		result, err := computeTransits(name, year, month, day, hour, minute, tzOff, lat, lng, startDate, endDate, *orbDeg, *sidereal, "")
+		result, err := computeTransits(name, year, month, day, hour, minute, tzOff, lat, lng, startDate, endDate, *orbDeg, *sidereal, *ayanamsa, cacheDir)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Transit error: %v\n", err)
 			os.Exit(1)
@@ -692,7 +708,7 @@ func main() {
 		cacheDir := ""
 		natalPlanets := dignity.AllPlanetNames
 		synastryAspects := []dignity.AspectDef{
-			{0, "conjunction"}, {60, "sextile"}, {90, "square"}, {120, "trine"}, {180, "opposition"},
+			{Angle: 0, Name: "conjunction"}, {Angle: 60, Name: "sextile"}, {Angle: 90, Name: "square"}, {Angle: 120, Name: "trine"}, {Angle: 180, Name: "opposition"},
 		}
 
 		switch subCmd {
@@ -795,6 +811,145 @@ func main() {
 		default:
 			fmt.Fprintf(os.Stderr, "unknown batch subcommand: %s (use transits or synastry)\n", subCmd)
 			os.Exit(1)
+		}
+		return
+	}
+
+	// ── patterns subcommand ─────────────────────────────────────────
+	if len(os.Args) >= 2 && os.Args[1] == "patterns" {
+		fs := flag.NewFlagSet("patterns", flag.ExitOnError)
+		jsonOut := fs.Bool("json", false, "output as JSON")
+		orbDeg := fs.Float64("orb", 5.0, "max orb in degrees")
+		fs.Parse(os.Args[2:])
+		args := fs.Args()
+
+		if len(args) < 9 {
+			fmt.Fprintf(os.Stderr, "Usage: empirical patterns [--json] [--orb 5] NAME Y M D H MIN TZ LAT LNG\n")
+			fmt.Fprintf(os.Stderr, "Example: empirical patterns --json --orb 5 \"AJ\" 1969 2 15 23 10 -8 47.038 -122.901\n")
+			os.Exit(1)
+		}
+
+		name := args[0]
+		year, _ := strconv.Atoi(args[1])
+		month, _ := strconv.Atoi(args[2])
+		day, _ := strconv.Atoi(args[3])
+		hour, _ := strconv.Atoi(args[4])
+		minute, _ := strconv.Atoi(args[5])
+		tzOff, _ := strconv.ParseFloat(args[6], 64)
+		lat, _ := strconv.ParseFloat(args[7], 64)
+		lng, _ := strconv.ParseFloat(args[8], 64)
+
+		initEphe()
+		bd := dignity.BirthData{Name: name, Year: year, Month: month, Day: day, Hour: hour, Minute: minute, TZOffset: tzOff, Lat: lat, Lng: lng}
+		bc, err := dignity.ComputeBaseChart(bd)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Failed to compute base chart: %v\n", err)
+			os.Exit(1)
+		}
+		planetMap := dignity.TropicalToLonMap(bc.Tropical)
+		planetMap["Node"] = bc.NorthNode
+		report := dignity.DetectPatterns(planetMap, *orbDeg)
+		report.Name = name
+
+		if *jsonOut {
+			js, err := report.PatternReportJSON()
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "JSON error: %v\n", err)
+				os.Exit(1)
+			}
+			fmt.Println(string(js))
+		} else {
+			fmt.Print(dignity.FormatPatternReport(report))
+		}
+		return
+	}
+
+	// ── stars subcommand ────────────────────────────────────────────
+	if len(os.Args) >= 2 && os.Args[1] == "stars" {
+		fs := flag.NewFlagSet("stars", flag.ExitOnError)
+		jsonOut := fs.Bool("json", false, "output as JSON")
+		orbDeg := fs.Float64("orb", 3.0, "max orb in degrees")
+		fs.Parse(os.Args[2:])
+		args := fs.Args()
+
+		if len(args) < 9 {
+			fmt.Fprintf(os.Stderr, "Usage: empirical stars [--json] [--orb 3] NAME Y M D H MIN TZ LAT LNG\n")
+			fmt.Fprintf(os.Stderr, "Example: empirical stars --json --orb 3 \"AJ\" 1969 2 15 23 10 -8 47.038 -122.901\n")
+			os.Exit(1)
+		}
+
+		name := args[0]
+		year, _ := strconv.Atoi(args[1])
+		month, _ := strconv.Atoi(args[2])
+		day, _ := strconv.Atoi(args[3])
+		hour, _ := strconv.Atoi(args[4])
+		minute, _ := strconv.Atoi(args[5])
+		tzOff, _ := strconv.ParseFloat(args[6], 64)
+		lat, _ := strconv.ParseFloat(args[7], 64)
+		lng, _ := strconv.ParseFloat(args[8], 64)
+
+		initEphe()
+		bd := dignity.BirthData{Name: name, Year: year, Month: month, Day: day, Hour: hour, Minute: minute, TZOffset: tzOff, Lat: lat, Lng: lng}
+		bc, err := dignity.ComputeBaseChart(bd)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Failed to compute base chart: %v\n", err)
+			os.Exit(1)
+		}
+		result, err := computeStars(name, bc, *orbDeg, "")
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Stars error: %v\n", err)
+			os.Exit(1)
+		}
+		js, _ := json.Marshal(result)
+		if *jsonOut {
+			fmt.Println(string(js))
+		} else {
+			fmt.Print(string(js))
+		}
+		return
+	}
+
+	// ── arabic-parts subcommand ─────────────────────────────────────
+	if len(os.Args) >= 2 && os.Args[1] == "arabic-parts" {
+		fs := flag.NewFlagSet("arabic-parts", flag.ExitOnError)
+		jsonOut := fs.Bool("json", false, "output as JSON")
+		orbDeg := fs.Float64("orb", 3.0, "max orb in degrees")
+		fs.Parse(os.Args[2:])
+		args := fs.Args()
+
+		if len(args) < 9 {
+			fmt.Fprintf(os.Stderr, "Usage: empirical arabic-parts [--json] [--orb 3] NAME Y M D H MIN TZ LAT LNG\n")
+			fmt.Fprintf(os.Stderr, "Example: empirical arabic-parts --json \"AJ\" 1969 2 15 23 10 -8 47.038 -122.901\n")
+			os.Exit(1)
+		}
+
+		name := args[0]
+		year, _ := strconv.Atoi(args[1])
+		month, _ := strconv.Atoi(args[2])
+		day, _ := strconv.Atoi(args[3])
+		hour, _ := strconv.Atoi(args[4])
+		minute, _ := strconv.Atoi(args[5])
+		tzOff, _ := strconv.ParseFloat(args[6], 64)
+		lat, _ := strconv.ParseFloat(args[7], 64)
+		lng, _ := strconv.ParseFloat(args[8], 64)
+
+		initEphe()
+		bd := dignity.BirthData{Name: name, Year: year, Month: month, Day: day, Hour: hour, Minute: minute, TZOffset: tzOff, Lat: lat, Lng: lng}
+		bc, err := dignity.ComputeBaseChart(bd)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Failed to compute base chart: %v\n", err)
+			os.Exit(1)
+		}
+		result, err := computeArabicParts(name, bc, *orbDeg, "")
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Arabic parts error: %v\n", err)
+			os.Exit(1)
+		}
+		js, _ := json.Marshal(result)
+		if *jsonOut {
+			fmt.Println(string(js))
+		} else {
+			fmt.Print(string(js))
 		}
 		return
 	}
@@ -923,6 +1078,14 @@ func main() {
 			fmt.Println()
 			fmt.Print(dignity.FormatEclipticConfoundResult(report.EclipticConfound))
 		}
+		return
+	}
+
+	// ── chartdb subcommand ──────────────────────────────────────────
+	if len(os.Args) >= 2 && os.Args[1] == "chartdb" {
+		fs := flag.NewFlagSet("chartdb", flag.ExitOnError)
+		jsonOut := fs.Bool("json", false, "output as JSON")
+		runChartDB(fs, jsonOut)
 		return
 	}
 

@@ -28,11 +28,17 @@ import type {
   ProgressedResponse,
   ProgressedCrossResponse,
   DraconicTransitsCrossResponse,
+  DraconicSynastryResponse,
+  DraconicSynastryFullResponse,
   StarsCrossResponse,
   BaseChartResponse,
   ResearchMetrics,
   ResearchBaseline,
   BatchAnalysisResponse,
+  SolarArcResponse,
+  ProfectionResponse,
+  ZodiacalReleasingResponse,
+  TimingConvergenceResponse,
 } from './types';
 
 const BASE = '';
@@ -63,8 +69,8 @@ async function postText(path: string, body: unknown): Promise<string> {
   return r.text();
 }
 
-function bd(data: BirthData): ChartRequest {
-  return { ...data, house_system: 'P', orb: 3 };
+function bd(data: BirthData, houseSystem = 'placidus'): ChartRequest {
+  return { ...data, house_system: houseSystem, orb: 3 };
 }
 
 // ── Core ──
@@ -82,13 +88,14 @@ export const api = {
     }),
 
   // Transits
-  transits: (data: BirthData, startDate: string, endDate: string, orb = 3, sidereal = false) =>
+  transits: (data: BirthData, startDate: string, endDate: string, orb = 3, sidereal = false, ayanamsa = '') =>
     post<TransitResponse>('/api/transits', {
       ...bd(data),
       start_date: startDate,
       end_date: endDate,
       orb,
       sidereal,
+      ayanamsa,
     }),
 
   // Patterns
@@ -244,6 +251,25 @@ export const api = {
       orb,
     }),
 
+  // Draconic synastry
+  draconicSynastry: (a: BirthData, b: BirthData, orb = 5) =>
+    post<DraconicSynastryResponse>('/api/draconic-synastry', {
+      name1: a.name, year1: a.year, month1: a.month, day1: a.day,
+      hour1: a.hour, min1: a.minute, tz1: a.tz_offset, lat1: a.lat, lng1: a.lng,
+      name2: b.name, year2: b.year, month2: b.month, day2: b.day,
+      hour2: b.hour, min2: b.minute, tz2: b.tz_offset, lat2: b.lat, lng2: b.lng,
+      orb,
+    }),
+
+  draconicSynastryFull: (a: BirthData, b: BirthData, orb = 5) =>
+    post<DraconicSynastryFullResponse>('/api/draconic-synastry-full', {
+      name1: a.name, year1: a.year, month1: a.month, day1: a.day,
+      hour1: a.hour, min1: a.minute, tz1: a.tz_offset, lat1: a.lat, lng1: a.lng,
+      name2: b.name, year2: b.year, month2: b.month, day2: b.day,
+      hour2: b.hour, min2: b.minute, tz2: b.tz_offset, lat2: b.lat, lng2: b.lng,
+      orb,
+    }),
+
   // Stars cross
   starsCross: (data: BirthData, orb = 2) =>
     post<StarsCrossResponse>('/api/stars-cross', { ...bd(data), orb }),
@@ -268,6 +294,33 @@ export const api = {
   natalHTML: (data: BirthData, system = 'western', orb = 3) =>
     postText('/api/natal-html', { ...bd(data), system, orb }),
 
+  // Bi-wheel SVG
+  biWheel: (inner: BirthData, outer: BirthData, opts?: { houseSystem?: string; showAsteroids?: boolean; showTNPs?: boolean; sidereal?: boolean; ayanamsa?: string; orb?: number }) =>
+    postText('/api/bi-wheel', {
+      inner: { ...bd(inner) },
+      outer: { ...bd(outer) },
+      house_system: opts?.houseSystem,
+      show_asteroids: opts?.showAsteroids,
+      show_tnps: opts?.showTNPs,
+      sidereal: opts?.sidereal,
+      ayanamsa: opts?.ayanamsa,
+      orb: opts?.orb,
+    }),
+
+  // Tri-wheel SVG
+  triWheel: (inner: BirthData, middle: BirthData, outer: BirthData, opts?: { houseSystem?: string; showAsteroids?: boolean; showTNPs?: boolean; sidereal?: boolean; ayanamsa?: string; orb?: number }) =>
+    postText('/api/tri-wheel', {
+      inner: { ...bd(inner) },
+      middle: { ...bd(middle) },
+      outer: { ...bd(outer) },
+      house_system: opts?.houseSystem,
+      show_asteroids: opts?.showAsteroids,
+      show_tnps: opts?.showTNPs,
+      sidereal: opts?.sidereal,
+      ayanamsa: opts?.ayanamsa,
+      orb: opts?.orb,
+    }),
+
   // Transit HTML
   transitHTML: (
     data: BirthData,
@@ -286,6 +339,37 @@ export const api = {
       transit_lat: transitDate.lat,
       transit_lng: transitDate.lng,
       system,
+      orb,
+    }),
+
+  // Solar arc directions
+  solarArc: (data: BirthData, targetDate: string, orb = 3) =>
+    post<SolarArcResponse>('/api/solar-arc', {
+      ...bd(data),
+      target_date: targetDate,
+      orb,
+    }),
+
+  // Annual profections
+  profection: (data: BirthData, targetDate: string) =>
+    post<ProfectionResponse>('/api/profection', {
+      ...bd(data),
+      target_date: targetDate,
+    }),
+
+  // Zodiacal releasing
+  zodiacalReleasing: (data: BirthData, lot: 'fortune' | 'spirit' | 'eros' | 'necessity' = 'fortune') =>
+    post<ZodiacalReleasingResponse>('/api/zodiacal-releasing', {
+      ...bd(data),
+      lot,
+    }),
+
+  // Timing convergence
+  timingConvergence: (data: BirthData, startDate: string, endDate: string, orb = 3) =>
+    post<TimingConvergenceResponse>('/api/timing-convergence', {
+      ...bd(data),
+      start_date: startDate,
+      end_date: endDate,
       orb,
     }),
 };

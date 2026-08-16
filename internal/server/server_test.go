@@ -26,7 +26,7 @@ func mockTiming(bd dignity.BirthData, targetDate string) ([]byte, error) {
 	return json.Marshal(map[string]interface{}{"name": bd.Name, "target": targetDate})
 }
 
-func mockTransits(bd dignity.BirthData, startDate, endDate string, orb float64, sidereal bool) ([]byte, error) {
+func mockTransits(bd dignity.BirthData, startDate, endDate string, orb float64, sidereal bool, ayanamsa string) ([]byte, error) {
 	return json.Marshal(map[string]interface{}{"name": bd.Name, "start": startDate, "end": endDate})
 }
 
@@ -38,7 +38,7 @@ func mockRelocation(bd dignity.BirthData, locA LatLng, locB LatLng, targetDate s
 	return json.Marshal(map[string]interface{}{"name": bd.Name, "locA": locA.Name, "locB": locB.Name})
 }
 
-func mockChart(bd dignity.BirthData, houseSystem string, sidereal bool, showAspects bool, outerPlanets bool, highlightPatterns bool, patternOrb float64) (string, error) {
+func mockChart(bd dignity.BirthData, houseSystem string, sidereal bool, ayanamsa string, showAspects bool, outerPlanets bool, highlightPatterns bool, patternOrb float64) (string, error) {
 	return "<svg>mock chart</svg>", nil
 }
 

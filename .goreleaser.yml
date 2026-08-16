@@ -1,0 +1,22 @@
+builds:
+  - main: ./cmd/recover/
+    binary: empirical
+    goos: [darwin, linux, windows]
+    goarch: [amd64, arm64]
+    env:
+      - CGO_ENABLED=1
+    flags:
+      - -buildvcs=false
+
+archives:
+  - format: tar.gz
+    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+
+brews:
+  - name: empirical
+    repository:
+      owner: aj-nt
+      name: homebrew-tap
+    homepage: "https://github.com/aj-nt/empirical"
+    description: "Cross-system empirical astrology engine"
+    license: "MIT"

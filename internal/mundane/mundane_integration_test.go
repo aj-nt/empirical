@@ -4,12 +4,17 @@ import (
 	"testing"
 	"time"
 
+	"github.com/aj-nt/empirical"
 	"github.com/aj-nt/empirical/internal/dignity"
 	"github.com/aj-nt/empirical/internal/swe"
 )
 
 func init() {
-	swe.SetEphePath("/Users/aj/Documents/repos/empirical/ephe")
+	cacheDir, err := empirical.EnsureEpheCache()
+	if err != nil {
+		panic(err)
+	}
+	swe.SetEphePath(cacheDir)
 }
 
 // realSWECompute wraps the actual Swiss Ephemeris for integration testing.

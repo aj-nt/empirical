@@ -1,8 +1,8 @@
 package swe
 
 /*
-#cgo LDFLAGS: /Users/aj/.local/lib/libswe.a -lm
-#cgo CFLAGS: -I/Users/aj/.local/include
+#cgo pkg-config: swe
+#include <stdlib.h>
 #include <swephexp.h>
 */
 import "C"
@@ -167,6 +167,22 @@ func SetSidMode(sidMode int32, t0, ayanT0 float64) {
 	C.swe_set_sid_mode(C.int32_t(sidMode), C.double(t0), C.double(ayanT0))
 }
 
+// SetAyanamsaMode sets the sidereal mode by name.
+// Supported: "lahiri", "fagan_bradley", "raman", "krishnamurti".
+// Defaults to Lahiri for empty or unrecognized names.
+func SetAyanamsaMode(name string) {
+	switch name {
+	case "fagan_bradley":
+		SetSidMode(SIDM_FAGAN_BRADLEY, 0, 0)
+	case "raman":
+		SetSidMode(SIDM_RAMAN, 0, 0)
+	case "krishnamurti":
+		SetSidMode(SIDM_KRISHNAMURTI, 0, 0)
+	default:
+		SetSidMode(SIDM_LAHIRI, 0, 0)
+	}
+}
+
 // GetAyanamsaUT returns the ayanamsa value for a given Julian Day.
 func GetAyanamsaUT(jd float64) float64 {
 	mu.Lock()
@@ -245,12 +261,22 @@ func FixstarMag(starName string) float64 {
 func Fixstar(starName string, jd float64) (lon, lat, dist, speed float64) {
 	mu.Lock()
 	defer mu.Unlock()
-	cname := C.CString(starName)
-	defer C.free(unsafe.Pointer(cname))
+	// The star parameter to swe_fixstar must allow 2*SE_MAX_STNAME (512) bytes:
+	// fixstar_cut_string writes the RESOLVED name (traditional + "," + Bayer)
+	// back into it, which can be far longer than the input alias. A C.CString
+	// sized to the input alias overflows on glibc (heap corruption).
+	cname := C.malloc(C.size_t(2 * C.SE_MAX_STNAME))
+	defer C.free(cname)
+	buf := (*[2 * C.SE_MAX_STNAME]C.char)(cname)
+	// copy the input alias in
+	for i := 0; i < len(starName) && i < int(2*C.SE_MAX_STNAME)-1; i++ {
+		buf[i] = C.char(starName[i])
+	}
+	buf[len(starName)] = 0
 	var xx [6]C.double
 	var serr [256]C.char
 	ret := C.swe_fixstar(
-		cname,
+		(*C.char)(cname),
 		C.double(jd),
 		C.int(SEFLG_SWIEPH),
 		(*C.double)(unsafe.Pointer(&xx[0])),

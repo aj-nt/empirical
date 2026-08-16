@@ -1,0 +1,67 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  web:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm ci
+      - run: npx tsc --noEmit
+      - run: npx vitest run
+      - run: npm run build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: web-dist
+          path: web/dist
+          retention-days: 1
+
+  go:
+    needs: web
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+      - name: Build Swiss Ephemeris from source
+        run: |
+          set -euo pipefail
+          SWE_VERSION="v2.10.3bfinal"
+          SWE_PREFIX="$HOME/swe"
+          git clone --depth 1 --branch "$SWE_VERSION" https://github.com/aloistr/swisseph.git /tmp/swisseph
+          cd /tmp/swisseph
+          make libswe.a
+          mkdir -p "$SWE_PREFIX/lib" "$SWE_PREFIX/include" "$SWE_PREFIX/lib/pkgconfig"
+          cp libswe.a "$SWE_PREFIX/lib/"
+          cp *.h "$SWE_PREFIX/include/"
+          cat > "$SWE_PREFIX/lib/pkgconfig/swe.pc" <<EOF
+          prefix=$SWE_PREFIX
+          libdir=\${prefix}/lib
+          includedir=\${prefix}/include
+
+          Name: swe
+          Description: Swiss Ephemeris (AstroDienst)
+          Version: 2.10.03
+          Libs: \${libdir}/libswe.a -lm
+          Cflags: -I\${includedir}
+          EOF
+          echo "PKG_CONFIG_PATH=$SWE_PREFIX/lib/pkgconfig" >> "$GITHUB_ENV"
+      - uses: actions/download-artifact@v4
+        with:
+          name: web-dist
+          path: web/dist
+      - run: go build -buildvcs=false ./...
+      - run: go test ./...
+      - run: go vet ./...

@@ -76,9 +76,14 @@ func computeAll(name string, year, month, day, hour, minute, second int, tzOff, 
 }
 
 // computeTransits runs the transit engine and returns compact JSON results.
-// When sidereal is true, uses sidereal (Lahiri) positions for both natal and transiting planets.
-func computeTransits(name string, year, month, day, hour, minute int, tzOff, lat, lng float64, startDate, endDate string, orbDeg float64, sidereal bool, cacheDir string) (*TransitsResponse, error) {
+// When sidereal is true, uses the specified ayanamsa for both natal and transiting planets.
+func computeTransits(name string, year, month, day, hour, minute int, tzOff, lat, lng float64, startDate, endDate string, orbDeg float64, sidereal bool, ayanamsa string, cacheDir string) (*TransitsResponse, error) {
 	bc := computePositions(year, month, day, hour, minute, tzOff, lat, lng, cacheDir)
+
+	// Set ayanamsa mode before any GetAyanamsaUT calls
+	if sidereal {
+		swe.SetAyanamsaMode(ayanamsa)
+	}
 
 	// Build planet positions — all bodies already in dignity.TropicalToLonMap(bc.Tropical)
 	natalLongs := dignity.TropicalToLonMap(bc.Tropical)
@@ -135,8 +140,10 @@ func computeTransits(name string, year, month, day, hour, minute int, tzOff, lat
 
 	// Build JSON response
 	response := &TransitsResponse{
-		Name:     name,
-		Sidereal: sidereal,
+		Name:      name,
+		StartDate: startDate,
+		EndDate:   endDate,
+		Sidereal:  sidereal,
 	}
 	for _, c := range compact {
 		response.Transits = append(response.Transits, TransitHitJSON{
@@ -423,6 +430,20 @@ func computeBiWheel(inner, outer dignity.BirthData, opts dignity.BiWheelOptions)
 	return []byte(svg), nil
 }
 
+// computeTriWheel renders a tri-wheel SVG comparing three charts.
+func computeTriWheel(inner, middle, outer dignity.BirthData, opts dignity.TriWheelOptions) ([]byte, error) {
+	svg := dignity.RenderTriWheelSVG(
+		inner.Name, inner.Year, inner.Month, inner.Day, inner.Hour, inner.Minute,
+		inner.TZOffset, inner.Lat, inner.Lng,
+		middle.Name, middle.Year, middle.Month, middle.Day, middle.Hour, middle.Minute,
+		middle.TZOffset, middle.Lat, middle.Lng,
+		outer.Name, outer.Year, outer.Month, outer.Day, outer.Hour, outer.Minute,
+		outer.TZOffset, outer.Lat, outer.Lng,
+		opts,
+	)
+	return []byte(svg), nil
+}
+
 // computeZodiacalReleasing computes zodiacal releasing periods.
 func computeZodiacalReleasing(bd dignity.BirthData, lotType, targetDate string) ([]byte, error) {
 	initEphe()
@@ -490,7 +511,7 @@ func computeInterpretation(name string, bc *dignity.BaseChart, lat, lng float64,
 	bc.Name = name
 	switch system {
 	case string(dignity.SystemWestern):
-		report := dignity.WesternFromBase(bc, orbDeg, false)
+		report := dignity.WesternFromBase(bc, orbDeg, true)
 		return report.JSON()
 	case "vedic":
 		report := dignity.ComputeVedicNatalReport(bc)

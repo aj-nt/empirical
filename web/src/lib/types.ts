@@ -15,6 +15,7 @@ export interface BirthData {
 export interface ChartRequest extends BirthData {
   house_system?: string;
   sidereal?: boolean;
+  ayanamsa?: string;
   show_aspects?: boolean;
   outer_planets?: boolean;
   orb?: number;
@@ -28,6 +29,7 @@ export interface SavedChart {
   id?: number;
   name: string;
   birthData: BirthData;
+  houseSystem: string;
   tags: string[];
   notes: string;
   createdAt: string;
@@ -94,11 +96,23 @@ export interface TransitMidpointHit {
 
 // ── Interpretation ──
 export interface InterpretationResponse {
+  name: string;
   planet_signs: string[];
   planet_houses: string[];
   aspects: string[];
   patterns: string[];
+  stars?: string[];
+  midpoints?: string[];
+  declinations?: string[];
+  contraparallels?: string[];
+  element_balance?: Record<string, number>;
+  modality_balance?: Record<string, number>;
+  hemisphere?: HemisphereEmphasis;
+  rulership_chains?: Record<string, string[]>;
+  dispositor_trees?: Record<string, string[]>;
+  is_day: boolean;
   lunar_phase?: string;
+  lunar_phase_angle?: number;
   retrogrades?: string[];
   antiscia?: string[];
   antiscia_contacts?: string[];
@@ -107,15 +121,32 @@ export interface InterpretationResponse {
   terms?: string[];
   voc_moon?: string;
   sect?: string;
-  declinations?: string[];
-  contraparallels?: string[];
-  star_aspects?: string[];
   chart_ruler?: string;
+  chart_ruler_traditional?: string;
+  chart_ruler_house?: number;
+  chart_ruler_sign?: string;
+  chart_ruler_dignity?: string;
   final_dispositor?: string;
-  weighted_aspects?: string[];
+  final_dispositor_traditional?: string;
+  weighted_aspects?: WeightedAspect[];
   key_midpoints?: string[];
   key_star_aspects?: string[];
   angular_planets?: string[];
+}
+
+export interface HemisphereEmphasis {
+  above: number;
+  below: number;
+  east: number;
+  west: number;
+}
+
+export interface WeightedAspect {
+  planet1: string;
+  planet2: string;
+  aspect: string;
+  orb: number;
+  weight: number;
 }
 
 // ── Directions ──
@@ -171,7 +202,7 @@ export interface SynastryResponse {
 export interface CompositeResponse {
   name1: string;
   name2: string;
-  planets: PlanetPosition[];
+  planets: Record<string, number>;
   aspects: Aspect[];
   patterns: Pattern[];
 }
@@ -212,14 +243,18 @@ export interface SolarReturnResponse {
 // ── Firdaria ──
 export interface FirdariaPeriod {
   planet: string;
-  start_date: string;
-  end_date: string;
-  sub_periods?: FirdariaPeriod[];
+  start: string;
+  end: string;
+  years: number;
+  level: string;
 }
 
 export interface FirdariaResponse {
   name: string;
-  periods: FirdariaPeriod[];
+  diurnal: boolean;
+  order: string[];
+  major_periods: FirdariaPeriod[];
+  sub_periods: FirdariaPeriod[];
 }
 
 // ── Traditional ──
@@ -495,6 +530,21 @@ export interface DraconicTransitsCrossResponse {
   survival_rate: number;
 }
 
+// ── Draconic Synastry ──
+export interface DraconicSynastryResponse {
+  name1: string;
+  name2: string;
+  aspects: Aspect[];
+}
+
+export interface DraconicSynastryFullResponse {
+  name1: string;
+  name2: string;
+  drac_to_drac: Aspect[];
+  trop_a_to_drac_b: Aspect[];
+  trop_b_to_drac_a: Aspect[];
+}
+
 // ── Stars Cross ──
 export interface StarsCrossResponse {
   name: string;
@@ -568,3 +618,112 @@ export interface BaseChartResponse {
   star_positions: Record<string, number>;
   declinations: Record<string, number>;
 }
+
+// ── Solar Arc ──
+export interface SolarArcResponse {
+  name: string;
+  birth_date: string;
+  target_date: string;
+  age_years: number;
+  solar_arc_deg: number;
+  progressed_sun_lon: number;
+  natal_sun_lon: number;
+  directed_positions: Record<string, number>;
+  natal_positions: Record<string, number>;
+  aspects: Aspect[];
+  total_aspects: number;
+}
+
+// ── Profection ──
+export interface ProfectionResponse {
+  name: string;
+  birth_date: string;
+  target_date: string;
+  age_years: number;
+  profection_year: number;
+  natal_asc: number;
+  profected_asc: number;
+  profected_sign: string;
+  profected_house: number;
+  time_lord: string;
+  time_lord_house: number;
+  time_lord_sign: string;
+  planets_in_sign: string[];
+}
+
+// ── Zodiacal Releasing ──
+export interface ZRPeriod {
+  sign: string;
+  sign_index: number;
+  ruler: string;
+  minor_years: number;
+  start_date: string;
+  end_date: string;
+  is_peak: boolean;
+  is_lb: boolean;
+  level: number;
+  sub_periods?: ZRPeriod[];
+}
+
+export interface ZodiacalReleasingResponse {
+  name: string;
+  lot: string;
+  lot_sign: string;
+  lot_degree: number;
+  lot_lon: number;
+  birth_date: string;
+  l1_periods: ZRPeriod[];
+}
+
+// ── Timing Convergence ──
+export interface TimingConvergenceResponse {
+  name: string;
+  target_date: string;
+  timing_convergence: Record<string, string[]>;
+}
+
+// ── User Preferences ──
+export interface UserPreferences {
+  defaultHouseSystem: string;
+  defaultAyanamsa: string;
+  defaultOrb: number;
+  theme: 'light' | 'dark';
+}
+
+export const DEFAULT_PREFERENCES: UserPreferences = {
+  defaultHouseSystem: 'placidus',
+  defaultAyanamsa: 'tropical',
+  defaultOrb: 3,
+  theme: 'dark',
+};
+
+// ── Aspect Sets ──
+export interface AspectSetDef {
+  name: string;
+  aspects: Record<string, number>; // aspect type → max orb
+}
+
+export const ASPECT_SET_PRESETS: Record<string, AspectSetDef> = {
+  modern: {
+    name: 'Modern',
+    aspects: { Conjunction: 8, Opposition: 8, Trine: 8, Square: 8, Sextile: 6 },
+  },
+  traditional: {
+    name: 'Traditional',
+    aspects: { Conjunction: 8, Opposition: 8, Trine: 8, Square: 8, Sextile: 6, Quincunx: 3, 'Semi-Sextile': 2 },
+  },
+  all: {
+    name: 'All Aspects',
+    aspects: {
+      Conjunction: 10, Opposition: 10, Trine: 10, Square: 10, Sextile: 6,
+      Quincunx: 5, 'Semi-Sextile': 3, 'Semi-Square': 3, Sesquiquadrate: 3,
+      Quintile: 2, 'Bi-Quintile': 2, Septile: 1.5,
+    },
+  },
+};
+
+export const ALL_ASPECT_TYPES = [
+  'Conjunction', 'Opposition', 'Trine', 'Square', 'Sextile',
+  'Quincunx', 'Semi-Sextile', 'Semi-Square', 'Sesquiquadrate',
+  'Quintile', 'Bi-Quintile', 'Septile',
+];

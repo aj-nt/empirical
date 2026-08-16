@@ -79,7 +79,7 @@ export function PageDesigner({ data }: PageDesignerProps) {
     Promise.all([
       api.interpretation(data, 'western', 3),
       api.traditional(data),
-      api.chart(data, { house_system: 'P', show_aspects: true, outer_planets: true, highlight_patterns: true, pattern_orb: 3 }),
+      api.chart(data, { house_system: 'placidus', show_aspects: true, outer_planets: true, highlight_patterns: true, pattern_orb: 3 }),
     ])
       .then(([i, t, s]) => {
         setInterp(i);
