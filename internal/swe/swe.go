@@ -2,6 +2,7 @@ package swe
 
 /*
 #cgo pkg-config: swe
+#include <stdlib.h>
 #include <swephexp.h>
 */
 import "C"
@@ -260,12 +261,22 @@ func FixstarMag(starName string) float64 {
 func Fixstar(starName string, jd float64) (lon, lat, dist, speed float64) {
 	mu.Lock()
 	defer mu.Unlock()
-	cname := C.CString(starName)
-	defer C.free(unsafe.Pointer(cname))
+	// The star parameter to swe_fixstar must allow 2*SE_MAX_STNAME (512) bytes:
+	// fixstar_cut_string writes the RESOLVED name (traditional + "," + Bayer)
+	// back into it, which can be far longer than the input alias. A C.CString
+	// sized to the input alias overflows on glibc (heap corruption).
+	cname := C.malloc(C.size_t(2 * C.SE_MAX_STNAME))
+	defer C.free(cname)
+	buf := (*[2 * C.SE_MAX_STNAME]C.char)(cname)
+	// copy the input alias in
+	for i := 0; i < len(starName) && i < int(2*C.SE_MAX_STNAME)-1; i++ {
+		buf[i] = C.char(starName[i])
+	}
+	buf[len(starName)] = 0
 	var xx [6]C.double
 	var serr [256]C.char
 	ret := C.swe_fixstar(
-		cname,
+		(*C.char)(cname),
 		C.double(jd),
 		C.int(SEFLG_SWIEPH),
 		(*C.double)(unsafe.Pointer(&xx[0])),
