@@ -35,8 +35,29 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version: '1.25'
-      - name: Install Swiss Ephemeris
-        run: sudo apt-get update && sudo apt-get install -y libswe-dev
+      - name: Build Swiss Ephemeris from source
+        run: |
+          set -euo pipefail
+          SWE_VERSION="v2.10.3bfinal"
+          SWE_PREFIX="$HOME/swe"
+          git clone --depth 1 --branch "$SWE_VERSION" https://github.com/aloistr/swisseph.git /tmp/swisseph
+          cd /tmp/swisseph
+          make libswe.a
+          mkdir -p "$SWE_PREFIX/lib" "$SWE_PREFIX/include" "$SWE_PREFIX/lib/pkgconfig"
+          cp libswe.a "$SWE_PREFIX/lib/"
+          cp *.h "$SWE_PREFIX/include/"
+          cat > "$SWE_PREFIX/lib/pkgconfig/swe.pc" <<EOF
+          prefix=$SWE_PREFIX
+          libdir=\${prefix}/lib
+          includedir=\${prefix}/include
+
+          Name: swe
+          Description: Swiss Ephemeris (AstroDienst)
+          Version: 2.10.03
+          Libs: \${libdir}/libswe.a -lm
+          Cflags: -I\${includedir}
+          EOF
+          echo "PKG_CONFIG_PATH=$SWE_PREFIX/lib/pkgconfig" >> "$GITHUB_ENV"
       - uses: actions/download-artifact@v4
         with:
           name: web-dist
