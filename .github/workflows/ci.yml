@@ -69,42 +69,23 @@ jobs:
           cd /tmp/swisseph
           make clean >/dev/null 2>&1 || true
           make libswe.a CFLAGS="-g -O1 -fsanitize=address -fno-omit-frame-pointer -Wall -fPIC" >/dev/null 2>&1
-          cat > /tmp/repro_full.c <<'CEOF'
-          #include <stdio.h>
-          #include <string.h>
-          #include "swephexp.h"
-          int main(int argc, char **argv) {
-              char serr[256]; double xx[6]; int ret;
-              const char *ephepath = "/home/runner/work/empirical/empirical/ephe";
-              int bodies[] = { SE_SUN, SE_MOON, SE_MERCURY, SE_VENUS, SE_MARS,
-                  SE_JUPITER, SE_SATURN, SE_URANUS, SE_NEPTUNE, SE_PLUTO,
-                  SE_MEAN_NODE, SE_TRUE_NODE, SE_CERES, SE_PALLAS, SE_JUNO,
-                  SE_VESTA, SE_MEAN_APOG, SE_CHIRON, 10000 + 136199 };
-              int n = sizeof(bodies)/sizeof(bodies[0]);
-              swe_set_ephe_path(ephepath);
-              double natal_jd = swe_julday(1969, 2, 16, 7.1666667, 1);
-              for (int i = 0; i < n; i++)
-                  swe_calc_ut(natal_jd, bodies[i], SEFLG_SWIEPH|SEFLG_SPEED, xx, serr);
-              printf("natal complete\n");
-              double jd_start = 2461242.5;
-              for (int day = 0; day < 12; day++) {
-                  double jd = jd_start + day;
-                  for (int i = 0; i < n; i++)
-                      swe_calc_ut(jd, bodies[i], SEFLG_SWIEPH|SEFLG_SPEED, xx, serr);
-              }
-              printf("transit scan complete\n");
-              for (int a = 0; a < n; a++)
-                  for (int b = a + 1; b < n; b++)
-                      for (int day = 0; day < 12; day++) {
-                          double jd = jd_start + day;
-                          swe_calc_ut(jd, bodies[a], SEFLG_SWIEPH|SEFLG_SPEED, xx, serr);
-                          swe_calc_ut(jd, bodies[b], SEFLG_SWIEPH|SEFLG_SPEED, xx, serr);
-                      }
-              printf("transit-to-transit complete\n");
-              swe_close(); return 0;
-          }
-          CEOF
-          cc -g -O1 -fsanitize=address -fno-omit-frame-pointer -I. /tmp/repro_full.c libswe.a -lm -o /tmp/repro_asan
-          /tmp/repro_asan 2>&1 | tail -60
+          SWE_ASAN="$HOME/swe-asan"
+          mkdir -p "$SWE_ASAN/lib" "$SWE_ASAN/include" "$SWE_ASAN/lib/pkgconfig"
+          cp libswe.a "$SWE_ASAN/lib/"
+          cp *.h "$SWE_ASAN/include/"
+          cat > "$SWE_ASAN/lib/pkgconfig/swe.pc" <<EOF
+          prefix=$SWE_ASAN
+          libdir=\${prefix}/lib
+          includedir=\${prefix}/include
+          Name: swe
+          Version: 2.10.03
+          Libs: \${libdir}/libswe.a -lm -fsanitize=address
+          Cflags: -I\${includedir} -fsanitize=address
+          EOF
+          export PKG_CONFIG_PATH="$SWE_ASAN/lib/pkgconfig"
+          export CGO_CFLAGS="-fsanitize=address"
+          export CGO_LDFLAGS="-fsanitize=address"
+          cd /home/runner/work/empirical/empirical
+          go test ./cmd/recover/ -run TestTransitSubcommand_JSON -count=1 2>&1 | tail -80
       - run: go test ./...
       - run: go vet ./...
