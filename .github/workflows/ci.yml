@@ -7,17 +7,6 @@ on:
     branches: [main]
 
 jobs:
-  go:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
-        with:
-          go-version: '1.25'
-      - run: go build -buildvcs=false ./...
-      - run: go test ./...
-      - run: go vet ./...
-
   web:
     runs-on: ubuntu-latest
     defaults:
@@ -32,3 +21,24 @@ jobs:
       - run: npx tsc --noEmit
       - run: npx vitest run
       - run: npm run build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: web-dist
+          path: web/dist
+          retention-days: 1
+
+  go:
+    needs: web
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+      - uses: actions/download-artifact@v4
+        with:
+          name: web-dist
+          path: web/dist
+      - run: go build -buildvcs=false ./...
+      - run: go test ./...
+      - run: go vet ./...
