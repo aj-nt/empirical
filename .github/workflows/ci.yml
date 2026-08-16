@@ -85,7 +85,9 @@ jobs:
           export PKG_CONFIG_PATH="$SWE_ASAN/lib/pkgconfig"
           export CGO_CFLAGS="-fsanitize=address"
           export CGO_LDFLAGS="-fsanitize=address"
+          echo "PKG_CONFIG_PATH=$PKG_CONFIG_PATH"
+          pkg-config --cflags --libs swe
           cd /home/runner/work/empirical/empirical
-          go test ./cmd/recover/ -run TestTransitSubcommand_JSON -count=1 2>&1 | tail -80
+          go test ./cmd/recover/ -run TestTransitSubcommand_JSON -count=1 2>&1 | tail -100
       - run: go test ./...
       - run: go vet ./...
