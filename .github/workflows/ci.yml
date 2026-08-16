@@ -63,24 +63,5 @@ jobs:
           name: web-dist
           path: web/dist
       - run: go build -buildvcs=false ./...
-      - name: ASAN repro (diagnostic)
-        run: |
-          set -euo pipefail
-          cd /tmp/swisseph
-          make clean >/dev/null 2>&1 || true
-          make libswe.a CFLAGS="-g -O1 -fsanitize=address -fno-omit-frame-pointer -Wall -fPIC" >/dev/null 2>&1
-          SWE_ASAN="$HOME/swe-asan"
-          mkdir -p "$SWE_ASAN/lib" "$SWE_ASAN/include" "$SWE_ASAN/lib/pkgconfig"
-          cp libswe.a "$SWE_ASAN/lib/"
-          cp *.h "$SWE_ASAN/include/"
-          printf 'prefix=%s\nlibdir=${prefix}/lib\nincludedir=${prefix}/include\n\nName: swe\nDescription: Swiss Ephemeris (ASAN)\nVersion: 2.10.03\nLibs: ${libdir}/libswe.a -lm -fsanitize=address\nCflags: -I${includedir} -fsanitize=address\n' "$SWE_ASAN" > "$SWE_ASAN/lib/pkgconfig/swe.pc"
-          cat "$SWE_ASAN/lib/pkgconfig/swe.pc"
-          export PKG_CONFIG_PATH="$SWE_ASAN/lib/pkgconfig"
-          export CGO_CFLAGS="-fsanitize=address"
-          export CGO_LDFLAGS="-fsanitize=address"
-          echo "PKG_CONFIG_PATH=$PKG_CONFIG_PATH"
-          pkg-config --cflags --libs swe
-          cd /home/runner/work/empirical/empirical
-          go test ./cmd/recover/ -run TestTransitSubcommand_JSON -count=1 2>&1 | tail -100
       - run: go test ./...
       - run: go vet ./...
