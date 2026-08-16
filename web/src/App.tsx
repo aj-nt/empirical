@@ -3,6 +3,10 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Sidebar } from './components/layout/Sidebar';
 import { ChartForm } from './components/shared/ChartForm';
 import { ChartWheel } from './components/chart/ChartWheel';
+import { BiWheel } from './components/chart/BiWheel';
+import { TriWheel } from './components/chart/TriWheel';
+import { TransitAnimation } from './components/chart/TransitAnimation';
+import { WheelSidebar } from './components/chart/WheelSidebar';
 import { DispositorTree } from './components/chart/DispositorTree';
 import { SynastryView } from './components/synastry/SynastryView';
 import { AstroCartographyMap } from './components/maps/AstroCartographyMap';
@@ -16,9 +20,18 @@ import { DraconicView } from './components/research/DraconicView';
 import { VedicView } from './components/research/VedicView';
 import { ResearchTools } from './components/research/ResearchTools';
 import { EmpiricalBaselines } from './components/research/EmpiricalBaselines';
+import { HOUSE_SYSTEMS, DEFAULT_HOUSE_SYSTEM } from './lib/houseSystems';
+import { AYANAMSAS, DEFAULT_AYANAMSA } from './lib/ayanamsas';
 import { BatchAnalysis } from './components/research/BatchAnalysis';
 import { ChartSearch } from './components/research/ChartSearch';
-import type { SavedChart, BirthData, InterpretationResponse, TransitResponse, TraditionalResponse } from './lib/types';
+import { PlanetTable } from './components/natal/PlanetTable';
+import { AspectGrid } from './components/natal/AspectGrid';
+import { Dashboard } from './components/natal/Dashboard';
+import { InterpretationPanel } from './components/interpretation/InterpretationPanel';
+import { PredictiveTools } from './components/predictive/PredictiveTools';
+import { SettingsPanel, loadPreferences } from './components/settings/SettingsPanel';
+import { useKeyboardShortcuts, KeyboardHelp } from './lib/keyboard';
+import type { SavedChart, BirthData, InterpretationResponse, TransitResponse, TraditionalResponse, UserPreferences } from './lib/types';
 import { chartDB } from './lib/db';
 import { api } from './lib/api';
 
@@ -48,7 +61,7 @@ const queryClient = new QueryClient({
   },
 });
 
-type View = 'wheel' | 'natal' | 'transits' | 'synastry' | 'maps' | 'reports' | 'ephemeris' | 'calendar' | 'research' | 'form';
+type View = 'wheel' | 'biwheel' | 'triwheel' | 'natal' | 'transits' | 'synastry' | 'maps' | 'reports' | 'ephemeris' | 'calendar' | 'research' | 'interpretation' | 'predictive' | 'form';
 
 function App() {
   const [activeChart, setActiveChart] = useState<SavedChart | null>(null);
@@ -56,6 +69,24 @@ function App() {
   const [showForm, setShowForm] = useState(false);
   const [reportType, setReportType] = useState<'natal' | 'transit' | 'designer'>('natal');
   const [researchTab, setResearchTab] = useState<'compare' | 'draconic' | 'vedic' | 'tools' | 'baselines' | 'batch' | 'search'>('compare');
+  const [houseSystem, setHouseSystem] = useState(DEFAULT_HOUSE_SYSTEM);
+  const [ayanamsa, setAyanamsa] = useState(DEFAULT_AYANAMSA);
+  const [interpSystem, setInterpSystem] = useState<'western' | 'koiné'>('western');
+  const [preferences, setPreferences] = useState<UserPreferences>(loadPreferences);
+  const [showSettings, setShowSettings] = useState(false);
+
+  // Apply preferences on mount
+  useEffect(() => {
+    setHouseSystem(preferences.defaultHouseSystem);
+    setAyanamsa(preferences.defaultAyanamsa);
+  }, []);
+
+  // Sync house system when active chart changes
+  useEffect(() => {
+    if (activeChart?.houseSystem) {
+      setHouseSystem(activeChart.houseSystem);
+    }
+  }, [activeChart]);
 
   const handleSelectChart = useCallback((chart: SavedChart) => {
     setActiveChart(chart);
@@ -82,8 +113,23 @@ function App() {
     }
   }, [activeChart]);
 
+  // Keyboard shortcuts
+  const { showHelp, setShowHelp } = useKeyboardShortcuts({
+    onNewChart: handleNewChart,
+    onSearch: () => {
+      const input = document.querySelector<HTMLInputElement>('input[placeholder="Search charts..."]');
+      input?.focus();
+    },
+    onPrint: () => window.print(),
+    onSettings: () => setShowSettings(true),
+    onTabSwitch: (v) => setView(v),
+    currentView: view,
+  });
+
   const tabs: { id: View; label: string }[] = [
     { id: 'wheel', label: 'Wheel' },
+    { id: 'biwheel', label: 'Bi-Wheel' },
+    { id: 'triwheel', label: 'Tri-Wheel' },
     { id: 'natal', label: 'Natal' },
     { id: 'transits', label: 'Transits' },
     { id: 'synastry', label: 'Synastry' },
@@ -92,6 +138,8 @@ function App() {
     { id: 'ephemeris', label: 'Ephemeris' },
     { id: 'calendar', label: 'Calendar' },
     { id: 'research', label: 'Research' },
+    { id: 'interpretation', label: 'Interpretation' },
+    { id: 'predictive', label: 'Predictive' },
   ];
 
   return (
@@ -127,13 +175,95 @@ function App() {
                     {tab.label}
                   </button>
                 ))}
+                {/* House system + Ayanamsa selectors */}
+                <div className="ml-auto flex items-center gap-2">
+                  <button
+                    onClick={() => setShowSettings(true)}
+                    className="text-muted hover:text-text px-2 py-1 text-sm"
+                    title="Settings"
+                  >
+                    ⚙
+                  </button>
+                  <select
+                    value={ayanamsa}
+                    onChange={(e) => setAyanamsa(e.target.value)}
+                    className="bg-bg border border-border rounded px-2 py-1 text-xs text-muted focus:border-accent focus:outline-none"
+                  >
+                    {AYANAMSAS.map((a) => (
+                      <option key={a.value} value={a.value}>{a.label}</option>
+                    ))}
+                  </select>
+                  <select
+                    value={houseSystem}
+                    onChange={(e) => setHouseSystem(e.target.value)}
+                    className="bg-bg border border-border rounded px-2 py-1 text-xs text-muted focus:border-accent focus:outline-none"
+                  >
+                    {HOUSE_SYSTEMS.map((hs) => (
+                      <option key={hs.value} value={hs.value}>{hs.label}</option>
+                    ))}
+                  </select>
+                </div>
               </div>
 
               {/* Content — flex column so children get computed height */}
               <div className="flex-1 flex flex-col overflow-hidden">
                 {view === 'wheel' && (
-                  <div className="flex-1 overflow-hidden">
-                    <ChartWheel data={activeChart.birthData} />
+                  <div className="flex-1 flex overflow-hidden">
+                    <div className="flex-1 overflow-hidden">
+                      <ChartWheel data={activeChart.birthData} houseSystem={houseSystem} ayanamsa={ayanamsa} />
+                    </div>
+                    <WheelSidebar data={activeChart.birthData} />
+                  </div>
+                )}
+                {view === 'biwheel' && (
+                  <div className="flex-1 flex overflow-hidden">
+                    <div className="flex-1 overflow-hidden">
+                      <BiWheel
+                        inner={activeChart.birthData}
+                        outer={{
+                          name: 'Transits',
+                          year: new Date().getFullYear(),
+                          month: new Date().getMonth() + 1,
+                          day: new Date().getDate(),
+                          hour: 12,
+                          minute: 0,
+                          tz_offset: activeChart.birthData.tz_offset,
+                          lat: activeChart.birthData.lat,
+                          lng: activeChart.birthData.lng,
+                        }}
+                      />
+                    </div>
+                  </div>
+                )}
+                {view === 'triwheel' && (
+                  <div className="flex-1 flex overflow-hidden">
+                    <div className="flex-1 overflow-hidden">
+                      <TriWheel
+                        inner={activeChart.birthData}
+                        middle={{
+                          name: 'Progressed',
+                          year: new Date().getFullYear(),
+                          month: new Date().getMonth() + 1,
+                          day: new Date().getDate(),
+                          hour: 12,
+                          minute: 0,
+                          tz_offset: activeChart.birthData.tz_offset,
+                          lat: activeChart.birthData.lat,
+                          lng: activeChart.birthData.lng,
+                        }}
+                        outer={{
+                          name: 'Transits',
+                          year: new Date().getFullYear(),
+                          month: new Date().getMonth() + 1,
+                          day: new Date().getDate(),
+                          hour: 12,
+                          minute: 0,
+                          tz_offset: activeChart.birthData.tz_offset,
+                          lat: activeChart.birthData.lat,
+                          lng: activeChart.birthData.lng,
+                        }}
+                      />
+                    </div>
                   </div>
                 )}
                 {view === 'natal' && (
@@ -226,6 +356,29 @@ function App() {
                     </div>
                   </ErrorBoundary>
                 )}
+                {view === 'interpretation' && (
+                  <div className="flex-1 flex flex-col overflow-hidden">
+                    <div className="flex items-center gap-2 px-4 py-2 border-b border-border shrink-0">
+                      <span className="text-xs text-muted">System:</span>
+                      <select
+                        value={interpSystem}
+                        onChange={(e) => setInterpSystem(e.target.value as 'western' | 'koiné')}
+                        className="bg-bg border border-border rounded px-2 py-1 text-xs text-muted focus:border-accent focus:outline-none"
+                      >
+                        <option value="western">Western</option>
+                        <option value="koiné">Koiné</option>
+                      </select>
+                    </div>
+                    <div className="flex-1 overflow-hidden">
+                      <InterpretationPanel data={activeChart.birthData} system={interpSystem} />
+                    </div>
+                  </div>
+                )}
+                {view === 'predictive' && (
+                  <div className="flex-1 flex flex-col overflow-hidden">
+                    <PredictiveTools data={activeChart.birthData} />
+                  </div>
+                )}
               </div>
             </>
           ) : (
@@ -247,6 +400,24 @@ function App() {
           )}
         </div>
       </div>
+
+      {/* Settings Modal */}
+      {showSettings && (
+        <SettingsPanel
+          preferences={preferences}
+          onSave={(newPrefs) => {
+            setPreferences(newPrefs);
+            setHouseSystem(newPrefs.defaultHouseSystem);
+            setAyanamsa(newPrefs.defaultAyanamsa);
+          }}
+          onClose={() => setShowSettings(false)}
+        />
+      )}
+
+      {/* Keyboard Help Modal */}
+      {showHelp && (
+        <KeyboardHelp onClose={() => setShowHelp(false)} />
+      )}
     </QueryClientProvider>
   );
 }
@@ -282,26 +453,23 @@ function NatalView({ data }: { data: BirthData }) {
 
   return (
     <div className="space-y-4">
-      <Section title="Planets in Signs">
-        {interp.planet_signs?.map((s, i) => (
-          <div key={i} className="text-sm py-0.5">{s}</div>
-        ))}
-      </Section>
-      <Section title="Planets in Houses">
-        {interp.planet_houses?.map((s, i) => (
-          <div key={i} className="text-sm py-0.5">{s}</div>
-        ))}
-      </Section>
-      <Section title="Aspects">
-        {interp.aspects?.map((s, i) => (
-          <div key={i} className="text-sm py-0.5">{s}</div>
-        ))}
-      </Section>
-      <Section title="Patterns">
-        {interp.patterns?.map((s, i) => (
-          <div key={i} className="text-sm py-0.5">{s}</div>
-        ))}
-      </Section>
+      {/* Dashboard bar */}
+      <Dashboard interp={interp} trad={trad} />
+
+      {/* Planet table + Aspect grid side by side */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <PlanetTable interp={interp} trad={trad} />
+        <AspectGrid interp={interp} />
+      </div>
+
+      {/* Patterns */}
+      {interp.patterns && interp.patterns.length > 0 && (
+        <Section title="Patterns">
+          {interp.patterns.map((s, i) => (
+            <div key={i} className="text-sm py-0.5">{s}</div>
+          ))}
+        </Section>
+      )}
 
       {/* Hidden Contacts */}
       {interp.chart_ruler && (
@@ -365,13 +533,15 @@ function NatalView({ data }: { data: BirthData }) {
       )}
       {interp.weighted_aspects && interp.weighted_aspects.length > 0 && (
         <Section title="Weighted Aspects">
-          {interp.weighted_aspects.map((s, i) => (
-            <div key={i} className="text-sm py-0.5">{s}</div>
+          {interp.weighted_aspects.map((wa, i) => (
+            <div key={i} className="text-sm py-0.5">
+              {wa.planet1} {wa.aspect} {wa.planet2} — orb {wa.orb.toFixed(1)}° (weight {wa.weight.toFixed(1)})
+            </div>
           ))}
         </Section>
       )}
 
-      {/* Lunar Phase & Sect */}
+      {/* Traditional */}
       {trad && (
         <Section title="Traditional">
           <div className="text-sm space-y-1">
@@ -407,19 +577,20 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 
 // ── Transits View ──
 function TransitsView({ data }: { data: BirthData }) {
+  const [subTab, setSubTab] = useState<'table' | 'animation'>('table');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [transits, setTransits] = useState<TransitResponse | null>(null);
   const [filterPlanet, setFilterPlanet] = useState('');
   const [filterAspect, setFilterAspect] = useState('');
   const [maxOrb, setMaxOrb] = useState(10);
+  const [startDate, setStartDate] = useState(new Date().toISOString().slice(0, 10));
+  const [endDate, setEndDate] = useState(new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10));
 
-  useEffect(() => {
+  const fetchTransits = () => {
     setLoading(true);
     setError('');
-    const today = new Date().toISOString().slice(0, 10);
-    const end = new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10);
-    api.transits(data, today, end, 3)
+    api.transits(data, startDate, endDate, 3)
       .then((d) => {
         setTransits(d);
         setLoading(false);
@@ -428,6 +599,10 @@ function TransitsView({ data }: { data: BirthData }) {
         setError(e instanceof Error ? e.message : 'Failed to load');
         setLoading(false);
       });
+  };
+
+  useEffect(() => {
+    fetchTransits();
   }, [data.name, data.year, data.month, data.day, data.hour, data.minute, data.tz_offset, data.lat, data.lng]);
 
   if (loading) return <p className="text-yellow text-sm">Loading transits...</p>;
@@ -446,84 +621,132 @@ function TransitsView({ data }: { data: BirthData }) {
 
   return (
     <div className="space-y-4">
-      <Section title={`Transits: ${transits.start_date} to ${transits.end_date}`}>
-        {/* Filters */}
-        <div className="flex gap-2 mb-4 flex-wrap">
-          <select value={filterPlanet} onChange={e => setFilterPlanet(e.target.value)}
-            className="bg-surface border border-border rounded px-2 py-1 text-sm text-text">
-            <option value="">All Planets</option>
-            {uniquePlanets.map(p => <option key={p} value={p}>{p}</option>)}
-          </select>
-          <select value={filterAspect} onChange={e => setFilterAspect(e.target.value)}
-            className="bg-surface border border-border rounded px-2 py-1 text-sm text-text">
-            <option value="">All Aspects</option>
-            {uniqueAspects.map(a => <option key={a} value={a}>{a}</option>)}
-          </select>
-          <label className="text-sm text-muted flex items-center gap-1">
-            Max orb:
-            <input type="number" value={maxOrb} onChange={e => setMaxOrb(Number(e.target.value))}
-              className="bg-surface border border-border rounded px-2 py-1 w-16 text-sm text-text" />
-            °
-          </label>
-          <span className="text-xs text-muted self-center ml-auto">
-            {filteredHits.length} of {transits.transits.length} hits
-          </span>
+      {/* Sub-tabs */}
+      <div className="flex gap-1 border-b border-border pb-2">
+        <button
+          onClick={() => setSubTab('table')}
+          className={`px-3 py-1 text-sm rounded ${subTab === 'table' ? 'bg-accent text-white' : 'text-muted hover:text-text'}`}
+        >
+          Table
+        </button>
+        <button
+          onClick={() => setSubTab('animation')}
+          className={`px-3 py-1 text-sm rounded ${subTab === 'animation' ? 'bg-accent text-white' : 'text-muted hover:text-text'}`}
+        >
+          Animation
+        </button>
+      </div>
+
+      {/* Date range controls */}
+      <div className="flex items-center gap-2 flex-wrap">
+        <label className="text-sm text-muted">From:</label>
+        <input
+          type="date"
+          value={startDate}
+          onChange={e => setStartDate(e.target.value)}
+          className="bg-surface border border-border rounded px-2 py-1 text-sm text-text"
+        />
+        <label className="text-sm text-muted">To:</label>
+        <input
+          type="date"
+          value={endDate}
+          onChange={e => setEndDate(e.target.value)}
+          className="bg-surface border border-border rounded px-2 py-1 text-sm text-text"
+        />
+        <button
+          onClick={fetchTransits}
+          className="px-3 py-1 text-sm rounded bg-accent text-white hover:opacity-80"
+        >
+          Refresh
+        </button>
+      </div>
+
+      {subTab === 'animation' ? (
+        <div className="flex-1" style={{ minHeight: '60vh' }}>
+          <TransitAnimation data={data} />
         </div>
+      ) : (
+        <>
+          <Section title={`Transits: ${transits.start_date} to ${transits.end_date}`}>
+            {/* Filters */}
+            <div className="flex gap-2 mb-4 flex-wrap">
+              <select value={filterPlanet} onChange={e => setFilterPlanet(e.target.value)}
+                className="bg-surface border border-border rounded px-2 py-1 text-sm text-text">
+                <option value="">All Planets</option>
+                {uniquePlanets.map(p => <option key={p} value={p}>{p}</option>)}
+              </select>
+              <select value={filterAspect} onChange={e => setFilterAspect(e.target.value)}
+                className="bg-surface border border-border rounded px-2 py-1 text-sm text-text">
+                <option value="">All Aspects</option>
+                {uniqueAspects.map(a => <option key={a} value={a}>{a}</option>)}
+              </select>
+              <label className="text-sm text-muted flex items-center gap-1">
+                Max orb:
+                <input type="number" value={maxOrb} onChange={e => setMaxOrb(Number(e.target.value))}
+                  className="bg-surface border border-border rounded px-2 py-1 w-16 text-sm text-text" />
+                °
+              </label>
+              <span className="text-xs text-muted self-center ml-auto">
+                {filteredHits.length} of {transits.transits.length} hits
+              </span>
+            </div>
 
-        {filteredHits.length === 0 ? (
-          <p className="text-sm text-muted">No transits match the current filters.</p>
-        ) : (
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="text-muted text-left">
-                <th className="py-1 pr-4">Date</th>
-                <th className="py-1 pr-4">Transit</th>
-                <th className="py-1 pr-4">Natal</th>
-                <th className="py-1 pr-4">Aspect</th>
-                <th className="py-1">Orb</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredHits.map((h, i) => (
-                <tr key={i} className="border-t border-border">
-                  <td className="py-1 pr-4">{h.date}</td>
-                  <td className="py-1 pr-4">{h.transit_planet}</td>
-                  <td className="py-1 pr-4">{h.natal_planet}</td>
-                  <td className="py-1 pr-4">{h.aspect}</td>
-                  <td className="py-1">{h.orb}°</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </Section>
+            {filteredHits.length === 0 ? (
+              <p className="text-sm text-muted">No transits match the current filters.</p>
+            ) : (
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-muted text-left">
+                    <th className="py-1 pr-4">Date</th>
+                    <th className="py-1 pr-4">Transit</th>
+                    <th className="py-1 pr-4">Natal</th>
+                    <th className="py-1 pr-4">Aspect</th>
+                    <th className="py-1">Orb</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredHits.map((h, i) => (
+                    <tr key={i} className="border-t border-border">
+                      <td className="py-1 pr-4">{h.date}</td>
+                      <td className="py-1 pr-4">{h.transit_planet}</td>
+                      <td className="py-1 pr-4">{h.natal_planet}</td>
+                      <td className="py-1 pr-4">{h.aspect}</td>
+                      <td className="py-1">{h.orb}°</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </Section>
 
-      {/* Sky Weather */}
-      {transits.sky_weather && transits.sky_weather.length > 0 && (
-        <Section title="Sky Weather (Transit-to-Transit)">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="text-muted text-left">
-                <th className="py-1 pr-4">Date</th>
-                <th className="py-1 pr-4">Planet 1</th>
-                <th className="py-1 pr-4">Planet 2</th>
-                <th className="py-1 pr-4">Aspect</th>
-                <th className="py-1">Orb</th>
-              </tr>
-            </thead>
-            <tbody>
-              {transits.sky_weather.slice(0, 30).map((h, i) => (
-                <tr key={i} className="border-t border-border">
-                  <td className="py-1 pr-4">{h.date}</td>
-                  <td className="py-1 pr-4">{h.transit_planet}</td>
-                  <td className="py-1 pr-4">{h.natal_planet}</td>
-                  <td className="py-1 pr-4">{h.aspect}</td>
-                  <td className="py-1">{h.orb}°</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </Section>
+          {/* Sky Weather */}
+          {transits.sky_weather && transits.sky_weather.length > 0 && (
+            <Section title="Sky Weather (Transit-to-Transit)">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-muted text-left">
+                    <th className="py-1 pr-4">Date</th>
+                    <th className="py-1 pr-4">Planet 1</th>
+                    <th className="py-1 pr-4">Planet 2</th>
+                    <th className="py-1 pr-4">Aspect</th>
+                    <th className="py-1">Orb</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {transits.sky_weather.slice(0, 30).map((h, i) => (
+                    <tr key={i} className="border-t border-border">
+                      <td className="py-1 pr-4">{h.date}</td>
+                      <td className="py-1 pr-4">{h.transit_planet}</td>
+                      <td className="py-1 pr-4">{h.natal_planet}</td>
+                      <td className="py-1 pr-4">{h.aspect}</td>
+                      <td className="py-1">{h.orb}°</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </Section>
+          )}
+        </>
       )}
     </div>
   );

@@ -205,3 +205,84 @@ func TestWesternSubcommand_ReadingFlag(t *testing.T) {
 		t.Error("Mars not found in angular_planets")
 	}
 }
+
+func TestPatternsSubcommand_JSON(t *testing.T) {
+	bin := buildBinary(t)
+
+	cmd := exec.Command(bin, "patterns", "--json",
+		"AJ", "1969", "2", "15", "23", "10", "-8", "47.038", "-122.901")
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("patterns subcommand failed: %v\n%s", err, out)
+	}
+
+	var result map[string]interface{}
+	if err := json.Unmarshal(out, &result); err != nil {
+		t.Fatalf("invalid JSON output: %v\n%s", err, out)
+	}
+
+	if result["name"] != "AJ" {
+		t.Errorf("name = %v, want AJ", result["name"])
+	}
+	patterns, ok := result["patterns"].([]interface{})
+	if !ok {
+		t.Fatalf("patterns is not an array: %v", result["patterns"])
+	}
+	if len(patterns) == 0 {
+		t.Error("expected non-empty patterns array")
+	}
+}
+
+func TestStarsSubcommand_JSON(t *testing.T) {
+	bin := buildBinary(t)
+
+	cmd := exec.Command(bin, "stars", "--json", "--orb", "3",
+		"AJ", "1969", "2", "15", "23", "10", "-8", "47.038", "-122.901")
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("stars subcommand failed: %v\n%s", err, out)
+	}
+
+	var result map[string]interface{}
+	if err := json.Unmarshal(out, &result); err != nil {
+		t.Fatalf("invalid JSON output: %v\n%s", err, out)
+	}
+
+	if result["name"] != "AJ" {
+		t.Errorf("name = %v, want AJ", result["name"])
+	}
+	conj, ok := result["conjunctions"].([]interface{})
+	if !ok {
+		t.Fatalf("conjunctions is not an array: %v", result["conjunctions"])
+	}
+	if len(conj) == 0 {
+		t.Error("expected non-empty conjunctions array")
+	}
+}
+
+func TestArabicPartsSubcommand_JSON(t *testing.T) {
+	bin := buildBinary(t)
+
+	cmd := exec.Command(bin, "arabic-parts", "--json",
+		"AJ", "1969", "2", "15", "23", "10", "-8", "47.038", "-122.901")
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("arabic-parts subcommand failed: %v\n%s", err, out)
+	}
+
+	var result map[string]interface{}
+	if err := json.Unmarshal(out, &result); err != nil {
+		t.Fatalf("invalid JSON output: %v\n%s", err, out)
+	}
+
+	if result["name"] != "AJ" {
+		t.Errorf("name = %v, want AJ", result["name"])
+	}
+	trop, ok := result["tropical"].([]interface{})
+	if !ok {
+		t.Fatalf("tropical is not an array: %v", result["tropical"])
+	}
+	if len(trop) == 0 {
+		t.Error("expected non-empty tropical parts array")
+	}
+}

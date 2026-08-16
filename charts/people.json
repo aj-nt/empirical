@@ -1,0 +1,107 @@
+[
+  {
+    "name": "Albert Einstein",
+    "birth": { "year": 1879, "month": 3, "day": 14, "hour": 11, "minute": 30, "tz_offset": 1, "lat": 48.401, "lng": 9.989 },
+    "source": "Birth certificate (Rodden AA)",
+    "category": "science",
+    "notes": "Ulm, Germany"
+  },
+  {
+    "name": "Marie Curie",
+    "birth": { "year": 1867, "month": 11, "day": 7, "hour": 12, "minute": 0, "tz_offset": 1.35, "lat": 52.229, "lng": 21.012 },
+    "source": "Birth certificate (Rodden AA)",
+    "category": "science",
+    "notes": "Warsaw, Poland"
+  },
+  {
+    "name": "Carl Jung",
+    "birth": { "year": 1875, "month": 7, "day": 26, "hour": 19, "minute": 24, "tz_offset": 0.5, "lat": 47.603, "lng": 9.188 },
+    "source": "Birth record (Rodden AA)",
+    "category": "philosophy",
+    "notes": "Kesswil, Switzerland"
+  },
+  {
+    "name": "Winston Churchill",
+    "birth": { "year": 1874, "month": 11, "day": 30, "hour": 1, "minute": 30, "tz_offset": 0, "lat": 51.783, "lng": -1.35 },
+    "source": "Birth record (Rodden A)",
+    "category": "politics",
+    "notes": "Blenheim Palace, Oxfordshire, England"
+  },
+  {
+    "name": "Frida Kahlo",
+    "birth": { "year": 1907, "month": 7, "day": 6, "hour": 8, "minute": 30, "tz_offset": -6.6, "lat": 19.433, "lng": -99.133 },
+    "source": "Birth certificate (Rodden AA)",
+    "category": "arts",
+    "notes": "Coyoacán, Mexico City, Mexico"
+  },
+  {
+    "name": "Alan Turing",
+    "birth": { "year": 1912, "month": 6, "day": 23, "hour": 2, "minute": 15, "tz_offset": 0, "lat": 51.507, "lng": -0.128 },
+    "source": "Birth certificate (Rodden A)",
+    "category": "science",
+    "notes": "Maida Vale, London, England"
+  },
+  {
+    "name": "Nikola Tesla",
+    "birth": { "year": 1856, "month": 7, "day": 10, "hour": 0, "minute": 0, "tz_offset": 1.25, "lat": 44.547, "lng": 15.375 },
+    "source": "Church records (Rodden A)",
+    "category": "science",
+    "notes": "Smiljan, Croatia (midnight, exact time unknown)"
+  },
+  {
+    "name": "Leonardo da Vinci",
+    "birth": { "year": 1452, "month": 4, "day": 15, "hour": 21, "minute": 40, "tz_offset": 0.75, "lat": 43.77, "lng": 11.25 },
+    "source": "Grandfather's diary (Rodden B)",
+    "category": "arts",
+    "notes": "Vinci, Italy. Time from grandfather's record: 'at the third hour of the night'"
+  },
+  {
+    "name": "Wolfgang Amadeus Mozart",
+    "birth": { "year": 1756, "month": 1, "day": 27, "hour": 20, "minute": 0, "tz_offset": 0.9, "lat": 47.8, "lng": 13.033 },
+    "source": "Baptismal record (Rodden AA)",
+    "category": "arts",
+    "notes": "Salzburg, Austria"
+  },
+  {
+    "name": "Virginia Woolf",
+    "birth": { "year": 1882, "month": 1, "day": 25, "hour": 10, "minute": 0, "tz_offset": 0, "lat": 51.46, "lng": -0.17 },
+    "source": "Birth certificate (Rodden AA)",
+    "category": "arts",
+    "notes": "Kensington, London, England"
+  },
+  {
+    "name": "Mahatma Gandhi",
+    "birth": { "year": 1869, "month": 10, "day": 2, "hour": 7, "minute": 12, "tz_offset": 5.5, "lat": 21.64, "lng": 69.6 },
+    "source": "Birth record (Rodden AA)",
+    "category": "politics",
+    "notes": "Porbandar, Gujarat, India"
+  },
+  {
+    "name": "Marilyn Monroe",
+    "birth": { "year": 1926, "month": 6, "day": 1, "hour": 9, "minute": 30, "tz_offset": -8, "lat": 34.054, "lng": -118.244 },
+    "source": "Birth certificate (Rodden AA)",
+    "category": "arts",
+    "notes": "Los Angeles, California, USA"
+  },
+  {
+    "name": "Martin Luther King Jr.",
+    "birth": { "year": 1929, "month": 1, "day": 15, "hour": 12, "minute": 0, "tz_offset": -6, "lat": 33.749, "lng": -84.388 },
+    "source": "Birth certificate (Rodden AA)",
+    "category": "politics",
+    "notes": "Atlanta, Georgia, USA"
+  },
+  {
+    "name": "Steve Jobs",
+    "birth": { "year": 1955, "month": 2, "day": 24, "hour": 19, "minute": 15, "tz_offset": -8, "lat": 37.775, "lng": -122.419 },
+    "source": "Birth certificate (Rodden AA)",
+    "category": "business",
+    "notes": "San Francisco, California, USA"
+  },
+  {
+    "name": "David Bowie",
+    "birth": { "year": 1947, "month": 1, "day": 8, "hour": 9, "minute": 0, "tz_offset": 0, "lat": 51.46, "lng": -0.12 },
+    "source": "Birth certificate (Rodden AA)",
+    "category": "arts",
+    "notes": "Brixton, London, England"
+  }
+]

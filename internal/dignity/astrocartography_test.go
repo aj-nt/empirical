@@ -341,9 +341,11 @@ func TestGeocodeParans(t *testing.T) {
 	}
 	GeocodeParans(parans)
 
-	// Phuket area
-	if parans[0].LocationName != "Phuket" {
-		t.Errorf("expected Phuket, got %q", parans[0].LocationName)
+	// Phuket area — with the granular GeoNames dataset (69k cities), the
+	// nearest city to (7.88, 98.39) is "Ban Talat Nua", a sub-district of
+	// Phuket town, not the "Phuket" centroid itself.
+	if parans[0].LocationName != "Ban Talat Nua" {
+		t.Errorf("expected Ban Talat Nua, got %q", parans[0].LocationName)
 	}
 	if parans[0].LocationCountry != "TH" {
 		t.Errorf("expected TH, got %q", parans[0].LocationCountry)

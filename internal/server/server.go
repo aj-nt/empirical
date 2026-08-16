@@ -6,7 +6,9 @@ import (
 	"fmt"
 	"io/fs"
 	"net/http"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/aj-nt/empirical/internal/comparison"
 	"github.com/aj-nt/empirical/internal/dignity"
@@ -32,7 +34,7 @@ type AspectFunc func() ([]byte, error)
 type TimingFunc func(bd dignity.BirthData, targetDate string) ([]byte, error)
 
 // TransitFunc computes transits for a natal chart over a date range.
-type TransitFunc func(bd dignity.BirthData, startDate, endDate string, orbDeg float64, sidereal bool) ([]byte, error)
+type TransitFunc func(bd dignity.BirthData, startDate, endDate string, orbDeg float64, sidereal bool, ayanamsa string) ([]byte, error)
 
 // SynastryFunc computes inter-aspects between two natal charts.
 type SynastryFunc func(name1 string, y1, mo1, d1, h1, mi1 int, tz1, la1, lo1 float64, name2 string, y2, mo2, d2, h2, mi2 int, tz2, la2, lo2 float64, orbDeg float64) ([]byte, error)
@@ -41,7 +43,7 @@ type SynastryFunc func(name1 string, y1, mo1, d1, h1, mi1 int, tz1, la1, lo1 flo
 type RelocationFunc func(bd dignity.BirthData, locA LatLng, locB LatLng, targetDate string) ([]byte, error)
 
 // ChartFunc renders a natal chart wheel as SVG.
-type ChartFunc func(bd dignity.BirthData, houseSystem string, sidereal bool, showAspects bool, outerPlanets bool, highlightPatterns bool, patternOrb float64) (string, error)
+type ChartFunc func(bd dignity.BirthData, houseSystem string, sidereal bool, ayanamsa string, showAspects bool, outerPlanets bool, highlightPatterns bool, patternOrb float64) (string, error)
 
 // PatternFunc detects geometric patterns in a natal chart.
 type PatternFunc func(bd dignity.BirthData, orbDeg float64) ([]byte, error)
@@ -84,6 +86,9 @@ type ProfectionFunc func(bd dignity.BirthData, targetDate string) ([]byte, error
 
 // BiWheelFunc generates a bi-wheel SVG comparing two charts.
 type BiWheelFunc func(inner, outer dignity.BirthData, opts dignity.BiWheelOptions) ([]byte, error)
+
+// TriWheelFunc generates a tri-wheel SVG comparing three charts.
+type TriWheelFunc func(inner, middle, outer dignity.BirthData, opts dignity.TriWheelOptions) ([]byte, error)
 
 // ZodiacalReleasingFunc computes zodiacal releasing periods.
 type ZodiacalReleasingFunc func(bd dignity.BirthData, lotType, targetDate string) ([]byte, error)
@@ -199,6 +204,7 @@ type ServerConfig struct {
 	SolarArc              SolarArcFunc
 	Profection            ProfectionFunc
 	BiWheel               BiWheelFunc
+	TriWheel              TriWheelFunc
 	ZodiacalReleasing     ZodiacalReleasingFunc
 	Horary                HoraryFunc
 	Import                ImportFunc
@@ -393,7 +399,7 @@ func NewMux(cfg ServerConfig) *http.ServeMux {
 		if cfg.Transits == nil {
 			return nil, ErrNotAvailable
 		}
-		return cfg.Transits(req.ToBirthData(), req.StartDate, req.EndDate, defaultOrb(req.Orb, OrbStandard), req.Sidereal)
+		return cfg.Transits(req.ToBirthData(), req.StartDate, req.EndDate, defaultOrb(req.Orb, OrbStandard), req.Sidereal, req.Ayanamsa)
 	}))
 
 	mux.HandleFunc("/api/synastry", handleJSON(func(req SynastryRequest) ([]byte, error) {
@@ -430,7 +436,7 @@ func NewMux(cfg ServerConfig) *http.ServeMux {
 		if hs == "" {
 			hs = "placidus"
 		}
-		result, err := cfg.Chart(req.ToBirthData(), hs, req.Sidereal, req.ShowAspects, req.OuterPlanets, req.HighlightPatterns, req.PatternOrb)
+		result, err := cfg.Chart(req.ToBirthData(), hs, req.Sidereal, req.Ayanamsa, req.ShowAspects, req.OuterPlanets, req.HighlightPatterns, req.PatternOrb)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -534,6 +540,13 @@ func NewMux(cfg ServerConfig) *http.ServeMux {
 	}))
 
 	mux.HandleFunc("/api/bi-wheel", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodOptions {
+			w.Header().Set("Access-Control-Allow-Origin", "*")
+			w.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS")
+			w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
 		if r.Method != http.MethodPost {
 			http.Error(w, "POST only", http.StatusMethodNotAllowed)
 			return
@@ -560,10 +573,63 @@ func NewMux(cfg ServerConfig) *http.ServeMux {
 		if req.Sidereal {
 			opts.Sidereal = true
 		}
+		if req.Ayanamsa != "" {
+			opts.Ayanamsa = req.Ayanamsa
+		}
 		if req.Orb > 0 {
 			opts.Orb = req.Orb
 		}
 		result, err := cfg.BiWheel(req.Inner.ToBirthData(), req.Outer.ToBirthData(), opts)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		w.Header().Set("Content-Type", "image/svg+xml")
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Write(result)
+	})
+
+	mux.HandleFunc("/api/tri-wheel", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodOptions {
+			w.Header().Set("Access-Control-Allow-Origin", "*")
+			w.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS")
+			w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+		if r.Method != http.MethodPost {
+			http.Error(w, "POST only", http.StatusMethodNotAllowed)
+			return
+		}
+		var req TriWheelRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			http.Error(w, "invalid JSON: "+err.Error(), http.StatusBadRequest)
+			return
+		}
+		if cfg.TriWheel == nil {
+			http.Error(w, "not available", http.StatusNotImplemented)
+			return
+		}
+		opts := dignity.DefaultTriWheelOptions()
+		if req.HouseSystem != "" {
+			opts.HouseSystem = req.HouseSystem
+		}
+		if req.ShowAsteroids {
+			opts.ShowAsteroids = true
+		}
+		if req.ShowTNPs {
+			opts.ShowTNPs = true
+		}
+		if req.Sidereal {
+			opts.Sidereal = true
+		}
+		if req.Ayanamsa != "" {
+			opts.Ayanamsa = req.Ayanamsa
+		}
+		if req.Orb > 0 {
+			opts.Orb = req.Orb
+		}
+		result, err := cfg.TriWheel(req.Inner.ToBirthData(), req.Middle.ToBirthData(), req.Outer.ToBirthData(), opts)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -846,17 +912,51 @@ func NewMux(cfg ServerConfig) *http.ServeMux {
 		}
 		results := make([]CityResult, len(cities))
 		for i, c := range cities {
+			// Use tzf for accurate timezone lookup, fall back to heuristic
+			offset, err := geocode.GetUTCOffset(c.Lat, c.Lon, time.Now().Year(), int(time.Now().Month()), time.Now().Day())
+			if err != nil {
+				offset = geocode.EstimateTZOffset(c.Lon)
+			}
 			results[i] = CityResult{
 				Name:    c.Name,
 				Country: c.Country,
 				Lat:     c.Lat,
 				Lon:     c.Lon,
-				TZOffset: geocode.EstimateTZOffset(c.Lon),
+				TZOffset: offset,
 			}
 		}
 		w.Header().Set("Content-Type", "application/json")
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 		json.NewEncoder(w).Encode(results)
+	})
+
+	// GET /api/geocode/timezone?lat=...&lon=...&year=...&month=...&day=...
+	// Returns the IANA timezone name and UTC offset for a given location and date.
+	mux.HandleFunc("/api/geocode/timezone", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			http.Error(w, "GET only", http.StatusMethodNotAllowed)
+			return
+		}
+		lat, _ := strconv.ParseFloat(r.URL.Query().Get("lat"), 64)
+		lon, _ := strconv.ParseFloat(r.URL.Query().Get("lon"), 64)
+		year, _ := strconv.Atoi(r.URL.Query().Get("year"))
+		month, _ := strconv.Atoi(r.URL.Query().Get("month"))
+		day, _ := strconv.Atoi(r.URL.Query().Get("day"))
+		if year == 0 {
+			now := time.Now()
+			year, month, day = now.Year(), int(now.Month()), now.Day()
+		}
+		name, _ := geocode.GetTimezoneName(lat, lon)
+		offset, err := geocode.GetUTCOffset(lat, lon, year, month, day)
+		if err != nil {
+			offset = geocode.EstimateTZOffset(lon)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"timezone":  name,
+			"tz_offset": offset,
+		})
 	})
 
 	// POST /api/research-metrics — compute all research metrics for a chart.
@@ -953,6 +1053,20 @@ type BiWheelRequest struct {
 	ShowAsteroids bool         `json:"show_asteroids"`
 	ShowTNPs      bool         `json:"show_tnps"`
 	Sidereal      bool         `json:"sidereal"`
+	Ayanamsa      string       `json:"ayanamsa"`
+	Orb           float64      `json:"orb"`
+}
+
+// TriWheelRequest is the request for /api/tri-wheel.
+type TriWheelRequest struct {
+	Inner         ChartRequest `json:"inner"`
+	Middle        ChartRequest `json:"middle"`
+	Outer         ChartRequest `json:"outer"`
+	HouseSystem   string       `json:"house_system"`
+	ShowAsteroids bool         `json:"show_asteroids"`
+	ShowTNPs      bool         `json:"show_tnps"`
+	Sidereal      bool         `json:"sidereal"`
+	Ayanamsa      string       `json:"ayanamsa"`
 	Orb           float64      `json:"orb"`
 }
 
@@ -1038,6 +1152,7 @@ type ChartRequest struct {
 	Lng         float64 `json:"lng"`
 	HouseSystem string  `json:"house_system"`
 	Sidereal    bool    `json:"sidereal"`
+	Ayanamsa    string  `json:"ayanamsa"`
 	ShowAspects bool    `json:"show_aspects"`
 	OuterPlanets bool   `json:"outer_planets"`
 	Orb         float64 `json:"orb"`
@@ -1072,6 +1187,7 @@ type TransitRequest struct {
 	EndDate   string  `json:"end_date"`
 	Orb       float64 `json:"orb"`
 	Sidereal  bool    `json:"sidereal"`
+	Ayanamsa  string  `json:"ayanamsa"`
 }
 
 // TransitChartRequest is the JSON body for /api/transit-chart.

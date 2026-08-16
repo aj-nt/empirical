@@ -113,13 +113,15 @@ func TestNearestCity_Integration(t *testing.T) {
 	if err != nil {
 		t.Fatalf("LoadCities failed: %v", err)
 	}
-	// Phuket should find itself
+	// Phuket area — with the granular GeoNames dataset (69k cities), the
+	// nearest city to (7.8804, 98.3923) is "Ban Talat Nua", a sub-district
+	// of Phuket town, not the "Phuket" centroid itself.
 	result, ok := NearestCity(7.8804, 98.3923, cities)
 	if !ok {
 		t.Fatal("expected to find a city")
 	}
-	if result.Name != "Phuket" {
-		t.Errorf("expected Phuket, got %s", result.Name)
+	if result.Name != "Ban Talat Nua" {
+		t.Errorf("expected Ban Talat Nua, got %s", result.Name)
 	}
 
 	// Olympia, WA (~47.038, -122.901) should find Olympia or nearby

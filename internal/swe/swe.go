@@ -167,6 +167,22 @@ func SetSidMode(sidMode int32, t0, ayanT0 float64) {
 	C.swe_set_sid_mode(C.int32_t(sidMode), C.double(t0), C.double(ayanT0))
 }
 
+// SetAyanamsaMode sets the sidereal mode by name.
+// Supported: "lahiri", "fagan_bradley", "raman", "krishnamurti".
+// Defaults to Lahiri for empty or unrecognized names.
+func SetAyanamsaMode(name string) {
+	switch name {
+	case "fagan_bradley":
+		SetSidMode(SIDM_FAGAN_BRADLEY, 0, 0)
+	case "raman":
+		SetSidMode(SIDM_RAMAN, 0, 0)
+	case "krishnamurti":
+		SetSidMode(SIDM_KRISHNAMURTI, 0, 0)
+	default:
+		SetSidMode(SIDM_LAHIRI, 0, 0)
+	}
+}
+
 // GetAyanamsaUT returns the ayanamsa value for a given Julian Day.
 func GetAyanamsaUT(jd float64) float64 {
 	mu.Lock()

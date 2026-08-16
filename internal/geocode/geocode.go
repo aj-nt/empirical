@@ -5,6 +5,10 @@ import (
 	"encoding/json"
 	"math"
 	"strings"
+	"sync"
+	"time"
+
+	"github.com/ringsaturn/tzf"
 )
 
 // City represents a named location with country code.
@@ -17,6 +21,49 @@ type City struct {
 
 //go:embed cities.json
 var citiesJSON []byte
+
+var (
+	tzfFinder     tzf.F
+	tzfFinderOnce sync.Once
+	tzfFinderErr  error
+)
+
+// getFinder returns the singleton tzf finder, initialized once.
+func getFinder() (tzf.F, error) {
+	tzfFinderOnce.Do(func() {
+		tzfFinder, tzfFinderErr = tzf.NewDefaultFinder()
+	})
+	return tzfFinder, tzfFinderErr
+}
+
+// GetTimezoneName returns the IANA timezone name for a given lat/lon.
+// Uses the tzf library for accurate polygon-based lookup.
+func GetTimezoneName(lat, lon float64) (string, error) {
+	f, err := getFinder()
+	if err != nil {
+		return "", err
+	}
+	// tzf uses (lng, lat) order
+	return f.GetTimezoneName(lon, lat), nil
+}
+
+// GetUTCOffset returns the UTC offset in hours for a given lat/lon and date.
+// Uses tzf for timezone lookup, then Go's time package for the actual offset
+// (which accounts for DST and historical changes).
+func GetUTCOffset(lat, lon float64, year, month, day int) (float64, error) {
+	name, err := GetTimezoneName(lat, lon)
+	if err != nil {
+		// Fall back to heuristic
+		return EstimateTZOffset(lon), nil
+	}
+	loc, err := time.LoadLocation(name)
+	if err != nil {
+		return EstimateTZOffset(lon), nil
+	}
+	t := time.Date(year, time.Month(month), day, 12, 0, 0, 0, loc)
+	_, offsetSec := t.Zone()
+	return float64(offsetSec) / 3600.0, nil
+}
 
 // LoadCities loads the embedded cities database.
 func LoadCities() ([]City, error) {

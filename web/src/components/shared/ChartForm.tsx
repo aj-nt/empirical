@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import type { BirthData, SavedChart } from '../../lib/types';
 import { chartDB } from '../../lib/db';
+import { HOUSE_SYSTEMS, DEFAULT_HOUSE_SYSTEM } from '../../lib/houseSystems';
 
 interface ChartFormProps {
   initialData?: BirthData;
@@ -28,6 +29,7 @@ export function ChartForm({ initialData, initialName, onSave, onCancel }: ChartF
   const [lat, setLat] = useState(initialData?.lat || 0);
   const [lng, setLng] = useState(initialData?.lng || 0);
   const [tags, setTags] = useState('');
+  const [houseSystem, setHouseSystem] = useState(DEFAULT_HOUSE_SYSTEM);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
@@ -112,7 +114,7 @@ export function ChartForm({ initialData, initialName, onSave, onCancel }: ChartF
         .map((t) => t.trim())
         .filter(Boolean);
 
-      const id = await chartDB.createFromBirthData(name.trim(), birthData, tagList);
+      const id = await chartDB.createFromBirthData(name.trim(), birthData, tagList, houseSystem);
       const chart = await chartDB.getById(id);
       if (chart) onSave(chart);
     } catch (e) {
@@ -287,6 +289,20 @@ export function ChartForm({ initialData, initialName, onSave, onCancel }: ChartF
               placeholder="-122.901"
             />
           </div>
+        </div>
+
+        {/* House System */}
+        <div>
+          <label className="block text-xs text-muted mb-1">House System</label>
+          <select
+            value={houseSystem}
+            onChange={(e) => setHouseSystem(e.target.value)}
+            className={inputClass}
+          >
+            {HOUSE_SYSTEMS.map((hs) => (
+              <option key={hs.value} value={hs.value}>{hs.label}</option>
+            ))}
+          </select>
         </div>
 
         {/* Tags */}

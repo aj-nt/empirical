@@ -1,0 +1,34 @@
+name: Chart Data Submission
+description: Submit verified birth data for a public figure
+labels: [chart-data]
+body:
+  - type: input
+    attributes:
+      label: Name
+      description: Full name of the public figure
+    validations:
+      required: true
+  - type: input
+    attributes:
+      label: Birth date (YYYY-MM-DD)
+      description: Date of birth in ISO format
+      placeholder: "1940-10-09"
+    validations:
+      required: true
+  - type: input
+    attributes:
+      label: Birth time (HH:MM, 24h)
+      description: Time of birth (24-hour format). Leave blank if unknown.
+      placeholder: "14:30"
+  - type: input
+    attributes:
+      label: Birth location (city, country)
+      description: Birthplace
+      placeholder: "Liverpool, England"
+    validations:
+      required: true
+  - type: input
+    attributes:
+      label: Source
+      description: Source and Rodden rating (AA, A, B, C, DD, X, XX)
+      placeholder: "BC/BR; Rodden Rating AA"
