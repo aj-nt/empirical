@@ -2,23 +2,20 @@ package dignity
 
 import (
 	"math"
-	"os"
-	"path/filepath"
 	"testing"
 
+	"github.com/aj-nt/empirical"
 	"github.com/aj-nt/empirical/internal/swe"
 )
 
-// initEphe sets up the ephemeris path for tests that need SWE.
+// initEphe ensures the ephemeris cache is fully extracted and points SWE at it.
+// It calls EnsureEpheCache (not a bare os.Stat) so a partially-extracted cache
+// left by a parallel test binary is completed rather than silently used.
 func initEphe(t *testing.T) {
 	t.Helper()
-	home, err := os.UserHomeDir()
+	cacheDir, err := empirical.EnsureEpheCache()
 	if err != nil {
-		t.Skipf("cannot find home dir: %v", err)
-	}
-	cacheDir := filepath.Join(home, ".cache", "empirical", "ephe")
-	if _, err := os.Stat(cacheDir); os.IsNotExist(err) {
-		t.Skipf("ephemeris cache not found at %s — run the server once first", cacheDir)
+		t.Fatalf("EnsureEpheCache: %v", err)
 	}
 	swe.SetEphePath(cacheDir)
 	swe.SetSidMode(swe.SIDM_LAHIRI, 0, 0)

@@ -10,9 +10,17 @@ import (
 //go:embed ephe/* ephe/ast*/*.se1
 var epheFiles embed.FS
 
+// completeMarker is written after a full extraction. Its presence (not merely
+// "some files exist") signals the cache is complete. Without it, a second
+// process running in parallel (e.g. `go test ./...` runs package test binaries
+// concurrently) can observe a partially-extracted cache and return early,
+// leaving SetEphePath pointing at an incomplete directory.
+const completeMarker = ".complete"
+
 // EnsureEpheCache extracts embedded ephemeris files to ~/.cache/empirical/ephe/
-// and returns the path. On subsequent calls it skips extraction if the cache
-// already contains files.
+// and returns the path. Extraction is idempotent (files are overwritten), so
+// concurrent callers racing to extract are safe; the completion marker only
+// gates the fast-path skip.
 func EnsureEpheCache() (string, error) {
 	home, err := os.UserHomeDir()
 	if err != nil {
@@ -20,8 +28,8 @@ func EnsureEpheCache() (string, error) {
 	}
 	cacheDir := filepath.Join(home, ".cache", "empirical", "ephe")
 
-	// Quick check: if cache dir exists with files, skip extraction
-	if entries, _ := os.ReadDir(cacheDir); len(entries) > 0 {
+	// Fast path: only skip if a prior extraction fully completed.
+	if _, err := os.Stat(filepath.Join(cacheDir, completeMarker)); err == nil {
 		return cacheDir, nil
 	}
 
@@ -29,7 +37,7 @@ func EnsureEpheCache() (string, error) {
 		return "", err
 	}
 
-	return cacheDir, fs.WalkDir(epheFiles, "ephe", func(path string, d fs.DirEntry, err error) error {
+	err = fs.WalkDir(epheFiles, "ephe", func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
@@ -56,4 +64,14 @@ func EnsureEpheCache() (string, error) {
 		}
 		return os.WriteFile(targetPath, data, 0644)
 	})
+	if err != nil {
+		return "", err
+	}
+
+	// Mark extraction complete. Written last so a concurrent reader that sees
+	// the marker is guaranteed to see all files.
+	if err := os.WriteFile(filepath.Join(cacheDir, completeMarker), []byte("ok"), 0644); err != nil {
+		return "", err
+	}
+	return cacheDir, nil
 }
