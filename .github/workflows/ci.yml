@@ -73,15 +73,8 @@ jobs:
           mkdir -p "$SWE_ASAN/lib" "$SWE_ASAN/include" "$SWE_ASAN/lib/pkgconfig"
           cp libswe.a "$SWE_ASAN/lib/"
           cp *.h "$SWE_ASAN/include/"
-          cat > "$SWE_ASAN/lib/pkgconfig/swe.pc" <<EOF
-          prefix=$SWE_ASAN
-          libdir=\${prefix}/lib
-          includedir=\${prefix}/include
-          Name: swe
-          Version: 2.10.03
-          Libs: \${libdir}/libswe.a -lm -fsanitize=address
-          Cflags: -I\${includedir} -fsanitize=address
-          EOF
+          printf 'prefix=%s\nlibdir=${prefix}/lib\nincludedir=${prefix}/include\n\nName: swe\nDescription: Swiss Ephemeris (ASAN)\nVersion: 2.10.03\nLibs: ${libdir}/libswe.a -lm -fsanitize=address\nCflags: -I${includedir} -fsanitize=address\n' "$SWE_ASAN" > "$SWE_ASAN/lib/pkgconfig/swe.pc"
+          cat "$SWE_ASAN/lib/pkgconfig/swe.pc"
           export PKG_CONFIG_PATH="$SWE_ASAN/lib/pkgconfig"
           export CGO_CFLAGS="-fsanitize=address"
           export CGO_LDFLAGS="-fsanitize=address"
