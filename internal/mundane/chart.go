@@ -23,17 +23,17 @@ type MundaneChart struct {
 // 10 bodies: Sun through Pluto plus North Node.
 func DefaultMundanePlanets() []dignity.PlanetID {
 	return []dignity.PlanetID{
-		{"Sun", 0},
-		{"Moon", 1},
-		{"Mercury", 2},
-		{"Venus", 3},
-		{"Mars", 4},
-		{"Jupiter", 5},
-		{"Saturn", 6},
-		{"Uranus", 7},
-		{"Neptune", 8},
-		{"Pluto", 9},
-		{"Node", 10},
+		{Name: "Sun", ID: 0},
+		{Name: "Moon", ID: 1},
+		{Name: "Mercury", ID: 2},
+		{Name: "Venus", ID: 3},
+		{Name: "Mars", ID: 4},
+		{Name: "Jupiter", ID: 5},
+		{Name: "Saturn", ID: 6},
+		{Name: "Uranus", ID: 7},
+		{Name: "Neptune", ID: 8},
+		{Name: "Pluto", ID: 9},
+		{Name: "Node", ID: 10},
 	}
 }
 

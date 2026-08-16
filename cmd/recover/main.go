@@ -708,7 +708,7 @@ func main() {
 		cacheDir := ""
 		natalPlanets := dignity.AllPlanetNames
 		synastryAspects := []dignity.AspectDef{
-			{0, "conjunction"}, {60, "sextile"}, {90, "square"}, {120, "trine"}, {180, "opposition"},
+			{Angle: 0, Name: "conjunction"}, {Angle: 60, Name: "sextile"}, {Angle: 90, Name: "square"}, {Angle: 120, Name: "trine"}, {Angle: 180, Name: "opposition"},
 		}
 
 		switch subCmd {
