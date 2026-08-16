@@ -63,5 +63,34 @@ jobs:
           name: web-dist
           path: web/dist
       - run: go build -buildvcs=false ./...
+      - name: ASAN repro (diagnostic)
+        run: |
+          set -euo pipefail
+          cd /tmp/swisseph
+          make clean >/dev/null 2>&1 || true
+          make libswe.a CFLAGS="-g -O1 -fsanitize=address -fno-omit-frame-pointer -Wall -fPIC" >/dev/null 2>&1
+          cat > /tmp/repro_seq.c <<'CEOF'
+          #include <stdio.h>
+          #include <string.h>
+          #include "swephexp.h"
+          int main(int argc, char **argv) {
+              char serr[256]; double xx[6]; int ret;
+              const char *ephepath = "/home/runner/work/empirical/empirical/ephe";
+              int bodies[] = { SE_SUN, SE_MOON, SE_MERCURY, SE_VENUS, SE_MARS,
+                  SE_JUPITER, SE_SATURN, SE_URANUS, SE_NEPTUNE, SE_PLUTO,
+                  SE_MEAN_NODE, SE_TRUE_NODE, SE_CERES, SE_PALLAS, SE_JUNO,
+                  SE_VESTA, SE_MEAN_APOG, SE_CHIRON, 10000 + 136199 };
+              int n = sizeof(bodies)/sizeof(bodies[0]);
+              double jd = 2461267.5;
+              swe_set_ephe_path(ephepath);
+              for (int i = 0; i < n; i++) {
+                  ret = swe_calc_ut(jd, bodies[i], SEFLG_SWIEPH|SEFLG_SPEED, xx, serr);
+                  printf("body %2d (id %6d): ret=%d lon=%f %s\n", i, bodies[i], ret, xx[0], (ret<0?serr:""));
+              }
+              swe_close(); return 0;
+          }
+          CEOF
+          cc -g -O1 -fsanitize=address -fno-omit-frame-pointer -I. /tmp/repro_seq.c libswe.a -lm -o /tmp/repro_asan
+          /tmp/repro_asan 2>&1 | tail -60
       - run: go test ./...
       - run: go vet ./...
